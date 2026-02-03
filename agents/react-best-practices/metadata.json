@@ -1,4 +1,5 @@
 {
+  "title": "React Best Practices",
   "version": "1.0.0",
   "organization": "Vercel Engineering",
   "date": "January 2026",
@@ -11,5 +12,56 @@
     "https://github.com/isaacs/node-lru-cache",
     "https://vercel.com/blog/how-we-optimized-package-imports-in-next-js",
     "https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast"
+  ],
+  "sections": [
+    {
+      "id": "async",
+      "title": "消除瀑布流",
+      "impact": "CRITICAL",
+      "description": "瀑布流是头号性能杀手。每一个串行的 await 都会增加完整的网络延迟。消除它们能带来最大的收益。"
+    },
+    {
+      "id": "bundle",
+      "title": "包体积优化",
+      "impact": "CRITICAL",
+      "description": "减少初始包体积可以改善交互时间 (TTI) 和最大内容绘制 (LCP)。"
+    },
+    {
+      "id": "server",
+      "title": "服务端性能",
+      "impact": "HIGH",
+      "description": "优化服务端渲染和数据获取，消除服务端瀑布流并缩短响应时间。"
+    },
+    {
+      "id": "client",
+      "title": "客户端数据获取",
+      "impact": "MEDIUM-HIGH",
+      "description": "自动去重和高效的数据获取模式可以减少冗余的网络请求。"
+    },
+    {
+      "id": "rerender",
+      "title": "重渲染优化",
+      "impact": "MEDIUM",
+      "description": "减少不必要的重渲染可以尽可能减少无用的计算并提高 UI 响应速度。"
+    },
+    {
+      "id": "rendering",
+      "title": "渲染性能",
+      "impact": "MEDIUM",
+      "description": "优化渲染过程，减少浏览器的渲染工作量。"
+    },
+    {
+      "id": "js",
+      "title": "JavaScript 性能",
+      "impact": "LOW-MEDIUM",
+      "description": "针对热点路径的微优化积累起来也能带来显著的提升。"
+    },
+    {
+      "id": "advanced",
+      "title": "高级模式",
+      "impact": "LOW",
+      "description": "针对特定场景的高级模式，需要谨慎实现。"
+    }
   ]
 }
+

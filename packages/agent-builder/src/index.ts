@@ -5,8 +5,8 @@
 
 import { readdir, readFile, writeFile } from 'fs/promises'
 import { join, basename } from 'path'
-import type { Rule, Section, CodeExample, ImpactLevel, AgentConfig } from './types.js'
-import { agents, AGENTS_DIR } from './config.js'
+import type { Rule, Section, CodeExample, ImpactLevel, AgentConfig, MetadataConfig, SectionConfig } from './types.js'
+import { agentNames, AGENTS_DIR, SKILLS_DIR } from './config.js'
 
 // Parse CLI arguments
 const args = process.argv.slice(2)
@@ -14,11 +14,20 @@ const buildAll = args.includes('--all')
 const agentName = args.find((a) => !a.startsWith('-'))
 
 /**
+ * Load metadata.json for an agent
+ */
+async function loadMetadata(agentName: string): Promise<MetadataConfig> {
+  const metadataPath = join(AGENTS_DIR, agentName, 'metadata.json')
+  const content = await readFile(metadataPath, 'utf-8')
+  return JSON.parse(content) as MetadataConfig
+}
+
+/**
  * Parse a rule markdown file
  */
 async function parseRule(
   filePath: string,
-  sectionMap: Record<string, number>
+  sectionMap: Map<string, number>
 ): Promise<{ section: number; rule: Rule }> {
   const content = (await readFile(filePath, 'utf-8')).replace(/\r\n/g, '\n')
   const filename = basename(filePath)
@@ -92,8 +101,9 @@ async function parseRule(
   let section = 0
   for (let len = filenameParts.length; len > 0; len--) {
     const prefix = filenameParts.slice(0, len).join('-')
-    if (sectionMap[prefix] !== undefined) {
-      section = sectionMap[prefix]
+    const sectionNum = sectionMap.get(prefix)
+    if (sectionNum !== undefined) {
+      section = sectionNum
       break
     }
   }
@@ -104,42 +114,13 @@ async function parseRule(
   }
 }
 
-/**
- * Parse sections metadata from _sections.md
- */
-async function parseSections(filePath: string): Promise<Map<number, Partial<Section>>> {
-  const sections = new Map<number, Partial<Section>>()
-  try {
-    const content = await readFile(filePath, 'utf-8')
-    const blocks = content.split(/(?=^## \d+\. )/m).filter(Boolean)
 
-    for (const block of blocks) {
-      const headerMatch = block.match(/^## (\d+)\.\s+(.+?)(?:\s+\([^)]+\))?$/m)
-      if (!headerMatch) continue
-
-      const num = parseInt(headerMatch[1])
-      const title = headerMatch[2].trim()
-      const impactMatch = block.match(/\*\*Impact:\*\*\s+(\w+(?:-\w+)?)/i)
-      const descMatch = block.match(/\*\*Description:\*\*\s+(.+?)(?=\n\n|$)/s)
-
-      sections.set(num, {
-        number: num,
-        title,
-        impact: (impactMatch?.[1]?.toUpperCase() || 'MEDIUM') as ImpactLevel,
-        description: descMatch?.[1]?.trim(),
-      })
-    }
-  } catch {
-    // File not found, use defaults
-  }
-  return sections
-}
 
 /**
  * Generate AGENTS.md content
  */
-function generateMarkdown(sections: Section[], config: AgentConfig): string {
-  const { title, abstract, version = '1.0.0', organization = 'Engineering' } = config
+function generateMarkdown(sections: Section[], metadata: MetadataConfig): string {
+  const { title, abstract, version = '1.0.0', organization = 'Engineering' } = metadata
   let md = `# ${title}\n\n`
   md += `> Version ${version} | ${organization}\n\n`
   md += `## Abstract\n\n${abstract}\n\n`
@@ -182,21 +163,31 @@ function generateMarkdown(sections: Section[], config: AgentConfig): string {
 /**
  * Build a single agent
  */
-async function buildAgent(config: AgentConfig) {
-  console.log(`\nBuilding ${config.name}...`)
-  const agentDir = join(AGENTS_DIR, config.name)
-  const rulesDir = join(agentDir, 'rules')
+async function buildAgent(agentName: string) {
+  console.log(`\nBuilding ${agentName}...`)
+  
+  // Load metadata
+  const metadata = await loadMetadata(agentName)
+  
+  // Read rules from skills directory
+  const rulesDir = join(SKILLS_DIR, agentName, 'rules')
 
   // Read rule files
   const files = (await readdir(rulesDir))
     .filter((f) => f.endsWith('.md') && !f.startsWith('_'))
     .sort()
 
+  // Create section map from metadata
+  const sectionMap = new Map<string, number>()
+  metadata.sections.forEach((s, i) => {
+    sectionMap.set(s.id, i + 1)
+  })
+  
   // Parse rules
   const ruleData: { section: number; rule: Rule }[] = []
   for (const file of files) {
     try {
-      const parsed = await parseRule(join(rulesDir, file), config.sectionMap)
+      const parsed = await parseRule(join(rulesDir, file), sectionMap)
       ruleData.push(parsed)
     } catch (e) {
       console.error(`  Error parsing ${file}:`, e)
@@ -223,14 +214,22 @@ async function buildAgent(config: AgentConfig) {
     s.rules.forEach((r, i) => (r.id = `${s.number}.${i + 1}`))
   })
 
-  // Load section metadata
-  const sectionMeta = await parseSections(join(agentDir, '_sections.md'))
+  // Merge section metadata from metadata.json
   const sections = Array.from(sectionsMap.values())
     .sort((a, b) => a.number - b.number)
-    .map((s) => ({ ...s, ...sectionMeta.get(s.number) }))
+    .map((s) => {
+      const metaSection = metadata.sections.find((_, i) => i + 1 === s.number)
+      return {
+        ...s,
+        title: metaSection?.title || s.title,
+        impact: metaSection?.impact || s.impact,
+        description: metaSection?.description,
+      }
+    })
 
-  // Generate and write
-  const markdown = generateMarkdown(sections, config)
+  // Generate and write to agents directory
+  const markdown = generateMarkdown(sections, metadata)
+  const agentDir = join(AGENTS_DIR, agentName)
   const outputPath = join(agentDir, 'AGENTS.md')
   await writeFile(outputPath, markdown, 'utf-8')
 
@@ -245,20 +244,19 @@ async function main() {
   console.log('Agent Builder')
 
   if (buildAll) {
-    for (const config of Object.values(agents)) {
-      await buildAgent(config)
+    for (const name of agentNames) {
+      await buildAgent(name)
     }
   } else if (agentName) {
-    const config = agents[agentName]
-    if (!config) {
+    if (!agentNames.includes(agentName)) {
       console.error(`Unknown agent: ${agentName}`)
-      console.error(`Available: ${Object.keys(agents).join(', ')}`)
+      console.error(`Available: ${agentNames.join(', ')}`)
       process.exit(1)
     }
-    await buildAgent(config)
+    await buildAgent(agentName)
   } else {
     console.error('Usage: pnpm build <agent-name> | pnpm build --all')
-    console.error(`Available agents: ${Object.keys(agents).join(', ')}`)
+    console.error(`Available agents: ${agentNames.join(', ')}`)
     process.exit(1)
   }
 

@@ -35,11 +35,24 @@ export interface Section {
   rules: Rule[]
 }
 
-export interface AgentConfig {
-  name: string
+export interface SectionConfig {
+  id: string
   title: string
-  abstract: string
+  impact: ImpactLevel
+  description?: string
+}
+
+export interface MetadataConfig {
+  title: string
   version?: string
   organization?: string
-  sectionMap: Record<string, number>
+  date?: string
+  abstract: string
+  references?: string[]
+  sections: SectionConfig[]
+}
+
+export interface AgentConfig {
+  name: string
+  metadata: MetadataConfig
 }

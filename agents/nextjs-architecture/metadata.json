@@ -1,4 +1,5 @@
 {
+  "title": "Next.js Architecture",
   "version": "1.0.0",
   "organization": "xiu",
   "date": "February 2026",
@@ -9,5 +10,26 @@
     "https://github.com/alan2207/bulletproof-react",
     "https://ui.shadcn.com",
     "https://tailwindcss.com"
+  ],
+  "sections": [
+    {
+      "id": "arch",
+      "title": "架构核心",
+      "impact": "CRITICAL",
+      "description": "项目架构的基础原则，包括目录结构、模块组织和依赖关系。这是项目可维护性的根基。"
+    },
+    {
+      "id": "std",
+      "title": "项目标准",
+      "impact": "HIGH",
+      "description": "代码规范和项目标准，包括文件命名、导入规范、样式指南等，确保代码一致性。"
+    },
+    {
+      "id": "dev",
+      "title": "开发规范",
+      "impact": "MEDIUM",
+      "description": "开发环境配置和工具链设置，包括包管理器、依赖选择、技术栈配置等。"
+    }
   ]
 }
+
