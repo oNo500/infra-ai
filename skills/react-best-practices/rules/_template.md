@@ -1,0 +1,28 @@
+---
+title: 规则标题
+impact: MEDIUM
+impactDescription: 可选的影响描述 (例如 "20-50% improvement")
+tags: tag1, tag2
+---
+
+## 规则标题
+
+**Impact: MEDIUM (可选的影响描述)**
+
+简要说明规则及其重要性。应清晰简洁地解释性能影响。
+
+**Incorrect (错误做法描述):**
+
+```typescript
+// 错误代码示例
+const bad = example()
+```
+
+**Correct (正确做法描述):**
+
+```typescript
+// 正确代码示例
+const good = example()
+```
+
+Reference: [文档或资源链接](https://example.com)

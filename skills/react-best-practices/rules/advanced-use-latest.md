@@ -1,0 +1,39 @@
+---
+title: 用于稳定 Callback Refs 的 useEffectEvent
+impact: LOW
+impactDescription: prevents effect re-runs
+tags: advanced, hooks, useEffectEvent, refs, optimization
+---
+
+## 用于稳定 Callback Refs 的 useEffectEvent
+
+在回调中访问最新值，而无需将它们添加到依赖项数组中。防止 effect 重新运行，同时避免 stale closures。
+
+**Incorrect (effect 在每次回调更改时重新运行):**
+
+```tsx
+function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
+  const [query, setQuery] = useState('')
+
+  useEffect(() => {
+    const timeout = setTimeout(() => onSearch(query), 300)
+    return () => clearTimeout(timeout)
+  }, [query, onSearch])
+}
+```
+
+**Correct (使用 React 的 useEffectEvent):**
+
+```tsx
+import { useEffectEvent } from 'react';
+
+function SearchInput({ onSearch }: { onSearch: (q: string) => void }) {
+  const [query, setQuery] = useState('')
+  const onSearchEvent = useEffectEvent(onSearch)
+
+  useEffect(() => {
+    const timeout = setTimeout(() => onSearchEvent(query), 300)
+    return () => clearTimeout(timeout)
+  }, [query])
+}
+```

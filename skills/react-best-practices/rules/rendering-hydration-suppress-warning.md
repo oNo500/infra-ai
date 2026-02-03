@@ -1,0 +1,30 @@
+---
+title: 抑制预期的 Hydration 不匹配
+impact: LOW-MEDIUM
+impactDescription: avoids noisy hydration warnings for known differences
+tags: rendering, hydration, ssr, nextjs
+---
+
+## 抑制预期的 Hydration 不匹配
+
+在 SSR 框架（如 Next.js）中，某些值在服务器端和客户端上是故意不同的（随机 ID、日期、区域设置/时区格式）。对于这些 *预期的* 不匹配，将动态文本包裹在具有 `suppressHydrationWarning` 的元素中，以防止嘈杂的警告。不要用它来隐藏真正的 bug。不要过度使用。
+
+**Incorrect (已知的不匹配警告):**
+
+```tsx
+function Timestamp() {
+  return <span>{new Date().toLocaleString()}</span>
+}
+```
+
+**Correct (仅抑制预期的不匹配):**
+
+```tsx
+function Timestamp() {
+  return (
+    <span suppressHydrationWarning>
+      {new Date().toLocaleString()}
+    </span>
+  )
+}
+```

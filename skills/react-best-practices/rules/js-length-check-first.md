@@ -1,0 +1,49 @@
+---
+title: 数组比较时优先检查长度
+impact: MEDIUM-HIGH
+impactDescription: avoids expensive operations when lengths differ
+tags: javascript, arrays, performance, optimization, comparison
+---
+
+## 数组比较时优先检查长度
+
+当使用昂贵的操作（排序、深度相等、序列化）比较数组时，首先检查长度。如果长度不同，数组不可能相等。
+
+在实际应用中，当比较在热路径（事件处理程序、渲染循环）中运行时，此优化特别有价值。
+
+**Incorrect (始终运行昂贵的比较):**
+
+```typescript
+function hasChanges(current: string[], original: string[]) {
+  // 即使长度不同，也总是排序和连接
+  return current.sort().join() !== original.sort().join()
+}
+```
+
+即使 `current.length` 为 5 且 `original.length` 为 100，也会运行两个 O(n log n) 的排序。还有连接数组和比较字符串的开销。
+
+**Correct (首先进行 O(1) 长度检查):**
+
+```typescript
+function hasChanges(current: string[], original: string[]) {
+  // 如果长度不同，提前返回
+  if (current.length !== original.length) {
+    return true
+  }
+  // 仅当长度匹配时才排序
+  const currentSorted = current.toSorted()
+  const originalSorted = original.toSorted()
+  for (let i = 0; i < currentSorted.length; i++) {
+    if (currentSorted[i] !== originalSorted[i]) {
+      return true
+    }
+  }
+  return false
+}
+```
+
+这种新方法更有效，因为：
+- 当长度不同时，它避免了排序和连接数组的开销
+- 它避免了消耗内存来连接字符串（对于大型数组尤其重要）
+- 它避免了改变原始数组
+- 当发现差异时，它会提前返回

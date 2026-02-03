@@ -1,0 +1,45 @@
+---
+title: 将交互逻辑放入事件处理程序
+impact: MEDIUM
+impactDescription: avoids effect re-runs and duplicate side effects
+tags: rerender, useEffect, events, side-effects, dependencies
+---
+
+## 将交互逻辑放入事件处理程序
+
+如果副作用由特定的用户操作（提交、点击、拖动）触发，请在那个事件处理程序中运行它。不要将操作建模为 state + effect；这会使 effect 在不相关的更改上重新运行，并可能重复该操作。
+
+**Incorrect (事件被建模为 state + effect):**
+
+```tsx
+function Form() {
+  const [submitted, setSubmitted] = useState(false)
+  const theme = useContext(ThemeContext)
+
+  useEffect(() => {
+    if (submitted) {
+      post('/api/register')
+      showToast('Registered', theme)
+    }
+  }, [submitted, theme])
+
+  return <button onClick={() => setSubmitted(true)}>Submit</button>
+}
+```
+
+**Correct (在处理程序中执行):**
+
+```tsx
+function Form() {
+  const theme = useContext(ThemeContext)
+
+  function handleSubmit() {
+    post('/api/register')
+    showToast('Registered', theme)
+  }
+
+  return <button onClick={handleSubmit}>Submit</button>
+}
+```
+
+Reference: [Should this code move to an event handler?](https://react.dev/learn/removing-effect-dependencies#should-this-code-move-to-an-event-handler)

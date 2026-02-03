@@ -1,0 +1,99 @@
+---
+title: 策略性 Suspense 边界
+impact: HIGH
+impactDescription: 更快的初始绘制 (faster initial paint)
+tags: async, suspense, streaming, layout-shift
+---
+
+## 策略性 Suspense 边界
+
+与其在返回 JSX 之前在异步组件中等待数据，不如使用 Suspense 边界在数据加载时更快地显示包装器 UI。
+
+**Incorrect (包装器被数据获取阻塞):**
+
+```tsx
+async function Page() {
+  const data = await fetchData() // 阻塞整个页面
+  
+  return (
+    <div>
+      <div>Sidebar</div>
+      <div>Header</div>
+      <div>
+        <DataDisplay data={data} />
+      </div>
+      <div>Footer</div>
+    </div>
+  )
+}
+```
+
+整个布局都在等待数据，即使只有中间部分需要它。
+
+**Correct (包装器立即显示，数据流式传输):**
+
+```tsx
+function Page() {
+  return (
+    <div>
+      <div>Sidebar</div>
+      <div>Header</div>
+      <div>
+        <Suspense fallback={<Skeleton />}>
+          <DataDisplay />
+        </Suspense>
+      </div>
+      <div>Footer</div>
+    </div>
+  )
+}
+
+async function DataDisplay() {
+  const data = await fetchData() // 仅阻塞此组件
+  return <div>{data.content}</div>
+}
+```
+
+Sidebar、Header 和 Footer 立即渲染。只有 DataDisplay 等待数据。
+
+**Alternative (在组件间共享 promise):**
+
+```tsx
+function Page() {
+  // 立即启动 fetch，但不 await
+  const dataPromise = fetchData()
+  
+  return (
+    <div>
+      <div>Sidebar</div>
+      <div>Header</div>
+      <Suspense fallback={<Skeleton />}>
+        <DataDisplay dataPromise={dataPromise} />
+        <DataSummary dataPromise={dataPromise} />
+      </Suspense>
+      <div>Footer</div>
+    </div>
+  )
+}
+
+function DataDisplay({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise) // 解包 promise
+  return <div>{data.content}</div>
+}
+
+function DataSummary({ dataPromise }: { dataPromise: Promise<Data> }) {
+  const data = use(dataPromise) // 重用同一个 promise
+  return <div>{data.summary}</div>
+}
+```
+
+两个组件共享同一个 promise，因此只发生一次 fetch。布局立即渲染，而两个组件一起等待。
+
+**何时不使用此模式：**
+
+- 布局决策所需的关键数据（影响定位）
+- 首屏折叠上方的 SEO 关键内容
+- Suspense 开销不值得的小型、快速查询
+- 当你想避免布局偏移（加载 → 内容跳跃）时
+
+**权衡：** 更快的初始绘制 vs 潜在的布局偏移。根据你的 UX 优先级进行选择。

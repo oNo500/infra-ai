@@ -1,0 +1,50 @@
+---
+title: 基于用户意图的预加载
+impact: MEDIUM
+impactDescription: reduces perceived latency
+tags: bundle, preload, user-intent, hover
+---
+
+## 基于用户意图的预加载
+
+在需要之前预加载重型 bundle 以减少感知延迟。
+
+**Example (在 hover/focus 时预加载):**
+
+```tsx
+function EditorButton({ onClick }: { onClick: () => void }) {
+  const preload = () => {
+    if (typeof window !== 'undefined') {
+      void import('./monaco-editor')
+    }
+  }
+
+  return (
+    <button
+      onMouseEnter={preload}
+      onFocus={preload}
+      onClick={onClick}
+    >
+      Open Editor
+    </button>
+  )
+}
+```
+
+**Example (在功能标志启用时预加载):**
+
+```tsx
+function FlagsProvider({ children, flags }: Props) {
+  useEffect(() => {
+    if (flags.editorEnabled && typeof window !== 'undefined') {
+      void import('./monaco-editor').then(mod => mod.init())
+    }
+  }, [flags.editorEnabled])
+
+  return <FlagsContext.Provider value={flags}>
+    {children}
+  </FlagsContext.Provider>
+}
+```
+
+`typeof window !== 'undefined'` 检查可防止为 SSR 打包预加载的模块，从而优化服务端 bundle 大小和构建速度。
