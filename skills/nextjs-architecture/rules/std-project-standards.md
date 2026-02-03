@@ -10,7 +10,7 @@ tags: standards, naming, imports, typescript
 核心要求：
 
 - 文件名统一使用 kebab-case（包括 React 组件）
-- 代码风格遵循 ESLint 规范（运行 bun lint 检查）
+- 代码风格遵循 ESLint 规范（运行 pnpm lint 检查）
 - TypeScript 严格模式，禁止使用 any 类型
 - 禁止在代码中使用 emoji（除非用户明确要求）
 
