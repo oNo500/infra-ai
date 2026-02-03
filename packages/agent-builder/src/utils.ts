@@ -46,3 +46,21 @@ export async function loadMetadata(agentName: string): Promise<MetadataConfig> {
   const content = await readFile(metadataPath, 'utf-8')
   return JSON.parse(content) as MetadataConfig
 }
+
+/** 显示帮助信息 */
+export function displayHelp(agentNames: string[]) {
+  console.log(`
+使用方法:
+  pnpm build <agent-name>    构建指定的 agent
+  pnpm build --all           构建所有 agents
+  pnpm build --help          显示此帮助信息
+
+可用的 agents:
+${agentNames.map((name) => `  - ${name}`).join('\n')}
+
+示例:
+  pnpm build nextjs-architecture
+  pnpm build:all
+`)
+}
+

@@ -8,12 +8,13 @@ import { join, basename } from 'path'
 import matter from 'gray-matter'
 import type { Rule, Section, ImpactLevel } from './types.js'
 import { agentNames, AGENTS_DIR, SKILLS_DIR } from './config.js'
-import { loadMetadata, extractCodeExamples } from './utils.js'
+import { loadMetadata, extractCodeExamples, displayHelp } from './utils.js'
 import { generateMarkdown } from './markdown.js'
 
 /** 解析命令行参数 */
 const args = process.argv.slice(2)
 const buildAll = args.includes('--all')
+const showHelp = args.includes('--help') || args.includes('-h')
 const agentName = args.find((a) => !a.startsWith('-'))
 
 
@@ -120,26 +121,41 @@ async function buildAgent(agentName: string) {
   console.log(`  ${sections.length} sections, ${parsedRules.length} rules`)
 }
 
+
+
 /** 主函数 */
 async function main() {
-  console.log('Agent Builder')
+  console.log('Agent Builder\n')
 
+  // 显示帮助
+  if (showHelp) {
+    displayHelp(agentNames)
+    return
+  }
+
+  // 构建所有 agents
   if (buildAll) {
     for (const name of agentNames) await buildAgent(name)
-  } else if (agentName) {
+    console.log('\nDone!')
+    return
+  }
+
+  // 构建指定 agent
+  if (agentName) {
     if (!agentNames.includes(agentName)) {
-      console.error(`Unknown agent: ${agentName}`)
-      console.error(`Available: ${agentNames.join(', ')}`)
+      console.error(`❌ 错误: 未知的 agent "${agentName}"\n`)
+      displayHelp(agentNames)
       process.exit(1)
     }
     await buildAgent(agentName)
-  } else {
-    console.error('Usage: pnpm build <agent-name> | pnpm build --all')
-    console.error(`Available agents: ${agentNames.join(', ')}`)
-    process.exit(1)
+    console.log('\nDone!')
+    return
   }
 
-  console.log('\nDone!')
+  // 没有参数，显示帮助
+  console.error('❌ 错误: 缺少参数\n')
+  displayHelp(agentNames)
+  process.exit(1)
 }
 
 main().catch((e) => {
