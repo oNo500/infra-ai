@@ -32,9 +32,9 @@
 
 1. 复制 `rules/_template.md` 到 `rules/area-description.md`
 2. 选择合适的区域前缀：
-   - `arch-` 用于 Architecture Core (第 1 节)
-   - `std-` 用于 Project Standards (第 2 节)
-   - `dev-` 用于 Development (第 3 节)
+  - arch- = 架构模式、模块化、数据流
+  - std- = 命名规范、导入规范、样式规范
+  - dev- = 框架、UI库、状态管理、工具链
 3. 填写 frontmatter 和内容
 4. 运行 `pnpm build` 以重新生成 AGENTS.md
 
