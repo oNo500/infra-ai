@@ -1,0 +1,26 @@
+{
+  "name": "@infra-ai/sync-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "sync-docs": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/index.ts",
+    "sync": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "fs-extra": "^11.3.3",
+    "glob": "^11.0.2",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^25.1.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

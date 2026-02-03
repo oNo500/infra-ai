@@ -1,0 +1,45 @@
+---
+title: 缩小 Effect 依赖范围
+impact: LOW
+impactDescription: minimizes effect re-runs
+tags: 'rerender, useEffect, dependencies, optimization'
+---
+
+## 缩小 Effect 依赖范围
+
+指定原始值依赖项而不是对象，以最大程度地减少 effect 重新运行。
+
+**Incorrect (任何用户字段更改都会重新运行):**
+
+```tsx
+useEffect(() => {
+  console.log(user.id)
+}, [user])
+```
+
+**Correct (仅当 id 更改时重新运行):**
+
+```tsx
+useEffect(() => {
+  console.log(user.id)
+}, [user.id])
+```
+
+**对于派生状态，在 effect 外部计算:**
+
+```tsx
+// Incorrect: 在 width=767, 766, 765... 时运行
+useEffect(() => {
+  if (width < 768) {
+    enableMobileMode()
+  }
+}, [width])
+
+// Correct: 仅在布尔值转换时运行
+const isMobile = width < 768
+useEffect(() => {
+  if (isMobile) {
+    enableMobileMode()
+  }
+}, [isMobile])
+```

@@ -1,0 +1,40 @@
+---
+title: 在渲染期间计算派生状态
+impact: MEDIUM
+impactDescription: avoids redundant renders and state drift
+tags: 'rerender, derived-state, useEffect, state'
+---
+
+## 在渲染期间计算派生状态
+
+如果一个值可以从当前的 props/state 计算得出，请不要将其存储在 state 中或在 effect 中更新它。在渲染期间派生它，以避免额外的渲染和状态漂移。不要仅仅为了响应 prop 的更改而在 effect 中设置 state；首选派生值或带 key 的重置。
+
+**Incorrect (冗余的 state 和 effect):**
+
+```tsx
+function Form() {
+  const [firstName, setFirstName] = useState('First')
+  const [lastName, setLastName] = useState('Last')
+  const [fullName, setFullName] = useState('')
+
+  useEffect(() => {
+    setFullName(firstName + ' ' + lastName)
+  }, [firstName, lastName])
+
+  return <p>{fullName}</p>
+}
+```
+
+**Correct (在渲染期间派生):**
+
+```tsx
+function Form() {
+  const [firstName, setFirstName] = useState('First')
+  const [lastName, setLastName] = useState('Last')
+  const fullName = firstName + ' ' + lastName
+
+  return <p>{fullName}</p>
+}
+```
+
+References: [You Might Not Need an Effect](https://react.dev/learn/you-might-not-need-an-effect)

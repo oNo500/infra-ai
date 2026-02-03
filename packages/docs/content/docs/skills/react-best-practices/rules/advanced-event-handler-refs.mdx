@@ -1,0 +1,55 @@
+---
+title: 在 Refs 中存储事件处理程序
+impact: LOW
+impactDescription: stable subscriptions
+tags: 'advanced, hooks, refs, event-handlers, optimization'
+---
+
+## 在 Refs 中存储事件处理程序
+
+当在不应因回调更改而重新订阅的 effects 中使用回调时，将回调存储在 refs 中。
+
+**Incorrect (每次渲染都重新订阅):**
+
+```tsx
+function useWindowEvent(event: string, handler: (e) => void) {
+  useEffect(() => {
+    window.addEventListener(event, handler)
+    return () => window.removeEventListener(event, handler)
+  }, [event, handler])
+}
+```
+
+**Correct (稳定的订阅):**
+
+```tsx
+function useWindowEvent(event: string, handler: (e) => void) {
+  const handlerRef = useRef(handler)
+  useEffect(() => {
+    handlerRef.current = handler
+  }, [handler])
+
+  useEffect(() => {
+    const listener = (e) => handlerRef.current(e)
+    window.addEventListener(event, listener)
+    return () => window.removeEventListener(event, listener)
+  }, [event])
+}
+```
+
+**Alternative: 如果你使用最新的 React，使用 `useEffectEvent`:**
+
+```tsx
+import { useEffectEvent } from 'react'
+
+function useWindowEvent(event: string, handler: (e) => void) {
+  const onEvent = useEffectEvent(handler)
+
+  useEffect(() => {
+    window.addEventListener(event, onEvent)
+    return () => window.removeEventListener(event, onEvent)
+  }, [event])
+}
+```
+
+`useEffectEvent` 为相同的模式提供了更清晰的 API：它创建一个稳定的函数引用，该引用始终调用处理程序的最新版本。

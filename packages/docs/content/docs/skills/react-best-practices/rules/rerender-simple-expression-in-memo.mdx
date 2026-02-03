@@ -1,0 +1,35 @@
+---
+title: 不要在 useMemo 中包裹具有原始结果类型的简单表达式
+impact: LOW-MEDIUM
+impactDescription: wasted computation on every render
+tags: 'rerender, useMemo, optimization'
+---
+
+## 不要在 useMemo 中包裹具有原始结果类型的简单表达式
+
+当表达式很简单（很少的逻辑或算术运算符）并且具有原始结果类型（布尔值、数字、字符串）时，不要将其包裹在 `useMemo` 中。
+调用 `useMemo` 和比较 hook 依赖项消耗的资源可能比表达式本身更多。
+
+**Incorrect:**
+
+```tsx
+function Header({ user, notifications }: Props) {
+  const isLoading = useMemo(() => {
+    return user.isLoading || notifications.isLoading
+  }, [user.isLoading, notifications.isLoading])
+
+  if (isLoading) return <Skeleton />
+  // return some markup
+}
+```
+
+**Correct:**
+
+```tsx
+function Header({ user, notifications }: Props) {
+  const isLoading = user.isLoading || notifications.isLoading
+
+  if (isLoading) return <Skeleton />
+  // return some markup
+}
+```

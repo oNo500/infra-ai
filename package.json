@@ -1,0 +1,13 @@
+{
+  "name": "infra-ai",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "sync:docs": "pnpm --filter @infra-ai/sync-docs sync",
+    "docs:dev": "pnpm sync:docs && pnpm --filter docs dev",
+    "docs:build": "pnpm sync:docs && pnpm --filter docs build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

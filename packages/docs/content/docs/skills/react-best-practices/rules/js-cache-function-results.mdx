@@ -1,0 +1,80 @@
+---
+title: 缓存重复的函数调用
+impact: MEDIUM
+impactDescription: avoid redundant computation
+tags: 'javascript, cache, memoization, performance'
+---
+
+## 缓存重复的函数调用
+
+当在渲染期间以相同的输入重复调用相同的函数时，使用模块级 Map 来缓存函数结果。
+
+**Incorrect (冗余计算):**
+
+```typescript
+function ProjectList({ projects }: { projects: Project[] }) {
+  return (
+    <div>
+      {projects.map(project => {
+        // slugify() 对相同的项目名称调用了 100 多次
+        const slug = slugify(project.name)
+        
+        return <ProjectCard key={project.id} slug={slug} />
+      })}
+    </div>
+  )
+}
+```
+
+**Correct (缓存结果):**
+
+```typescript
+// 模块级缓存
+const slugifyCache = new Map<string, string>()
+
+function cachedSlugify(text: string): string {
+  if (slugifyCache.has(text)) {
+    return slugifyCache.get(text)!
+  }
+  const result = slugify(text)
+  slugifyCache.set(text, result)
+  return result
+}
+
+function ProjectList({ projects }: { projects: Project[] }) {
+  return (
+    <div>
+      {projects.map(project => {
+        // 每个唯一的项目名称仅计算一次
+        const slug = cachedSlugify(project.name)
+        
+        return <ProjectCard key={project.id} slug={slug} />
+      })}
+    </div>
+  )
+}
+```
+
+**Simpler pattern for single-value functions:**
+
+```typescript
+let isLoggedInCache: boolean | null = null
+
+function isLoggedIn(): boolean {
+  if (isLoggedInCache !== null) {
+    return isLoggedInCache
+  }
+  
+  isLoggedInCache = document.cookie.includes('auth=')
+  return isLoggedInCache
+}
+
+// Clear cache when auth changes
+function onAuthChange() {
+  isLoggedInCache = null
+}
+```
+
+使用 Map（而不是 hook）以便它在任何地方都有效：实用程序、事件处理程序，而不仅仅是 React 组件。
+
+Reference: [How we made the Vercel Dashboard twice as fast](https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast)

@@ -1,0 +1,36 @@
+---
+title: 将 Memoized 组件的默认非原始参数值提取到常量
+impact: MEDIUM
+impactDescription: restores memoization by using a constant for default value
+tags: 'rerender, memo, optimization'
+---
+
+## 将 Memoized 组件的默认非原始参数值提取到常量
+
+当 memoized 组件对某些非原始可选参数（如数组、函数或对象）具有默认值时，如果不带该参数调用组件，会导致 memoization 失效。这是因为每次重渲染都会创建新的值实例，它们在 `memo()` 中无法通过严格相等性比较。
+
+为了解决这个问题，将默认值提取到一个常量中。
+
+**Incorrect (`onClick` 在每次重渲染时都有不同的值):**
+
+```tsx
+const UserAvatar = memo(function UserAvatar({ onClick = () => {} }: { onClick?: () => void }) {
+  // ...
+})
+
+// 不带可选的 onClick 使用
+<UserAvatar />
+```
+
+**Correct (稳定的默认值):**
+
+```tsx
+const NOOP = () => {};
+
+const UserAvatar = memo(function UserAvatar({ onClick = NOOP }: { onClick?: () => void }) {
+  // ...
+})
+
+// 不带可选的 onClick 使用
+<UserAvatar />
+```

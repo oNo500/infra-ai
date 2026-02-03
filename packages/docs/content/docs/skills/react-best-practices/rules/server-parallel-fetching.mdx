@@ -1,0 +1,83 @@
+---
+title: 使用组件组合进行并行数据获取
+impact: CRITICAL
+impactDescription: eliminates server-side waterfalls
+tags: 'server, rsc, parallel-fetching, composition'
+---
+
+## 使用组件组合进行并行数据获取
+
+React Server Components 在树内按顺序执行。通过组合进行重构以并行化数据获取。
+
+**Incorrect (Sidebar 等待 Page 的 fetch 完成):**
+
+```tsx
+export default async function Page() {
+  const header = await fetchHeader()
+  return (
+    <div>
+      <div>{header}</div>
+      <Sidebar />
+    </div>
+  )
+}
+
+async function Sidebar() {
+  const items = await fetchSidebarItems()
+  return <nav>{items.map(renderItem)}</nav>
+}
+```
+
+**Correct (两者同时 fetch):**
+
+```tsx
+async function Header() {
+  const data = await fetchHeader()
+  return <div>{data}</div>
+}
+
+async function Sidebar() {
+  const items = await fetchSidebarItems()
+  return <nav>{items.map(renderItem)}</nav>
+}
+
+export default function Page() {
+  return (
+    <div>
+      <Header />
+      <Sidebar />
+    </div>
+  )
+}
+```
+
+**使用 children prop 的替代方案:**
+
+```tsx
+async function Header() {
+  const data = await fetchHeader()
+  return <div>{data}</div>
+}
+
+async function Sidebar() {
+  const items = await fetchSidebarItems()
+  return <nav>{items.map(renderItem)}</nav>
+}
+
+function Layout({ children }: { children: ReactNode }) {
+  return (
+    <div>
+      <Header />
+      {children}
+    </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Layout>
+      <Sidebar />
+    </Layout>
+  )
+}
+```
