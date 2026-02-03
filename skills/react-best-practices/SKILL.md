@@ -1,15 +1,11 @@
 ---
-name: vercel-react-best-practices
-description: Vercel Engineering 出品的 React 和 Next.js 性能优化指南。在编写、审查或重构 React/Next.js 代码时使用此技能，以确保最佳性能模式。适用于涉及 React 组件、Next.js 页面、数据获取、Bundle 优化或性能改进的任务。
-license: MIT
-metadata:
-  author: vercel
-  version: "1.0.0"
+name: optimizing-react
+description: 提供 Vercel Engineering 出品的 React 和 Next.js 性能优化指导。在编写、审查或重构 React/Next.js 代码时使用，确保最佳性能模式。
 ---
 
-# Vercel React Best Practices
+# React Performance Optimization
 
-Vercel 维护的 React 和 Next.js 应用程序综合性能优化指南。包含 8 个类别的 57 条规则，按影响优先级排列，用于指导自动重构和代码生成。
+Vercel 维护的 React 和 Next.js 性能优化指南。包含 8 个类别的 57 条规则，按影响优先级排列。
 
 ## 适用场景
 
@@ -118,19 +114,29 @@ Vercel 维护的 React 和 Next.js 应用程序综合性能优化指南。包含
 
 ## 如何使用
 
-阅读单个规则文件以获取详细解释和代码示例：
+查找具体规则时，搜索或直接读取规则文件：
 
-```
+```bash
+# 搜索相关规则
+grep -i "parallel" rules/
+grep -i "bundle" rules/
+
+# 直接读取规则
 rules/async-parallel.md
 rules/bundle-barrel-imports.md
 ```
 
+规则文件按前缀分类：
+- `async-*` - 消除瀑布流 (CRITICAL)
+- `bundle-*` - Bundle 优化 (CRITICAL)
+- `server-*` - 服务端性能 (HIGH)
+- `client-*` - 客户端数据获取 (MEDIUM-HIGH)
+- `rerender-*` - 重渲染优化 (MEDIUM)
+- `rendering-*` - 渲染性能 (MEDIUM)
+- `js-*` - JavaScript 性能 (LOW-MEDIUM)
+- `advanced-*` - 高级模式 (LOW)
+
 每个规则文件包含：
-- 简要解释为什么它很重要
-- 带有解释的错误代码示例
-- 带有解释的正确代码示例
-- 额外的上下文和参考资料
-
-## 完整编译文档
-
-有关扩展所有规则的完整指南：`AGENTS.md`
+- 简要解释
+- 错误/正确代码示例
+- 参考资料

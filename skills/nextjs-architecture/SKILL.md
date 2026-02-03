@@ -1,10 +1,6 @@
 ---
-name: nextjs-architecture
-description: Next.js 15 + React 19 架构指南，基于 Bulletproof React 模式。在创建新项目、组织代码结构、设置开发规范时使用此技能，确保遵循最佳实践。
-license: MIT
-metadata:
-  author: xiu
-  version: "1.0.0"
+name: architecting-nextjs
+description: 提供 Next.js 15 + React 19 架构指导，基于 Bulletproof React 模式。在创建新项目、组织代码结构、设置开发规范时使用此技能。
 ---
 
 # Next.js Architecture
@@ -46,13 +42,15 @@ metadata:
 
 ## 如何使用
 
-阅读单个规则文件以获取详细说明：
+查找具体规则时，直接读取规则文件：
 
 ```
 rules/arch-core.md
+rules/arch-project-structure.md
 rules/std-project-standards.md
+rules/std-style.md
+rules/dev-development.md
+rules/dev-stack.md
 ```
 
-## 完整编译文档
-
-有关扩展所有规则的完整指南：`AGENTS.md`
+每个规则文件包含详细说明和代码示例。
