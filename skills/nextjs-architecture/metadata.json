@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "organization": "xiu",
+  "date": "February 2026",
+  "abstract": "Next.js 15 + React 19 项目架构指南，基于 Bulletproof React 模式。包含架构核心、项目标准、开发规范三个类别的规则，用于指导项目结构组织、代码标准设置和开发环境配置。",
+  "references": [
+    "https://nextjs.org",
+    "https://react.dev",
+    "https://github.com/alan2207/bulletproof-react",
+    "https://ui.shadcn.com",
+    "https://tailwindcss.com"
+  ]
+}

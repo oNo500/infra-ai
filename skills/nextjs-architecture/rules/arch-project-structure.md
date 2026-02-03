@@ -1,10 +1,15 @@
-# Project Structure
+---
+title: 项目结构
+impact: CRITICAL
+impactDescription: 目录组织
+tags: architecture, structure, bulletproof-react
+---
 
-## 项目架构
+## 项目结构
 
 架构模式：采用 Bulletproof React - 特性驱动、单向依赖的三层架构
 
-三层架构：shared → features → app（单向数据流）
+三层架构：shared -> features -> app（单向数据流）
 
 ```bash
 .
@@ -38,7 +43,6 @@
 │   ├── types # shared types
 │   │   └── api.ts
 │   └── utils # shared utils 纯逻辑/无状态
-````
+```
 
 核心规则：单向依赖 `shared -> features -> app`，features 之间**禁止**互相导入
-
