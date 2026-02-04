@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # CLAUDE.md
 
 本文件为 Claude Code (claude.ai/code) 在处理此仓库代码时提供指导。
