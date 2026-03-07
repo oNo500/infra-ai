@@ -10,9 +10,7 @@ description: >
 
 # repo-context
 
-
-你正在更新 xxx 
-你的工作是 (a) 收集/推导具体值，(b) 精确填充模板，(c) 将任何修改传播到依赖制品。
+通过创建结构化上下文文档，解决 AI 编程助手无状态、上下文跨会话丢失的问题。
 
 ## 输出文件
 
@@ -25,14 +23,14 @@ CLAUDE.md                           # 主入口，由 Claude Code 自动加载
 
 Monorepo：
 ```
-CLAUDE.md                        # 仅此一个文件，保持高层次
+CLAUDE.md                           # 仅此一个文件，保持高层次
 ```
 
 ## 工作流
 
 ### 第一步：探索项目
 
-提问之前，先读取项目文件，了解现有信息：
+提问之前，先读取项目文件：
 
 ```
 - package.json / pyproject.toml / Cargo.toml（依赖、脚本、项目名）
@@ -48,10 +46,10 @@ CLAUDE.md                        # 仅此一个文件，保持高层次
 **是 Monorepo？** → 遵循下方「Monorepo 工作流」
 **普通项目？** → 遵循下方「普通项目工作流」
 
-Monorepo 判断依据（满足任意一条）：
+Monorepo 判断依据（满足任意一条即判定）：
 - `package.json` 含 `"workspaces"` 字段
 - 根目录存在 `pnpm-workspace.yaml`
-- 根目录存在 `turbo.json` 或 `nx.json` 或 `lerna.json`
+- 根目录存在 `turbo.json` / `nx.json` / `lerna.json`
 - 存在 `packages/`、`apps/`、`libs/` 等多包目录
 
 ---
@@ -60,7 +58,7 @@ Monorepo 判断依据（满足任意一条）：
 
 ### 第三步：确认关键信息
 
-仅针对无法推断的信息提问（每轮不超过 3 个问题）：
+仅针对无法推断的信息提问，每轮不超过 3 个问题：
 - 这个 monorepo 的整体用途是什么？（1-2 句话）
 - 各主要包/应用的职责是什么？
 - 有哪些跨包的不可违反约束？
@@ -69,7 +67,7 @@ Monorepo 判断依据（满足任意一条）：
 
 ### 第四步：生成文件
 
-读取 [monorepo-agents](references/monorepo-agents.md)，用真实项目信息替换占位符，生成或更新根目录 `CLAUDE.md` 一个文件。
+读取 [monorepo-agents](references/monorepo-agents.md)，替换占位符，生成根目录 `CLAUDE.md`。
 
 ### 第五步：总结
 
@@ -83,7 +81,7 @@ Monorepo 判断依据（满足任意一条）：
 
 ### 第三步：确认关键信息
 
-仅针对无法从代码库推断的信息向用户提问，每轮不超过 3 个问题：
+仅针对无法从代码库推断的信息提问，每轮不超过 3 个问题：
 - 这个项目的主要用途是什么？（1-2 句话）
 - 有哪些重要约束或不可违反的规则？
 - 主要贡献者/团队背景是什么？
@@ -92,21 +90,17 @@ Monorepo 判断依据（满足任意一条）：
 
 ### 第四步：生成文件
 
-按顺序生成全部 6 个文件。每个文件：
-1. 读取 `references/` 中对应的模板
-2. 用真实项目信息替换 `[占位符]`
-3. 将文件写入项目目录
+按顺序生成 3 个文件，每个文件读取对应模板，替换占位符后写入项目目录：
 
-生成顺序：
-1. `.claude/docs/constitution.md` — 先确立原则；读取 [constitution-template](references/constitution-template.md)，版本从 `1.0.0` 开始，日期用今天，原则数量以实际为准
-2. `.claude/docs/project-context.md` — 读取 [project-context-template](references/project-context-template.md)，填入技术栈、架构、编码规范、工作流、测试与修改规则
-3. `CLAUDE.md` — 最后写，读取 [project-agents](references/project-agents.md) 模板，引用所有其他文档
+1. `.claude/docs/constitution.md` — 读取 [constitution-template](references/constitution-template.md)；版本从 `1.0.0` 开始，日期用今天
+2. `.claude/docs/project-context.md` — 读取 [project-context-template](references/project-context-template.md)
+3. `CLAUDE.md` — 读取 [project-agents](references/project-agents.md)，最后生成，引用前两个文档
 
 ### 第五步：总结
 
 - 列出已创建的文件
 - 突出 constitution.md 中捕获的 2-3 条关键原则
-- 建议：在该目录下运行 `claude`，验证上下文是否正确加载
+- 建议：运行 `claude` 验证上下文是否正确加载
 
 ---
 
@@ -114,8 +108,8 @@ Monorepo 判断依据（满足任意一条）：
 
 | 文件 | 模板 | 适用 |
 |------|------|------|
-| CLAUDE.md（Monorepo）| [monorepo-agents](references/monorepo-agents.md) | Monorepo |
-| CLAUDE.md（普通项目）| [project-agents](references/project-agents.md) | 普通项目 |
+| CLAUDE.md | [monorepo-agents](references/monorepo-agents.md) | Monorepo |
+| CLAUDE.md | [project-agents](references/project-agents.md) | 普通项目 |
 | constitution.md | [constitution-template](references/constitution-template.md) | 普通项目 |
 | project-context.md | [project-context-template](references/project-context-template.md) | 普通项目 |
 
