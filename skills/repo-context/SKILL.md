@@ -10,7 +10,9 @@ description: >
 
 # repo-context
 
-通过创建结构化上下文文档，解决 AI 编程助手无状态、上下文跨会话丢失的问题。
+
+你正在更新 xxx 
+你的工作是 (a) 收集/推导具体值，(b) 精确填充模板，(c) 将任何修改传播到依赖制品。
 
 ## 输出文件
 
@@ -99,7 +101,7 @@ Monorepo 判断依据（满足任意一条）：
 3. 将文件写入项目目录
 
 生成顺序：
-1. `.claude/docs/constitution.md` — 先确立原则
+1. `.claude/docs/constitution.md` — 先确立原则；读取 [constitution-template](references/constitution-template.md)，版本从 `1.0.0` 开始，日期用今天，原则数量以实际为准
 2. `.claude/docs/tech-stack.md` — 记录 package.json/配置文件中已有的信息
 3. `.claude/docs/architecture.md` — 基于探索结果描述项目结构
 4. `.claude/docs/quickstart.md` — 基于脚本/README 整理实用工作流
