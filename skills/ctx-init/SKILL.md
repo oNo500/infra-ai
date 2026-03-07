@@ -16,7 +16,7 @@ description: >
 |------|------|----------|
 | `CLAUDE.md` | Claude Code 的项目级指令 | 所有项目 |
 | `.claude/docs/project-context.md` | 项目架构、技术栈详情 | 单体项目 / monorepo 子包 |
-| `.claude/docs/constitution.md` | AI 行为准则与价值观约束 | 用户明确要求时 |
+| `.claude/docs/constitution.md` | AI 行为准则与价值观约束 | 所有项目 |
 
 ## 参考文件
 
@@ -53,9 +53,9 @@ Progress:
 
 ---
 
-### Step 2: 生成 constitution.md（仅用户明确指定时）
+### Step 2: 生成 constitution.md
 
-参考 [references/constitution-guide.md](references/constitution-guide.md)，使用 `assets/constitution-template.md`，填写后输出到 `.claude/docs/constitution.md`。
+生成项目最高宪法，参考 [references/constitution-guide.md](references/constitution-guide.md)。
 
 ---
 

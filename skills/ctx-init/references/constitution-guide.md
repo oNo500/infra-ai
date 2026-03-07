@@ -1,17 +1,63 @@
 # Constitution 填写指南
 
-## 原则（Core Principles）
+## 概要
 
-- 名称行简洁，如"一、Library-First"、"Test-Driven Development（NON-NEGOTIABLE）"
-- 内容声明性、可测试 — 避免模糊语言（"应该考虑" → "MUST"/"禁止"）
-- 包含理由 — 说明这条规则防止了什么问题
+你正在更新 `.claude/docs/constitution.md` ，该文件是一个**模板**，包含方括号中的占位符 token（如 `[PROJECT_NAME]`、`[PRINCIPLE_1_NAME]`）。你的工作是 (a) 收集/推导具体值，(b) 精确填充模板，(c) 将任何修改传播到依赖制品。
 
-## 版本
+**注意**：若 `.claude/docs/constitution.md` 尚不存在，应在项目设置时从 `assets//constitution-template.md` 初始化。若缺失，请先复制模板。
 
+按以下执行流程操作：
+
+1. 加载 `.claude/docs/constitution.md` 中的现有 constitution。
+   - 识别所有 `[ALL_CAPS_IDENTIFIER]` 格式的占位符 token。
+   **重要**：用户可能需要比模板中更少或更多的原则。若指定了数量，请遵守——遵循通用模板格式。你将据此更新文档。
+
+2. 为占位符收集/推导值：
+   - 若用户输入（对话）提供了值，使用它。
+   - 否则，从现有仓库上下文（README、文档、嵌入的先前章程版本）推断。
+   - 始终包含以下规则的创建：
+     - Library-First：优先用成熟库，不重复造轮子
+     - MVP-First：功能最小化，只做必须的
+     - Feature-Based Architecture：按功能模块组织代码，而非按技术层
+     - Test-Driven Development：先写测试，迫使在编码前想清楚 API 设计与边界条件；TDD 是确保代码可信度的唯一方式
+     - Functional Programming First：优先使用纯函数、不可变数据
+     - 测试就近原则：测试文件与源文件放在同一目录
+     - 环境变量：所有配置通过环境变量注入，不硬编码
+     - TypeScript 类型：禁止双重断言（as X as Y）；双重断言表明类型不匹配，说明设计本身存在问题
+     - 禁止 emoji：源代码中不得使用 emoji，除非有明确要求
+
+
+3. 起草更新后的章程内容：
+   - 将每个占位符替换为具体文本（不留下方括号 token，除非是项目有意选择不定义的模板槽——明确说明任何保留项的理由）。
+   - 保留标题层次结构，注释在替换后可删除，除非仍能提供澄清指导。
+   - 确保每个原则章节：简洁的名称行、包含不可商议规则的段落（或要点列表）、若不明显则附明确理由。
+   - 确保治理章节列出修正程序、版本控制政策和合规审查预期。
+
+4. 最终输出前验证：
+   - 无残留的无说明方括号 token。
+   - 原则是声明性的、可测试的，且没有模糊语言（"应该" → 在适当时替换为 MUST/SHOULD 理由）。
+   - 
+5. 将完成的章程写回 `.claude/docs/constitution.md`（覆盖）。
+
+6. 向用户输出最终摘要，包含：
+   - 添加理由。
+   - 任何标记为需要手动跟进的文件。
+
+格式与风格要求：
+
+- 严格使用模板中的 Markdown 标题（不降级/升级）。
+- 将长理由行折行以保持可读性（理想 <100 字符），但不要用奇怪的换行强制执行。
+- 章节之间保留单个空行。
+- 避免尾随空格。
+
+
+## 收集/推导占位符值
+
+- 优先使用用户输入提供的值
+- 否则从仓库上下文推断：README、文档、package.json、配置文件
+- 原则数量按项目实际需要增减，不必填满模板中的五条
+
+版本与日期：
 - `RATIFICATION_DATE`：首次采用日期；若未知标记 `TODO(RATIFICATION_DATE)`
-- `LAST_AMENDED_DATE`：本次修改日期（ISO 格式 `YYYY-MM-DD`），版本从 `1.0.0` 开始
+- `LAST_AMENDED_DATE`：今天（ISO 格式 `YYYY-MM-DD`），版本从 `1.0.0` 开始
 - MAJOR：删除或重新定义原则；MINOR：新增原则；PATCH：措辞澄清
-
-## Governance
-
-至少包含：Constitution 优先级声明、修订程序、合规预期。
