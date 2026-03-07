@@ -25,34 +25,9 @@
 
 ## Architecture
 
-<!-- 根据项目类型，选择对应架构模式组织目录结构：
-
-前端（Feature-Based）：
-src/
-├── app/              # Next.js App Router（仅路由，无业务逻辑）
-├── features/         # 按功能划分的业务模块
-│   └── <name>/
-│       ├── components/   # 该 feature 的子组件（可选）
-│       ├── hooks/        # 该 feature 的 hooks（可选）
-│       ├── utils/        # 该 feature 的工具函数（可选）
-│       ├── api/          # 数据获取与 API 调用（可选）
-│       ├── types.ts      # 该 feature 的类型定义（可选）
-│       └── <entry>.tsx   # feature 入口组件
-├── components/       # 跨 feature 共享组件
-├── hooks/            # 跨 feature 共享 hooks
-├── lib/              # 第三方库封装（axios 实例、dayjs 配置等）
-├── utils/            # 纯工具函数（与第三方库无关）
-└── config/
-    ├── env.ts        # 环境变量集中管理（必须）
-    └── app-paths.ts  # 路由路径集中管理（必须）
-
-CLI Tool：
-src/
-├── commands/         # 每个子命令一个文件
-├── core/             # 核心业务逻辑
-├── utils/            # 工具函数
-└── config/
-    └── env.ts        # 环境变量集中管理
+<!-- 根据项目类型选择对应架构模式，参考示例：
+- 前端：assets/frontend-context-example.md
+- 后端（NestJS）：assets/nestjs-context-example.md
 -->
 
 ## Coding Conventions
