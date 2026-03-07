@@ -18,12 +18,9 @@ description: >
 
 普通项目：
 ```
-CLAUDE.md                        # 主入口，由 Claude Code 自动加载
-.claude/docs/constitution.md     # 核心原则与不可违反的规则
-.claude/docs/quickstart.md       # 初始化设置与常用工作流
-.claude/docs/architecture.md     # 系统设计与关键决策
-.claude/docs/tech-stack.md       # 技术栈、版本与使用模式
-.claude/docs/style-guide.md      # 代码风格与约定
+CLAUDE.md                           # 主入口，由 Claude Code 自动加载
+.claude/docs/constitution.md        # 核心原则与不可违反的规则
+.claude/docs/project-context.md     # 技术栈、架构、编码规范、工作流、测试与修改规则
 ```
 
 Monorepo：
@@ -102,11 +99,8 @@ Monorepo 判断依据（满足任意一条）：
 
 生成顺序：
 1. `.claude/docs/constitution.md` — 先确立原则；读取 [constitution-template](references/constitution-template.md)，版本从 `1.0.0` 开始，日期用今天，原则数量以实际为准
-2. `.claude/docs/tech-stack.md` — 记录 package.json/配置文件中已有的信息
-3. `.claude/docs/architecture.md` — 基于探索结果描述项目结构
-4. `.claude/docs/quickstart.md` — 基于脚本/README 整理实用工作流
-5. `.claude/docs/style-guide.md` — 从 ESLint/Prettier/现有约定中提取
-6. `CLAUDE.md` — 最后写，读取 [project-agents](references/project-agents.md) 模板，引用所有其他文档
+2. `.claude/docs/project-context.md` — 读取 [project-context-template](references/project-context-template.md)，填入技术栈、架构、编码规范、工作流、测试与修改规则
+3. `CLAUDE.md` — 最后写，读取 [project-agents](references/project-agents.md) 模板，引用所有其他文档
 
 ### 第五步：总结
 
@@ -123,10 +117,7 @@ Monorepo 判断依据（满足任意一条）：
 | CLAUDE.md（Monorepo）| [monorepo-agents](references/monorepo-agents.md) | Monorepo |
 | CLAUDE.md（普通项目）| [project-agents](references/project-agents.md) | 普通项目 |
 | constitution.md | [constitution-template](references/constitution-template.md) | 普通项目 |
-| quickstart.md | [quickstart-template](references/quickstart-template.md) | 普通项目 |
-| architecture.md | [architecture-template](references/architecture-template.md) | 普通项目 |
-| tech-stack.md | [tech-stack-template](references/tech-stack-template.md) | 普通项目 |
-| style-guide.md | [style-guide-template](references/style-guide-template.md) | 普通项目 |
+| project-context.md | [project-context-template](references/project-context-template.md) | 普通项目 |
 
 ## 核心原则
 
