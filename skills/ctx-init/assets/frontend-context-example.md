@@ -41,44 +41,25 @@ src/
     ├── env.ts        # 环境变量集中管理（必须）
     └── app-paths.ts  # 路由路径集中管理（必须）
 ```
-
-
-### Feature 内部结构
-
-```
-src/features/<name>/
-  components/   # 该 feature 的子组件（可选）
-  hooks/        # 该 feature 的 hooks（可选）
-  utils/        # 该 feature 的工具函数（可选）
-  api/          # 数据获取与 API 调用（可选）
-  types.ts      # 该 feature 的类型定义（可选）
-  <entry>.tsx   # feature 入口组件，直接导出，不用 barrel
-```
-
-只按需创建子目录，不预建空目录。
+- `app/` 下的页面文件只做路由编排：导出 metadata、dynamic 配置、组合 feature 组件。业务逻辑和 JSX 结构下沉到 `features/`。
 
 ## Coding Conventions
 
 ### Naming
 
-| 场景 | 约定 | 示例 |
-|------|------|------|
+| 类型 | 约定 | 示例 |
+|---|---|---|
 | 文件 / 目录 | kebab-case | `user-profile.tsx`, `auth-provider/` |
 | 组件（代码中） | PascalCase | `UserProfile`, `AuthProvider` |
 | 函数 / 变量 | camelCase | `getUserData`, `isAuthenticated` |
 | 类型 / 接口 | PascalCase | `User`, `AuthConfig` |
 | 常量 | UPPER_SNAKE_CASE | `API_BASE_URL`, `MAX_RETRIES` |
-
-### lib/ vs utils/
-
-| 目录 | 用途 |
-|------|------|
-| `lib/` | 对第三方库的封装（axios 实例、dayjs 配置等） |
-| `utils/` | 纯工具函数，与第三方库无关 |
+| `lib/` | — | 对第三方库的封装（axios 实例、dayjs 配置等） |
+| `utils/` | — | 纯工具函数，与第三方库无关 |
 
 ### TypeScript
 
-- 禁止双重类型断言（`value as X as Y`）；出现双重断言说明存在类型不匹配，应从设计层面修复
+- 禁止任何 `eslint-disable`、`@ts-ignore`、类型断言绕过
 
 ### File Organization
 
@@ -102,18 +83,9 @@ cp .env.example .env
 pnpm dev
 ```
 
-### 开发新功能
-```bash
-git checkout -b feat/[name]
-pnpm dev
-pnpm test
-pnpm lint:fix && pnpm typecheck
-```
-
 ### 提交前检查
 ```bash
-pnpm lint:fix
-pnpm typecheck
+pnpm lint:fix && pnpm typecheck
 pnpm test
 ```
 

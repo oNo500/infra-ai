@@ -34,35 +34,36 @@ presentation/ → application/services/ → application/ports/ ← infrastructur
 
 ```
 src/
-├── modules/{context}/
-│   ├── domain/                  # 仅复杂场景创建，零外部依赖
-│   │   ├── aggregates/
-│   │   ├── entities/
-│   │   ├── value-objects/
-│   │   ├── events/
-│   │   ├── enums/
-│   │   ├── services/
-│   │   └── factories/
-│   ├── application/
-│   │   ├── ports/               # 接口定义，如 {context}.repository.port.ts
-│   │   └── services/            # 默认单文件；>10 个方法按场景拆分
-│   ├── infrastructure/
-│   │   └── repositories/        # 实现 ports 接口
-│   ├── presentation/
-│   │   ├── controllers/
-│   │   └── dtos/
-│   └── {context}.module.ts
-│
-├── shared-kernel/
-│   ├── domain/                  # BaseEntity、Money、Address 等
-│   └── infrastructure/          # DB、Logger、分页 DTO 等
-│
-└── app/                         # 横切关注点，不属于任何业务模块
-    ├── config/
-    ├── filters/
-    ├── interceptors/
-    ├── middleware/
-    └── health/
+  ├── modules/{context}/
+  │   ├── domain/                  # 仅复杂场景创建，零外部依赖
+  │   │   ├── aggregates/
+  │   │   ├── entities/
+  │   │   ├── value-objects/
+  │   │   ├── events/
+  │   │   ├── enums/
+  │   │   ├── services/
+  │   │   └── factories/
+  │   ├── application/
+  │   │   ├── ports/               # 接口定义，如 {context}.repository.port.ts
+  │   │   └── services/            # 默认单文件；>10 个方法按场景拆分
+  │   ├── infrastructure/
+  │   │   └── repositories/        # 实现 ports 接口
+  │   ├── presentation/
+  │   │   ├── controllers/
+  │   │   └── dtos/
+  │   └── {context}.module.ts
+  │
+  ├── shared-kernel/
+  │   ├── domain/                  # BaseEntity、Money、Address 等
+  │   └── infrastructure/          # DB、Logger、分页 DTO 等
+  │
+  └── app/                         # 横切关注点，不属于任何业务模块
+      ├── config/
+      ├── filters/
+      ├── interceptors/
+      ├── logger/
+      ├── middleware/
+      └── health/
 ```
 
 ## Coding Conventions
@@ -73,10 +74,8 @@ src/
 |------|------|
 | 导入路径 | 必须使用 `@/*` 绝对路径别名 |
 | 文件命名 | `kebab-case`，如 `user-profile.dto.ts` |
-| 类型安全 | 禁止 `any`，使用 `unknown` 或具体类型 |
 | 私有字段 | 使用 `#` 语法，不使用 `_` 前缀 |
 | 禁止绕过检查 | 禁止任何 `eslint-disable`、`@ts-ignore`、类型断言绕过，必须根本性修复 |
-| 注释 | 禁止 emoji |
 
 ### Naming
 
@@ -86,12 +85,6 @@ src/
 | 类 / 接口 | PascalCase | `UserService`, `UserRepository` |
 | 函数 / 变量 | camelCase | `findById`, `isActive` |
 | 常量 | UPPER_SNAKE_CASE | `USER_REPOSITORY` |
-
-### TypeScript
-
-- 禁止双重类型断言（`value as X as Y`）
-- 禁止 `any`，使用 `unknown` 或具体类型
-- 私有字段使用 `#` 语法，不使用 `_` 前缀
 
 ### 数据库（Drizzle）
 
@@ -188,7 +181,7 @@ pnpm db:migrate    # 生产环境应用
 
 ### 提交前检查
 ```bash
-pnpm lint:fix
+pnpm lint:fix & pnpm typecheck
 pnpm test
 ```
 
@@ -205,7 +198,6 @@ presentation/ → application/services/ → application/ports/ ← infrastructur
 - infrastructure 实现 application/ports 定义的接口
 - domain 零外部依赖
 - 禁止跨层跳跃，禁止反向依赖
-  
 
 2. 判断模块归属
 
@@ -264,7 +256,7 @@ export class OrderPlacementService {
 - **Unit tests colocated with source**
 
 ```bash
-pnpm test
+pnpm test & pnpm typecheck
 pnpm test:e2e
 ```
 
