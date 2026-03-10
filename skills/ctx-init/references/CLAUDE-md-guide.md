@@ -4,23 +4,19 @@
 
 ## 概要
 
-你正在生成项目根目录的 `CLAUDE.md`，这是 Claude Code 的项目级入口指令文件。**最后生成**，确保所有被引用的文档（constitution.md、project-context.md）已存在。
+你正在生成项目根目录的 `CLAUDE.md`，这是 Claude Code 的项目级入口文件。**最后生成**，确保 `.claude/rules/` 下的文件已存在。
 
-按以下流程操作：
-
-1. 确认 `.claude/docs/constitution.md` 和 `.claude/docs/project-context.md` 已生成
-2. 从 constitution.md 中提取 2-3 条最重要的不可违反规则，作为关键约束
-3. 填充模板，写入 `CLAUDE.md`
+目标：**<50 行**。CLAUDE.md 只是入口，详细规则已分散到 `.claude/rules/` 各文件中，无需在此重复。
 
 ## 填写要求
 
 - **项目名称**：从 package.json name 或目录名推断
-- **概述**：只写 1-2 句 — 技术细节已在 project-context.md 中
-- **关键约束**：只列 2-3 条最重要的不可违反规则，从 constitution.md 中提取
-- **文档链接**：路径使用 `/.claude/docs/` 绝对路径
+- **概述**：只写 1-2 句 — 技术细节已在 architecture.md 中
+- **快速命令**：从 `package.json` scripts 中取实际命令（dev、test、build）
+- **不要**在 CLAUDE.md 中重复 rules 文件里的内容
 
 ## 输出前验证
 
 - 无残留的 `[ALL_CAPS]` 占位符
-- 引用的文件路径均已存在
+- 行数 < 50 行
 - `<!-- -->` 注释删除

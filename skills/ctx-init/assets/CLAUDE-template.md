@@ -2,17 +2,17 @@
 
 [1-2 句话描述项目用途和技术定位]
 
-## 文档
+## 快速命令
 
-| 文档 | 内容 |
-|------|------|
-| [宪章](/.claude/docs/constitution.md) | 核心原则与不可违反的规则 |
-| [项目上下文](/.claude/docs/project-context.md) | 技术栈、架构、编码规范、工作流、测试与修改规则 |
+```bash
+# 开发
+[dev command]
 
-## 关键约束
+# 测试
+[test command]
 
-- [最重要的约束 1，例如"禁止在组件中直接调用 API，必须通过 store"]
-- [最重要的约束 2，例如"所有数据库查询必须使用参数化语句"]
-- [最重要的约束 3]
+# 构建
+[build command]
+```
 
-> 完整规则见 [宪章](/.claude/docs/constitution.md)。
+> 详细规则见 `.claude/rules/`。

@@ -1,55 +1,36 @@
 # [PROJECT_NAME] Constitution
-<!-- 示例：Spec Constitution、TaskFlow Constitution 等 -->
-
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- 示例：一、Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- 示例：每个功能从独立库开始构建；库必须自包含、可独立测试、有完整文档；需有明确用途，不允许仅作为组织用途的库 -->
+### 一、Library-First
 
-### [PRINCIPLE_2_NAME]
-<!-- 示例：二、CLI 接口 -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- 示例：每个库通过 CLI 对外暴露功能；文本输入/输出协议：stdin/args → stdout，错误 → stderr；支持 JSON 和人类可读格式 -->
+优先使用成熟的第三方库，禁止重复造轮子。引入新依赖前必须确认无等效库已在项目中存在。
 
-### [PRINCIPLE_3_NAME]
-<!-- 示例：三、Test-Driven Development（NON-NEGOTIABLE） -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- 示例：TDD 强制执行：先写测试 → 用户确认 → 测试失败 → 再实现；严格遵循 Red-Green-Refactor 循环 -->
+### 二、MVP-First
 
-### [PRINCIPLE_4_NAME]
-<!-- 示例：四、Contract Tests -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- 示例：需要 Contract Tests 的重点领域：新库契约测试、契约变更、服务间通信、共享 Schema -->
+功能最小化实现。只做当前需求必须的部分，禁止为假设的未来需求预建抽象或配置开关。
 
-### [PRINCIPLE_5_NAME]
-<!-- 示例：五、可观测性；六、版本管理与破坏性变更；七、简洁性 -->
+### 三、Test-Driven Development（NON-NEGOTIABLE）
+
+MUST 先写测试，再写实现。严格遵循 Red-Green-Refactor 循环。TDD 是确保代码可信度的唯一方式，不接受任何例外。
+
+### 四、Functional Programming First
+
+优先使用纯函数和不可变数据。禁止在不必要的情况下引入副作用和可变状态。
+
+### 五、[PRINCIPLE_5_NAME]
+
 [PRINCIPLE_5_DESCRIPTION]
-<!-- 示例：文本 I/O 确保可调试性；需要结构化日志；或：采用 MAJOR.MINOR.BUILD 格式；或：从简单开始，遵循 YAGNI 原则 -->
 
 ---
 
-## [SECTION_2_NAME]
-<!-- 示例：Development Constraints、安全要求、性能标准等 -->
+## 不可违反规则
 
-[SECTION_2_CONTENT]
-<!-- 示例：技术栈要求、合规标准、部署策略等 -->
+- **测试就近原则**：测试文件与源文件放在同一目录（`foo.ts` + `foo.test.ts`）
+- **环境变量**：所有配置通过环境变量注入，禁止在代码中硬编码
+- **TypeScript 类型**：禁止双重断言（`value as X as Y`）；出现双重断言说明设计存在问题
+- **禁止 emoji**：源代码和注释中禁止使用 emoji，除非有明确要求
 
-## [SECTION_3_NAME]
-<!-- 示例：Development Workflow、评审流程、质量门禁等 -->
+---
 
-[SECTION_3_CONTENT]
-<!-- 示例：代码审查要求、测试门禁、部署审批流程等 -->
-
-
-## Governance
-
-[GOVERNANCE_RULES]
-<!-- 示例：Constitution 优先于所有其他文档；修订需文档说明、审批及迁移计划 -->
-
-[GOVERNANCE_RULES]
-<!-- 示例：所有 PR/代码审查必须验证合规性；复杂度须有合理依据；运行时开发指引请参考 [GUIDANCE_FILE] -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+**Version**: 1.0.0 | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
