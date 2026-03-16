@@ -1,9 +1,3 @@
----
-paths:
-  - "**/*.{test,spec}.ts"
-  - "**/*.{test,spec}.tsx"
----
-
 # Testing Rules
 
 ## 核心原则

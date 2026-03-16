@@ -14,7 +14,7 @@
 
 - 前端（Next.js/React）→ [assets/frontend.md](../assets/frontend.md)
 - 后端（NestJS）→ [assets/nestjs.md](../assets/nestjs.md)
-- 其他 → [assets/architecture.md](../assets/architecture.md)
+- 其他（CLI、Express API、Hono、通用库等）→ [assets/architecture.md](../assets/architecture.md)
 
 ## 各章节填写要求
 

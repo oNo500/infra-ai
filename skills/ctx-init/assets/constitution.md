@@ -18,10 +18,6 @@ MUST 先写测试，再写实现。严格遵循 Red-Green-Refactor 循环。TDD 
 
 优先使用纯函数和不可变数据。禁止在不必要的情况下引入副作用和可变状态。
 
-### 五、[PRINCIPLE_5_NAME]
-
-[PRINCIPLE_5_DESCRIPTION]
-
 ---
 
 ## 不可违反规则
@@ -30,7 +26,3 @@ MUST 先写测试，再写实现。严格遵循 Red-Green-Refactor 循环。TDD 
 - **环境变量**：所有配置通过环境变量注入，禁止在代码中硬编码
 - **TypeScript 类型**：禁止双重断言（`value as X as Y`）；出现双重断言说明设计存在问题
 - **禁止 emoji**：源代码和注释中禁止使用 emoji，除非有明确要求
-
----
-
-**Version**: 1.0.0 | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]

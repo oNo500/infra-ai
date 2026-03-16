@@ -20,7 +20,7 @@ description: >
 2. `.claude/rules/constitution.md` — 全局原则（无 paths，始终加载）
 3. `.claude/rules/<子包名>.md` — 每个有实质代码的子包一个文件，文件名与子包目录名同名，带 path-specific frontmatter
 
-> **Path-specific**：通过 YAML frontmatter `paths` 定义匹配路径，仅在处理匹配文件时触发加载。
+> **Path-specific**：通过 YAML frontmatter `paths` 定义匹配路径，Claude Code 处理匹配 paths 的文件时自动加载，无需在 CLAUDE.md 中 @import。
 
 
 ## 工作流
@@ -67,6 +67,11 @@ Progress:
 - 参考 [references/architecture-guide.md](references/architecture-guide.md)
 - 无 frontmatter paths（始终加载）
 - 包含：技术栈、目录结构、编码规范（涵盖该项目所有层：前端/后端/测试）
+
+**可选**：若项目有独立测试框架配置（如 `vitest.config.ts`、`jest.config.ts`），可额外生成 `.claude/rules/testing.md`
+- 参考 [assets/testing.md](assets/testing.md)
+- **无 frontmatter paths**（始终加载）
+- 包含：测试命令、测试组织规范、Mock 约定
 
 **monorepo** → 为每个有实质代码的子包生成独立 rules 文件
 - 忽略纯配置包（如 `config-eslint`、`tsconfig`、`eslint-config` 等）

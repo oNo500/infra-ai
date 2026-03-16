@@ -61,21 +61,23 @@ src/
 
 ## 关键规则
 
-**数据库（Drizzle）黄金规则：Service 层禁止直接注入 Drizzle，必须通过 Repository 接口。**
+**数据库黄金规则：Service 层禁止直接注入数据库客户端，必须通过 Repository 接口。**
 
 ```typescript
-// ✓ 正确：Repository 实现层注入 Drizzle
+// ✓ 正确：Repository 实现层注入数据库客户端
 @Injectable()
-export class DrizzleOrderRepository implements OrderRepository {
-  constructor(@Inject(DB_TOKEN) private db: DrizzleDb) {}
+export class OrderRepositoryImpl implements OrderRepository {
+  constructor(@Inject(DB_TOKEN) private db: DatabaseClient) {}
 }
 
-// ✗ 错误：Service 层直接注入 Drizzle
+// ✗ 错误：Service 层直接注入数据库客户端
 @Injectable()
 export class OrderService {
-  constructor(@Inject(DB_TOKEN) private db: DrizzleDb) {} // 违反 DIP
+  constructor(@Inject(DB_TOKEN) private db: DatabaseClient) {} // 违反 DIP
 }
 ```
+
+> 此示例使用通用命名；实际项目中 `DatabaseClient` 对应 Drizzle 的 `DrizzleDb`、Prisma 的 `PrismaClient` 等，原则相同。
 
 **shared-kernel 准入规则（三条全满足才能放入）：**
 1. Rule of Three：≥3 个模块以完全相同方式使用
@@ -131,7 +133,7 @@ export class OrderPlacementService {
 
 ## 禁止行为
 
-- 禁止 Service 层直接注入 Drizzle
+- 禁止 Service 层直接注入数据库客户端（Drizzle/Prisma/TypeORM 等）
 - 禁止 Controller 包含业务逻辑
 - 禁止模块间直接 import（通过 shared-kernel 或领域事件解耦）
 - 禁止简单 CRUD 强行创建 domain/ 层
