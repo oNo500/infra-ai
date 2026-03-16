@@ -5,6 +5,18 @@ paths:
 
 # Backend Rules (NestJS)
 
+## Tech Stack
+
+- **Framework**: NestJS 11
+- **Language**: TypeScript
+- **Database**: PostgreSQL · Drizzle ORM（通过 `@workspace/database`）
+- **Auth**: JWT + Passport · OAuth2（Google / GitHub）
+- **Cache**: Redis · cache-manager · Keyv
+- **Testing**: Vitest · @nestjs/testing · Supertest
+- **Logging**: nestjs-pino · pino-http
+- **HTTP**: class-validator · class-transformer · @nestjs/swagger · Scalar
+- **Toolchain**: pnpm · ESLint · SWC
+
 ## Architecture: Modular Layered (DIP)
 
 简单场景用贫血模型，复杂场景按需引入 DDD。
@@ -76,6 +88,17 @@ export class OrderService {
   constructor(@Inject(DB_TOKEN) private db: DatabaseClient) {} // 违反 DIP
 }
 ```
+### 数据库变更
+
+```bash
+# 1. 修改 packages/database/src/schemas/
+# 2. 重新 build database 包
+pnpm --filter @workspace/database build
+# 3. 推送 schema 变更（开发环境）
+pnpm --filter @workspace/database db:push
+# 4. 或生成迁移文件（生产环境）
+pnpm --filter @workspace/database db:generate
+```
 
 > 此示例使用通用命名；实际项目中 `DatabaseClient` 对应 Drizzle 的 `DrizzleDb`、Prisma 的 `PrismaClient` 等，原则相同。
 
@@ -131,6 +154,25 @@ export class OrderPlacementService {
 }
 ```
 
+### 3. 模块间通信（按优先级）
+
+1. 领域事件（异步解耦）
+2. shared-kernel 共享接口
+3. REST API 调用
+
+禁止直接跨模块 import 内部实现。
+
+## 错误处理
+
+全局过滤器执行顺序（注册顺序的反序）：
+
+```
+AllExceptionsFilter → ProblemDetailsFilter → ThrottlerExceptionFilter
+```
+
+所有错误统一转换为 RFC 9457 Problem Details 格式，字段：`type`、`title`、`status`、`detail`、`instance`、`request_id`、`timestamp`。
+
+
 ## 禁止行为
 
 - 禁止 Service 层直接注入数据库客户端（Drizzle/Prisma/TypeORM 等）
@@ -141,3 +183,4 @@ export class OrderPlacementService {
 - 禁止 domain/ 层依赖外部库
 - 禁止任何 `eslint-disable`、`@ts-ignore`、类型断言绕过
 - 导入路径必须使用 `@/*` 绝对路径别名
+- 私有字段，使用 `#` 语法，不使用 `_` 前缀
