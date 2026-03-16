@@ -4,7 +4,7 @@
 
 你正在生成 `.claude/rules/constitution.md`，这是项目核心原则文件。**无 frontmatter paths**，始终被 Claude Code 加载。
 
-参考模板：`assets/constitution-template.md`。
+参考模板：`assets/constitution.md`。
 
 ## 执行流程
 

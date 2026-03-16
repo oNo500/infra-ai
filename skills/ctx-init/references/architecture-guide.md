@@ -12,9 +12,9 @@
 
 根据技术栈选择参考文件：
 
-- 前端（Next.js/React）→ [assets/frontend-rules-example.md](../assets/frontend-rules-example.md)
-- 后端（NestJS）→ [assets/nestjs-rules-example.md](../assets/nestjs-rules-example.md)
-- 其他 → [assets/architecture-template.md](../assets/architecture-template.md)
+- 前端（Next.js/React）→ [assets/frontend.md](../assets/frontend.md)
+- 后端（NestJS）→ [assets/nestjs.md](../assets/nestjs.md)
+- 其他 → [assets/architecture.md](../assets/architecture.md)
 
 ## 各章节填写要求
 
