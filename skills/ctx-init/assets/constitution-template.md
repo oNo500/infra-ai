@@ -1,4 +1,4 @@
-# [PROJECT_NAME] Constitution
+# Constitution
 
 ## Core Principles
 

@@ -2,19 +2,19 @@
 
 ## 概要
 
-你正在生成 `.claude/rules/architecture.md`，包含项目技术栈、目录结构、编码规范。
+你正在生成项目的架构规范 rules 文件，包含技术栈、目录结构、编码规范。
 
-**无 frontmatter paths**（始终加载）。
+**单体项目**：生成 `.claude/rules/architecture.md`，无 frontmatter paths（始终加载），涵盖该项目所有层。
+
+**monorepo**：为每个有实质代码的子包生成独立文件（如 `web.md`、`api.md`），带 path-specific frontmatter。
 
 ## 选择基础模板
 
-根据 Step 1 扫描结果：
+根据技术栈选择参考文件：
 
-| 项目类型 | 参考文件 |
-|----------|----------|
-| 前端（Next.js/React） | [assets/frontend-rules-example.md](../assets/frontend-rules-example.md) |
-| 后端（NestJS） | [assets/nestjs-rules-example.md](../assets/nestjs-rules-example.md) |
-| 其他 | [assets/architecture-template.md](../assets/architecture-template.md) |
+- 前端（Next.js/React）→ [assets/frontend-rules-example.md](../assets/frontend-rules-example.md)
+- 后端（NestJS）→ [assets/nestjs-rules-example.md](../assets/nestjs-rules-example.md)
+- 其他 → [assets/architecture-template.md](../assets/architecture-template.md)
 
 ## 各章节填写要求
 
@@ -28,3 +28,5 @@
 - 不适用的章节整节删除
 - `<!-- -->` 注释删除
 - 目录结构与实际项目一致
+- 单体项目文件无 frontmatter paths
+- monorepo 子包文件有正确的 frontmatter paths
