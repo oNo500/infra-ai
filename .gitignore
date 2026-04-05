@@ -1,5 +1,8 @@
 # Generated documentation
-agents/*/AGENTS.md
+.claude/agents/*/AGENTS.md
 AGENTS.md
 CLAUDE.md
 !.claude/**
+
+# MCP keys — copy .mcp.json and fill in real keys locally, do not commit real keys
+# .mcp.json
