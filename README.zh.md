@@ -46,6 +46,26 @@ skills/                   # 可安装的 skill 定义
 
 ---
 
+## 快速指南：MCP vs Skills vs Agents
+
+| 需求 | 方案 |
+|------|------|
+| 连接外部服务（数据库、Notion、GitHub API、浏览器） | MCP Server |
+| 可复用的提示工作流（git 流程、写文档、代码审查） | Skill |
+| 独立运行、有自己工具集的自治子任务 | Agent |
+
+**MCP** — 为 Claude 添加新的*工具*。当 Claude 需要调用外部 API 或控制外部软件时使用。
+
+**Skill** — 通过现有 Skill 工具为 Claude 添加可复用的*工作流*。任务是提示驱动且不需要新工具集成时使用。
+
+**Agent** — 以子进程方式运行，有独立上下文。任务自包含、可并行或需要与主上下文隔离时使用。
+
+> 添加自定义工具 → 连接 MCP server（`claude mcp add`）
+> 添加可复用工作流 → 编写 skill（通过 Skill 工具运行，无需新增工具条目）
+> 添加自治任务执行器 → 在 `.claude/agents/` 中编写 agent
+
+---
+
 ## Claude Code 最佳实践
 
 > 来源：[Claude Code 官方文档 — Best Practices](https://code.claude.com/docs/en/best-practices)

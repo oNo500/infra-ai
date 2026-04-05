@@ -45,6 +45,26 @@ Replace placeholder API keys before use. See `skills/ctx-init/references/mcp-gui
 
 ---
 
+## Quick Guide: MCP vs Skills vs Agents
+
+| Need | Solution |
+|------|----------|
+| Connect to an external service (database, Notion, GitHub API, browser) | MCP Server |
+| Reusable prompt-based workflow (git flow, doc writing, code review) | Skill |
+| Autonomous sub-task that runs independently with its own tools | Agent |
+
+**MCP** — adds new *tools* to Claude. Use when Claude needs to call an external API or control external software.
+
+**Skill** — adds reusable *workflows* to Claude via the existing Skill tool. Use when the task is prompt-driven and doesn't need new tool integrations.
+
+**Agent** — runs as a subprocess with its own context. Use when a task is self-contained, parallelizable, or needs to be isolated from the main context.
+
+> To add custom tools → connect an MCP server (`claude mcp add`)
+> To add reusable workflows → write a skill (runs via the Skill tool, no new tool entry needed)
+> To add autonomous task runners → write an agent in `.claude/agents/`
+
+---
+
 ## Claude Code Best Practices
 
 > Source: [Claude Code Docs — Best Practices](https://code.claude.com/docs/en/best-practices)
