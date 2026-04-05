@@ -88,3 +88,4 @@ PR 描述应包含：
 - 提交信息标题行尽量简洁，控制在一行内
 - 优先使用 rebase merge 保持 `master` 历史线性整洁
 - merge 后自动删除远端分支（`--delete-branch`），并同步删除本地分支（`git branch -d <分支>`）
+- commit 内容实用标准英文，符合github开放术语。
