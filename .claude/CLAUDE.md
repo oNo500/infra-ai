@@ -28,6 +28,11 @@ and MCP configuration. Used as a template and reference for other projects.
 2. Run `skill-reviewer` agent to validate
 3. Run `commit-validator` agent before committing
 
+## README Sync
+
+`README.md` (English) and `README.zh.md` (Chinese) must stay in sync.
+When updating either file, always update the other in the same commit.
+
 ## Adding a New Agent
 
 Create `agents/<name>.md` with frontmatter: `name`, `description`, `model`, `color`.
