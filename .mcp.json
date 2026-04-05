@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+    "tavily": {
+      "type": "http",
+      "url": "https://mcp.tavily.com/mcp/?tavilyApiKey=TAVILY_API_KEY"
+    },
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?exaApiKey=EXA_API_KEY"
+    },
+    "browser-use": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://api.browser-use.com/mcp",
+        "--header",
+        "X-Browser-Use-API-Key: BROWSER_USE_API_KEY"
+      ]
+    }
+  }
+}
