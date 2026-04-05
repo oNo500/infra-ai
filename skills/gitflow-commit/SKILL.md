@@ -20,6 +20,9 @@ description: >
 
 ### 1. 创建功能分支
 
+**Context checkpoint**: 开始新分支前，如果当前会话已有较长历史，先运行 `context-manager` agent
+或直接 `/clear`。CLAUDE.md + rules 会自动重载，不会丢失项目规范。
+
 始终从最新的 `master` 创建分支：
 
 ```bash
@@ -51,6 +54,9 @@ git rebase origin/master
 ```
 
 ### 4. Push 并开 PR
+
+**Context checkpoint**: 开 PR 前建议 `/clear` 并重新读 diff — 清空上下文后做最终 review
+比在长会话末尾更容易发现问题。也可以先运行 `commit-validator` agent 做最后一次检查。
 
 ```bash
 git push origin feature/<名称>
