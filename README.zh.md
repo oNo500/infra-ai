@@ -43,3 +43,71 @@ skills/                   # 可安装的 skill 定义
 `.mcp.json` 包含四个核心 server 的模板：`context7`、`tavily`、`exa`、`browser-use`。
 
 使用前替换占位的 API Key，详见 `skills/ctx-init/references/mcp-guide.md`。
+
+---
+
+## Claude Code 最佳实践
+
+> 来源：[Claude Code 官方文档 — Best Practices](https://code.claude.com/docs/en/best-practices)
+
+最核心的约束：**上下文窗口很快就会填满，填满后性能下降。** 以下所有实践都围绕这一点。
+
+### 给 Claude 提供验证方式
+
+提供测试、截图或预期输出，让 Claude 能自我检验——这是最高杠杆的事。
+
+- 写代码：先写失败的测试，让 Claude 让它们通过
+- 写 UI：粘贴截图，让 Claude 对比输出并修正差异
+- 修构建：粘贴报错，让 Claude 找到根因并验证构建通过
+
+### 先探索，再规划，再写代码
+
+用 Plan Mode（`Shift+Tab` 切换）把调研和执行分开：
+
+1. **探索** — Claude 只读文件，不做变更
+2. **规划** — 让 Claude 给出详细实现计划，用 `Ctrl+G` 在编辑器中直接修改
+3. **实现** — 切回 Normal Mode，让 Claude 对照计划写代码
+4. **提交** — 让 Claude 提交并开 PR
+
+简单明确的改动（改错别字、重命名、单行修改）直接跳过规划阶段。
+
+### 提供精确的上下文
+
+- 用 `@文件名` 引用文件，而不是描述文件在哪里
+- UI 任务直接粘贴截图到提示框
+- 指向已有模式：*"参考 HotDogWidget.php 的写法"*
+- 描述症状时带上位置：*"session 超时后登录失败，检查 src/auth/"*
+
+### 写好 CLAUDE.md
+
+保持简短。每行问自己：*"删掉这行会让 Claude 出错吗？"* 不会就删。CLAUDE.md 太长会导致 Claude 忽略里面的指令。
+
+| 应该写 | 不应该写 |
+|--------|---------|
+| Claude 猜不到的 Bash 命令 | Claude 读代码就能推断的内容 |
+| 与默认值不同的代码风格规则 | Claude 已知的标准语言约定 |
+| 测试规范和首选测试框架 | 详细的 API 文档（链接过去即可） |
+| 仓库规范（分支命名、PR 约定） | 逐文件的代码库描述 |
+| 项目特有的架构决策 | "写干净的代码"这类不言而喻的话 |
+
+### 主动管理上下文
+
+- 任务边界处用 `/clear` — CLAUDE.md + rules 会自动重载
+- 调研密集的工作用 subagent，保护主上下文
+- 上下文过载的信号：Claude 重新问已回答过的问题、引用已撤销的改动
+- 用[自定义状态栏](https://code.claude.com/docs/en/statusline)持续监控上下文用量
+
+### 尽早、频繁地纠偏
+
+不要让 Claude 在错误方向走太远。2-3 步后如果方向不对，立即停下来重新引导。早纠偏比事后解套便宜得多。
+
+### 用 Subagent 做调查性工作
+
+把探索性任务委托给 subagent，避免在主上下文中堆积：
+- 大规模代码库扫描
+- 网络搜索和文档阅读
+- 相互独立的并行任务
+
+### 善用 CLI 工具
+
+安装 `gh`、`aws`、`gcloud` 等 CLI 工具——它们是与外部服务交互最省 token 的方式。Claude 知道如何使用它们，也能通过 `--help` 学习新工具。
