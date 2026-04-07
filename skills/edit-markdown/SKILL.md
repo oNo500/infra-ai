@@ -1,5 +1,5 @@
 ---
-name: markdown
+name: edit-markdown
 description: >
   Markdown syntax reference for writing and editing documentation. Use when writing or updating
   README files, .md documents, GitHub wiki pages, PR descriptions, or any markdown content.
