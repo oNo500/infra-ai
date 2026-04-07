@@ -12,26 +12,16 @@ description: >
 
 ## 分支策略
 
-- `master` — 唯一长期分支，始终保持可部署状态，禁止直接提交
-- `feature/<简短名称>` — 每个任务一个分支（如 `feature/login-form`）
-- `fix/<简短名称>` — 缺陷修复（如 `fix/token-expiry`）
+- `master` — 唯一长期分支，始终保持可部署状态
+- `feature/<简短名称>` — 用户明确要求时才创建（如 `feature/login-form`）
+- `fix/<简短名称>` — 用户明确要求时才创建（如 `fix/token-expiry`）
+
+> [!IMPORTANT]
+> 默认直接在当前分支提交。只有用户明确说"创建分支"、"开 PR"时，才走 feature 分支 + PR 流程。
 
 ## 工作流
 
-### 1. 创建功能分支
-
-**Context checkpoint**: 开始新分支前，如果当前会话已有较长历史，先运行 `context-manager` agent
-或直接 `/clear`。CLAUDE.md + rules 会自动重载，不会丢失项目规范。
-
-始终从最新的 `master` 创建分支：
-
-```bash
-git checkout master
-git pull origin master
-git checkout -b feature/<名称>
-```
-
-### 2. 提交（Conventional Commits）
+### 1. 提交（Conventional Commits）
 
 格式：`<类型>[(范围)]: <描述>`
 
@@ -43,6 +33,19 @@ git commit -m "feat(auth): 添加 JWT refresh token 支持"
 ```
 
 完整类型参考见 [references/conventional-commits.md](references/conventional-commits.md)。
+
+### 2. 创建 feature 分支（仅用户明确要求时）
+
+**Context checkpoint**: 开始新分支前，如果当前会话已有较长历史，先运行 `context-manager` agent
+或直接 `/clear`。
+
+始终从最新的 `master` 创建分支：
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b feature/<名称>
+```
 
 ### 3. 同步 master 更新（开发中途）
 
@@ -89,7 +92,7 @@ PR 描述应包含：
 
 ## 规则
 
-- 禁止直接提交到 `master`
+- 默认在当前分支直接提交，不主动创建分支
 - 每次提交只包含一个逻辑变更
 - 提交信息标题行尽量简洁，控制在一行内
 - 优先使用 rebase merge 保持 `master` 历史线性整洁
