@@ -2,6 +2,12 @@
 
 个人 Claude Code 基础设施 —— skills、agents、rules 和 MCP 配置。
 
+> 借鉴自：
+> 1. https://github.com/affaan-m/everything-claude-code/tree/main
+> 2. https://github.com/shanraisshan/claude-code-best-practice
+> 通读下来没有生产级项目的架构学，或者代码文件组织规范
+> 制作实例，我看到了很多通用学，可以将自己的 最高规则和文件组织规范，让ai澄清这些属于哲学类的还是架构学类的，如何写成一个有效的规范？
+
 ## 安装 Skills
 
 ```bash
