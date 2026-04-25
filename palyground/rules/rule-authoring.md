@@ -39,6 +39,16 @@
 
 ## 二、术语原则
 
+本节遵循 ISO 704（术语工作的原则与方法）的核心精神：**单义性 / 首选术语 / 国际通用性**。
+
+### 概念优先于词汇
+
+写作 SHALL 反向流程：
+
+- 明确要表达的**概念** → 检索行业标准词 → 直接采用
+- MUST NOT 先想到一个词再凑概念
+- 行业标准词缺失时 SHALL 停下检索（Wikipedia / Martin Fowler / Evans / RFC），MUST NOT 自造
+
 ### 优先行业标准词
 
 - 专业术语优先（蓝皮书 / SOLID / RFC 等）：`Open Host Service` / `Published Language` / `DIP` / `MUST` / `SHALL`
@@ -54,8 +64,17 @@
 ### 禁止造词
 
 不要发明业内不存在的复合词：
+
 - ✗ `演化策略` `信号` `渠道` `形态光谱` `通信机制` `准入治理` `内部分层`
 - ✓ `Evolutionary Architecture` `Tactical Layering` `Context Mapping`
+
+### 定义规则
+
+文档内的定义（术语表 / 章节解释）：
+
+- MUST NOT 循环（用 A 定义 B 又用 B 定义 A）
+- MUST NOT 用否定式（"X 不是 Y" 不是定义；定义须说明 X **是什么**）
+- SHALL 用"种 + 属差"形式（例：`aggregate 是封装一致性约束的领域对象集合`）
 
 ### 用 RFC 2119 关键词
 
