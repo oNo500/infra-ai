@@ -97,6 +97,12 @@
     ]
   },
 
+  // MCP server activation per project type (see mcp/ for install instructions):
+  // Generic TS:   ["github", "context7", "fetch"]
+  // With DB:      ["github", "context7", "fetch", "db"]
+  // With browser: ["github", "context7", "playwright"]
+  "enabledMcpjsonServers": ["context7", "fetch"],
+
   "autoCompactEnabled": true,
   "fileCheckpointingEnabled": true,
   "minimumVersion": "2.1.154",
