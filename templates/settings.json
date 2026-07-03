@@ -71,10 +71,30 @@
   },
 
   "hooks": {
-    "PreToolUse": [],
-    "PostToolUse": [],
-    "PreCompact": [],
-    "Stop": []
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write",
+        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-rules.py\"" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/format-code.sh\"", "timeout": 30 }]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.py\"" }]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "python3 ~/.claude/hooks/notify.py" }]
+      }
+    ]
   },
 
   "autoCompactEnabled": true,
