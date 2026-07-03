@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+
+  "model": "sonnet",
+  "fallbackModel": ["claude-sonnet-4-6", "claude-haiku-4-5"],
+  "effortLevel": "high",
+
+  "permissions": {
+    "allow": [
+      "Read",
+
+      "Write(src/**)",
+      "Write(tests/**)",
+      "Edit(src/**)",
+      "Edit(tests/**)",
+      "MultiEdit(src/**)",
+      "MultiEdit(tests/**)",
+
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git stash:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rebase:*)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)",
+
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh run:*)",
+
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm run:*)",
+
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(tr:*)",
+      "Bash(sort:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(date:*)",
+
+      "Bash(jq:*)",
+      "Bash(yq:*)",
+
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+
+      "WebSearch",
+      "WebFetch(domain:*)"
+    ],
+    "deny": [],
+    "ask": ["Bash(sudo:*)"],
+    "defaultMode": "acceptEdits"
+  },
+
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": [],
+    "PreCompact": [],
+    "Stop": []
+  },
+
+  "autoCompactEnabled": true,
+  "fileCheckpointingEnabled": true,
+  "minimumVersion": "2.1.154",
+  "includeCoAuthoredBy": false
+}
