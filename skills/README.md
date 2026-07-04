@@ -33,8 +33,8 @@
 ### 日常同步
 
 ```bash
-make check   # 只报上游 commit 差异 (只读)
-make sync    # 有更新才 giget 拉到 skills/<name>/ 并回写 commit/updated (不 commit)
+make check   # 上游 commit 差异 + skills.json 账目检查 (只读)
+make sync    # 有更新才 giget 拉到 skills/<name>/ 并回写 commit/updated，自动补齐账目 (不 commit)
 ```
 
 `make sync` 后自行 review 再提交：

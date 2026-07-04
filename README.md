@@ -1,132 +1,49 @@
-# Infra AI
+# infra-ai
 
-Personal Claude Code infrastructure — skills, agents, rules, and MCP configuration.
+个人 Claude Code 基础设施：skill、规则、MCP 说明、项目模板都在这里集中维护，
+其他项目和设备从这里安装。改动只发生在本仓，下游不回改。
 
-## Install Skills
+## 内容
+
+- [`skills.json`](skills.json) — 全部 skill 的清单，`source` 字段区分来源：
+  - `custom` — 自建，放在 `skills/<name>/`
+  - `mirror` — 用 giget 从上游仓库拉取，放在 `skills/<name>/`，记录 commit
+  - `official` — 符合 skills.sh 标准的上游 skill，只记 repo，不放进本仓
+
+  清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
+  维护流程见 [`skills/README.md`](skills/README.md)。
+- [`docs/constitution/`](docs/constitution/) — constitution 与 architecture，供其他项目引用
+- `docs/rules/` — 可分发的通用规则（暂空）
+- [`docs/mcp/`](docs/mcp/) — MCP server 说明
+- [`docs/skills/`](docs/skills/) — 第三方 skill 的调研与用法说明
+- [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
+- [`creator/`](creator/) — 待创建 skill/rule 的元指令，自用不分发，见 [`creator/README.md`](creator/README.md)
+
+`docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
+
+## 命令
 
 ```bash
-# Install all skills
-pnpx skills add <this-repo>
-
-# List available skills without installing
-pnpx skills add <this-repo> --list
+make list    # 列出全部 skill 及来源
+make check   # 检查 mirror 上游更新与 skills.json 账目（只读）
+make sync    # 拉取有更新的 mirror、补齐账目（不 commit）
 ```
 
-## Skills
+## 在其他项目/设备使用
 
-| Skill | Description |
-|-------|-------------|
-| `ctx-init` | Generate `.claude/` context files for a new project |
-| `gitflow-commit` | GitHub Flow + Conventional Commits workflow |
-| `clarify` | Visualize complex content as diagrams, trees, or tables |
-| `markdown` | Markdown syntax reference for writing documentation |
-| `explain-code` | Explain code with analogies, diagrams, and gotchas |
+```bash
+# skill：仓内持有的（custom + mirror）
+pnpx skills add oNo500/infra-ai -s <name>
+pnpx skills add oNo500/infra-ai --all
 
-## Structure
+# skill：official 类直接装上游
+pnpx skills add <owner>/<repo> -s <name>
 
-```
-.claude/
-├── agents/               # Custom agents (skill-reviewer, commit-validator, context-manager)
-├── rules/                # Auto-loaded project rules
-│   ├── constitution.md
-│   ├── architecture.md
-│   ├── context-management.md
-│   └── skills.md
-├── CLAUDE.md
-└── settings.json
-skills/                   # Installable skill definitions
-.mcp.json                 # MCP server config (replace placeholder keys)
+# 规则：symlink 到目标项目
+ln -s ~/code/infra-ai/docs/rules/<topic>.md <project>/.claude/rules/<topic>.md
+
+# 新项目脚手架
+scripts/init-project.sh <target-dir> [--type ts-node|python|generic]
 ```
 
-## MCP Servers
-
-`.mcp.json` includes templates for: `context7`, `tavily`, `exa`, `browser-use`.
-Replace placeholder API keys before use. See `skills/ctx-init/references/mcp-guide.md`.
-
----
-
-## Quick Guide: MCP vs Skills vs Agents
-
-| Need | Solution |
-|------|----------|
-| Connect to an external service (database, Notion, GitHub API, browser) | MCP Server |
-| Reusable prompt-based workflow (git flow, doc writing, code review) | Skill |
-| Autonomous sub-task that runs independently with its own tools | Agent |
-
-**MCP** — adds new *tools* to Claude. Use when Claude needs to call an external API or control external software.
-
-**Skill** — adds reusable *workflows* to Claude via the existing Skill tool. Use when the task is prompt-driven and doesn't need new tool integrations.
-
-**Agent** — runs as a subprocess with its own context. Use when a task is self-contained, parallelizable, or needs to be isolated from the main context.
-
-> To add custom tools → connect an MCP server (`claude mcp add`)
-> To add reusable workflows → write a skill (runs via the Skill tool, no new tool entry needed)
-> To add autonomous task runners → write an agent in `.claude/agents/`
-
----
-
-## Claude Code Best Practices
-
-> Source: [Claude Code Docs — Best Practices](https://code.claude.com/docs/en/best-practices)
-
-The single most important constraint: **context window fills up fast, and performance degrades as it fills.** Everything below is about managing this.
-
-### Give Claude a Way to Verify Its Work
-
-Provide tests, screenshots, or expected outputs so Claude can check itself — this is the highest-leverage thing you can do.
-
-- For code: write failing tests first, ask Claude to make them pass
-- For UI: paste a screenshot, ask Claude to compare its output and fix differences
-- For builds: paste the error, ask Claude to fix the root cause and verify the build passes
-
-### Explore First, Then Plan, Then Code
-
-Use Plan Mode (`Shift+Tab` to toggle) to separate research from execution:
-
-1. **Explore** — Claude reads files without making changes
-2. **Plan** — ask for a detailed implementation plan, edit it with `Ctrl+G`
-3. **Implement** — switch to Normal Mode, let Claude code against the plan
-4. **Commit** — ask Claude to commit and open a PR
-
-Skip the plan for small, obvious changes (typo fix, rename, single-line change).
-
-### Provide Specific Context
-
-- Reference files with `@filename` instead of describing where things are
-- Paste images directly into the prompt for UI tasks
-- Point to existing patterns: *"follow the pattern in HotDogWidget.php"*
-- Describe symptoms with location: *"login fails after session timeout, check src/auth/"*
-
-### Write an Effective CLAUDE.md
-
-Keep it short. For each line ask: *"Would removing this cause Claude to make mistakes?"* If not, cut it. Bloated CLAUDE.md files cause Claude to ignore instructions.
-
-| Include | Exclude |
-|---------|---------|
-| Bash commands Claude can't guess | Anything Claude can infer from reading code |
-| Code style rules that differ from defaults | Standard conventions Claude already knows |
-| Testing instructions and preferred runners | Detailed API docs (link instead) |
-| Repo etiquette (branch naming, PR conventions) | File-by-file codebase descriptions |
-| Architectural decisions specific to the project | Self-evident practices like "write clean code" |
-
-### Manage Context Aggressively
-
-- Use `/clear` at task boundaries — CLAUDE.md + rules reload automatically
-- Use subagents (Agent tool) for research-heavy work to protect main context
-- Watch for signs of context bloat: Claude re-asks answered questions, references reverted edits
-- Track context usage with a [custom status line](https://code.claude.com/docs/en/statusline)
-
-### Course-Correct Early and Often
-
-Don't let Claude go far in the wrong direction. If the approach looks off after 2–3 steps, stop and redirect. It's cheaper to course-correct early than to untangle a long wrong path.
-
-### Use Subagents for Investigation
-
-Delegate exploration to subagents instead of accumulating results in main context:
-- Large codebase scans
-- Web research and doc reading
-- Parallel independent tasks
-
-### Use CLI Tools
-
-Install `gh`, `aws`, `gcloud`, and other CLI tools — they're the most context-efficient way to interact with external services. Claude knows how to use them and can learn new ones with `--help`.
+本仓 push 后，其他设备 `git pull`（symlink 自动生效），skill 用 `pnpx skills update` 更新。
