@@ -5,6 +5,10 @@
 
 当前仓内 skill 数量少，尚未引入。本文记录机制与 schema，规模上来后照此落地。
 
+**来源**：[vercel-labs/skills](https://github.com/vercel-labs/skills) README 的
+`Plugin Manifest Discovery` 一节（核对版本 `skills@1.5.11`）。schema 字段与官方
+[Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces) 兼容。
+
 ## 机制
 
 若仓库根存在 `.claude-plugin/marketplace.json` 或 `.claude-plugin/plugin.json`，
