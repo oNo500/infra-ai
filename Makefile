@@ -14,5 +14,5 @@ sync: ## Sync updated mirrors into skills/ (no commit)
 list: ## List all skills and their source (reads skills.json)
 	@jq -r '.[] | "  \(.name)\t[\(.source)]\t" + \
 		(if .source == "mirror" then .repo \
-		 elif .source == "official" then "plugin: " + .plugin \
+		 elif .source == "official" then .repo + (if .plugin then "  (anthropic plugin: " + .plugin + ")" else "" end) \
 		 else "local" end)' skills.json | column -t -s "$$(printf '\t')"
