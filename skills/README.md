@@ -77,3 +77,6 @@ pnpx skills add oNo500/infra-ai --all       # 全装仓内持有的
 ```
 
 `official` 类不经分发，各处 `claude plugin install`。上游更新后各处 `pnpx skills update` 拉最新。
+
+按组批量安装（把 skill 分成命名组分发）的机制见
+[`docs/skills/plugin-grouping.md`](../docs/skills/plugin-grouping.md)，当前未引入。
