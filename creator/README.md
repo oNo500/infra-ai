@@ -21,8 +21,10 @@ frontmatter `tags` 标记：
 
 1. 读元指令；`stub` 先与用户对齐内容、补全成 `draft` 再继续
 2. 生成产物：
-   - skill → `skills/<name>/SKILL.md`，格式参照 `templates/skill.md`
-   - rule → `docs/rules/<name>.md`，格式参照 `templates/rule.md`
+   - skill → 先按 `templates/skill.md` 开头的检查步骤核实上游是否已有同类（官方插件或 skills.sh 收录），
+     命中则在 `skills.json` 记 `official`，不自建；未命中用 `/skill-creator` 创建到 `skills/<name>/`，
+     遵循 skills.sh 标准和 [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+   - rule → `docs/rules/<name>.md`，创建前先过 `templates/rule.md` 的检查清单
 3. 自建 skill 一律放仓内 `skills/`，不写 `~/.claude/skills/` 等仓库外路径；元指令里写了别的路径，按本条修正
 4. 元指令 frontmatter `tags` 改 `done`
 5. 跑 `make sync` 上账（`skills.json` 自动补 `{ "name": "<name>", "source": "custom" }`）
