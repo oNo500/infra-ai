@@ -5,7 +5,7 @@
 
 - `custom` — 自建，在 `skills/` 里，只需 `name`
 - `mirror` — giget 拉自上游开源仓库，在 `skills/` 里，带 `repo`/`path`/`commit`/`updated`
-- `official` — 官方插件，**不在** `skills/` 里，带 `plugin` 名，靠 `claude plugin install`
+- `official` — 符合 skills.sh 标准，**不在** `skills/` 里，只需 `name`/`repo`，靠 `pnpx skills add <repo> -s <name>`；若同时是 Anthropic 官方插件，额外带 `plugin` 字段，另可 `claude plugin install <plugin>`
 
 `make list` 随时查全量 skill 及来源。仓内持有的（custom + mirror）同步到 GitHub，
 供其他项目/设备用 `pnpx skills` 管理。不发布到 skills.sh 注册表。
@@ -56,16 +56,18 @@ git push
 - **上游变为标准 skill**：若上游被 skills.sh 收录或发布为官方插件，不再镜像 —— 把该条目
   从 `mirror` 改为 `official`（或直接移除），删 `skills/<name>/`，改用标准安装。
 
-## 官方收录 skill (official)
+## 标准 skill (official)
 
-新增 skill 前先核实是否已被官方收录（见 `templates/skill.md` 的核实流程）。命中则：
+上游符合 skills.sh 标准、可 `pnpx skills add` 的 skill。不放进 `skills/`。
 
-```bash
-claude plugin install <plugin>
+往 `skills.json` 加 `{ "name": "<name>", "source": "official", "repo": "<owner>/<repo>" }`，
+各处自行 `pnpx skills add <repo> -s <name>`。
+
+若同时是 Anthropic 官方插件（如 defuddle），额外带 `plugin` 字段，另可 `claude plugin install <plugin>`：
+
+```json
+{ "name": "defuddle", "source": "official", "repo": "anthropics/claude-plugins-official", "plugin": "defuddle" }
 ```
-
-往 `skills.json` 加 `{ "name": "<name>", "source": "official", "plugin": "<plugin>" }`。
-不放进 `skills/`。
 
 ## 分发
 
@@ -76,7 +78,9 @@ pnpx skills add oNo500/infra-ai -s <name>   # 挑单个 (custom/mirror)
 pnpx skills add oNo500/infra-ai --all       # 全装仓内持有的
 ```
 
-`official` 类不经分发，各处 `claude plugin install`。上游更新后各处 `pnpx skills update` 拉最新。
+`official` 类不经本仓库分发——各处自行 `pnpx skills add <repo> -s <name>`；
+带 `plugin` 字段的 Anthropic 官方插件另可 `claude plugin install <plugin>`。
+上游更新后各处 `pnpx skills update` 拉最新。
 
 按组批量安装（把 skill 分成命名组分发）的机制见
 [`docs/skills/plugin-grouping.md`](../docs/skills/plugin-grouping.md)，当前未引入。
