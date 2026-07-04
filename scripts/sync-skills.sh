@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MIRRORS_FILE="$(dirname "$0")/../mirrors.json"
+SKILLS_FILE="$(dirname "$0")/../skills.json"
 SKILLS_DIR="$(dirname "$0")/../skills"
 
 check() {
   local has_updates=0
   local count
-  count=$(jq 'length' "$MIRRORS_FILE")
+  count=$(jq 'length' "$SKILLS_FILE")
 
   for i in $(seq 0 $((count - 1))); do
-    local name repo path local_commit remote_commit
-    name=$(jq -r ".[$i].name" "$MIRRORS_FILE")
-    repo=$(jq -r ".[$i].repo" "$MIRRORS_FILE")
-    path=$(jq -r ".[$i].path" "$MIRRORS_FILE")
-    local_commit=$(jq -r ".[$i].commit" "$MIRRORS_FILE")
+    local source name repo path local_commit remote_commit
+    source=$(jq -r ".[$i].source" "$SKILLS_FILE")
+    [[ "$source" != "mirror" ]] && continue
+
+    name=$(jq -r ".[$i].name" "$SKILLS_FILE")
+    repo=$(jq -r ".[$i].repo" "$SKILLS_FILE")
+    path=$(jq -r ".[$i].path" "$SKILLS_FILE")
+    local_commit=$(jq -r ".[$i].commit" "$SKILLS_FILE")
     remote_commit=$(gh api "repos/${repo}/commits?path=${path}" --jq '.[0].sha')
 
     if [[ "$local_commit" != "$remote_commit" ]]; then
@@ -30,16 +33,19 @@ check() {
 
 update() {
   local count
-  count=$(jq 'length' "$MIRRORS_FILE")
+  count=$(jq 'length' "$SKILLS_FILE")
   local today
   today=$(date '+%Y-%m-%d')
 
   for i in $(seq 0 $((count - 1))); do
-    local name repo path local_commit remote_commit
-    name=$(jq -r ".[$i].name" "$MIRRORS_FILE")
-    repo=$(jq -r ".[$i].repo" "$MIRRORS_FILE")
-    path=$(jq -r ".[$i].path" "$MIRRORS_FILE")
-    local_commit=$(jq -r ".[$i].commit" "$MIRRORS_FILE")
+    local source name repo path local_commit remote_commit
+    source=$(jq -r ".[$i].source" "$SKILLS_FILE")
+    [[ "$source" != "mirror" ]] && continue
+
+    name=$(jq -r ".[$i].name" "$SKILLS_FILE")
+    repo=$(jq -r ".[$i].repo" "$SKILLS_FILE")
+    path=$(jq -r ".[$i].path" "$SKILLS_FILE")
+    local_commit=$(jq -r ".[$i].commit" "$SKILLS_FILE")
     remote_commit=$(gh api "repos/${repo}/commits?path=${path}" --jq '.[0].sha')
 
     if [[ "$local_commit" == "$remote_commit" ]]; then
@@ -52,8 +58,8 @@ update() {
 
     local tmp
     tmp=$(mktemp)
-    jq ".[$i].commit = \"$remote_commit\" | .[$i].updated = \"$today\"" "$MIRRORS_FILE" > "$tmp"
-    mv "$tmp" "$MIRRORS_FILE"
+    jq ".[$i].commit = \"$remote_commit\" | .[$i].updated = \"$today\"" "$SKILLS_FILE" > "$tmp"
+    mv "$tmp" "$SKILLS_FILE"
     echo "[done] $name -> $remote_commit"
   done
 }

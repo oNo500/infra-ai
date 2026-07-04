@@ -1,6 +1,7 @@
 [
   {
     "name": "drawio",
+    "source": "mirror",
     "repo": "jgraph/drawio-mcp",
     "path": "plugins/claude-code/skills/drawio",
     "commit": "516965c7c49e9ec408529d0b1a653f67814cb920",
