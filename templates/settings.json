@@ -70,34 +70,7 @@
     "defaultMode": "acceptEdits"
   },
 
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Read|Edit|Write",
-        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-rules.py\"" }]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/format-code.sh\"", "timeout": 30 }]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.py\"" }]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "python3 ~/.claude/hooks/notify.py" }]
-      }
-    ]
-  },
-
-  // MCP server activation per project type (see mcp/ for install instructions):
+  // MCP server activation per project type (see docs/mcp/ for install instructions):
   // Generic TS:   ["github", "context7", "fetch"]
   // With DB:      ["github", "context7", "fetch", "db"]
   // With browser: ["github", "context7", "playwright"]
