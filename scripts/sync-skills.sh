@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MIRRORS_FILE="$(dirname "$0")/mirrors.json"
-SKILLS_DIR="$HOME/.claude/skills"
+MIRRORS_FILE="$(dirname "$0")/../mirrors.json"
+SKILLS_DIR="$(dirname "$0")/../skills"
 
 check() {
   local has_updates=0
