@@ -11,13 +11,13 @@
   - `official` — 符合 skills.sh 标准的上游 skill，只记 repo，不放进本仓
 
   清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
-  维护流程见 [`skills/README.md`](skills/README.md)。
+  维护流程见 [`docs/skills/README.md`](docs/skills/README.md)。
 - [`docs/constitution/`](docs/constitution/) — constitution 与 architecture，供其他项目引用
 - `docs/rules/` — 可分发的通用规则（暂空）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
-- [`docs/skills/`](docs/skills/) — 第三方 skill 的调研与用法说明
+- [`docs/skills/`](docs/skills/) — skills 专题（SSoT、创建、维护、使用）与各第三方 skill 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
-- [`creator/`](creator/) — 待创建 skill/rule 的元指令，自用不分发，见 [`creator/README.md`](creator/README.md)
+- [`meta/`](meta/) — 构建 skill/rule 的元指令，永久保留、可重复构建，见 [`meta/README.md`](meta/README.md)
 
 `docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
 
@@ -25,8 +25,8 @@
 
 ```bash
 make list    # 列出全部 skill 及来源
-make check   # 检查 mirror 上游更新与 skills.json 账目（只读）
-make sync    # 拉取有更新的 mirror、补齐账目（不 commit）
+make check   # 检查 mirror 上游更新、核对 skills.json 清单（只读）
+make sync    # 拉取有更新的 mirror、补齐清单（不 commit）
 ```
 
 ## 在其他项目/设备使用
