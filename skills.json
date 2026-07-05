@@ -42,6 +42,8 @@
 
   { "name": "find-skills", "source": "official", "repo": "vercel-labs/skills" },
 
+  { "name": "deep-research", "source": "official", "repo": "affaan-m/everything-claude-code" },
+
   { "name": "ai-sdk", "source": "official", "repo": "vercel/ai" },
 
   { "name": "next-best-practices", "source": "official", "repo": "vercel-labs/next-skills" },
