@@ -17,7 +17,7 @@
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`docs/skills/`](docs/skills/) — 各第三方 skill 的调研与用法说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
-- [`meta/`](meta/) — 构建 skill/rule 的元指令，永久保留、可重复构建，见 [`meta/README.md`](meta/README.md)
+- [`meta/`](meta/) — 构建 skill/rule 的元指令，永久保留、可重复构建，规则见 [`meta/BUILD.md`](meta/BUILD.md)
 
 `docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
 
