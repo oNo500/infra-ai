@@ -1,11 +1,12 @@
 ---
-title: readme-rule
-jd_id: J00-20260627-1734
-created: 2026-06-27 17:34
-tags: [draft]
+name: readme-rule
+target: rule
+status: stub
 ---
 
 # readme-rule
+
+<!-- 正文是产物素材（架构 rule 的草稿模板）；意图与要求待补全后转 ready -->
 
 
 # [PROJECT_NAME] - Architecture

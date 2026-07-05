@@ -1,14 +1,12 @@
 ---
-title: 元指令：创建 commit-lite skill
-jd_id: J10-20260704-1736
-created: 2026-07-04 17:36
-type: reference
-tags: [draft, infra-ai, creator]
+name: commit-lite
+target: skill
+status: ready
 ---
 
 # 元指令：commit-lite skill
 
-触发后，在 `~/.claude/skills/commit-lite/` 下生成 `SKILL.md`。
+触发后，在仓库根 `skills/commit-lite/` 下生成 `SKILL.md`。
 
 ## 目标
 
@@ -90,10 +88,8 @@ BREAKING CHANGE: /v1/* routes removed.
 
 ## 输出路径
 
-`~/.claude/skills/commit-lite/SKILL.md`
-
-生成后提示用户运行：
+仓库根 `skills/commit-lite/SKILL.md`，`make sync` 上账后各处安装：
 
 ```bash
-pnpx skills add ~/.claude/skills/commit-lite
+pnpx skills add oNo500/infra-ai -s commit-lite
 ```
