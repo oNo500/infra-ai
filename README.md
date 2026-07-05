@@ -16,7 +16,7 @@
 - `rules/` — 可分发 rule 的构建产物：`global/`（无条件加载）+ `scoped/`（按 `paths` 动态加载）。暂空，随首个产物出现
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
-- [`meta/`](meta/) — 构建 skill/rule 的元指令，永久保留、可重复构建；构建规则见各子目录的 `BUILD.md`
+- [`meta/`](meta/) — 构建 skill/rule 的元指令（`skills/`、`rules/`），永久保留、可重复构建；构建规则在 [`meta/build/`](meta/build/)，每类产物一份
 
 `docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
 
