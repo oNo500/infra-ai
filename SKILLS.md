@@ -1,7 +1,5 @@
 # Skills
 
-本目录：这份专题总览 + 各第三方 skill 的调研与用法说明（套 `templates/skill.md`）。
-
 ## SSoT
 
 `skills.json`（仓库根）是全部 skill 的清单：一个 skill 是否存在、来自哪里、如何安装，以它为准。每条按 `source` 分三类：
@@ -14,7 +12,7 @@
 
 ## 创建
 
-- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式与回写纪律见 [`meta/README.md`](../../meta/README.md)，构建规则见 [`meta/BUILD.md`](../../meta/BUILD.md)
+- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式与回写纪律见 [`meta/README.md`](meta/README.md)，构建规则见 [`meta/BUILD.md`](meta/BUILD.md)
 - `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），`make sync` 拉取
 - `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
 
@@ -43,4 +41,4 @@ pnpx skills update                          # 全部更新
 
 official 不经本仓分发；带 `plugin` 字段的另可 `claude plugin install <plugin>`。
 不发布到 skills.sh 注册表。按组批量安装的机制见
-[`plugin-grouping.md`](plugin-grouping.md)，未引入。
+[`docs/skills/plugin-grouping.md`](docs/skills/plugin-grouping.md)，未引入。

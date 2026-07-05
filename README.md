@@ -11,11 +11,11 @@
   - `official` — 符合 skills.sh 标准的上游 skill，只记 repo，不放进本仓
 
   清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
-  维护流程见 [`docs/skills/README.md`](docs/skills/README.md)。
+  专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
 - [`docs/constitution/`](docs/constitution/) — constitution 与 architecture，供其他项目引用
 - `docs/rules/` — 可分发的通用规则（暂空）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
-- [`docs/skills/`](docs/skills/) — skills 专题（SSoT、创建、维护、使用）与各第三方 skill 说明
+- [`docs/skills/`](docs/skills/) — 各第三方 skill 的调研与用法说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
 - [`meta/`](meta/) — 构建 skill/rule 的元指令，永久保留、可重复构建，见 [`meta/README.md`](meta/README.md)
 
