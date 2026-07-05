@@ -28,9 +28,13 @@
    需要哪条规则就 copy 到目标项目 `.claude/rules/`。接受副本漂移，人工兜底：
    源只在 infra-ai 改，下游副本不回改，有价值改动回写中心后重新 copy
 
-4. **meta 衔接**——`meta/rules/` 元指令声明作用域（global，或 scoped + glob），
-   构建时决定产物落哪个子目录、写不写 `paths`；`meta/BUILD.md` 的 `target: rule`
-   节补充此规则。现有 `python`、`typescript`、`readme-rule` 三个 stub 预期均为 global
+4. **rule 与 skill 同构，走同一套源/构建/产物模型**——`meta/rules/<name>.md`
+   是源（永久保留），`meta/BUILD.md` 是构建指令，`docs/rules/<类>/<name>.md`
+   是产物（可随风格标准重建）。产物原则上由元指令构建而来，不直接手写；
+   直接在产物上做的有价值修改必须回写元指令（回写纪律同 skill）。
+   元指令声明作用域（global，或 scoped + glob），构建时据此决定产物落哪个子目录、
+   写不写 `paths`；`meta/BUILD.md` 的 `target: rule` 节补充此规则。
+   现有 `python`、`typescript`、`readme-rule` 三个 stub 预期均为 global
 
 5. **`.claude/rules/`（自用）不动**——自用规则在两个以上项目被重复需要时，
    升级进 `docs/rules/`（沿用既定判断标准）
