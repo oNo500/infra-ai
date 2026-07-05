@@ -41,4 +41,4 @@ pnpx skills update                          # 全部更新
 
 official 不经本仓分发；带 `plugin` 字段的另可 `claude plugin install <plugin>`。
 不发布到 skills.sh 注册表。按组批量安装的机制见
-[`docs/skills/plugin-grouping.md`](docs/skills/plugin-grouping.md)，未引入。
+[`docs/skills/plugin-grouping.md`](docs/skills/plugin-grouping.md)，规模上来后引入。
