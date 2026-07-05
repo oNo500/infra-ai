@@ -40,5 +40,19 @@ pnpx skills update                          # 全部更新
 ```
 
 official 不经本仓分发；带 `plugin` 字段的另可 `claude plugin install <plugin>`。
-不发布到 skills.sh 注册表。按组批量安装的机制见
-[`docs/skills/plugin-grouping.md`](docs/skills/plugin-grouping.md)，规模上来后引入。
+不发布到 skills.sh 注册表。
+
+## 分组分发（待用）
+
+仓库根放 `.claude-plugin/marketplace.json` 可把仓内 skill 声明成命名分组，
+`pnpx skills` 按组安装一批；声明的 skill 路径在其声明深度直接搜，不受默认
+depth-2 遍历限制。schema 要点：`metadata.pluginRoot`（plugin 源目录根）+
+`plugins[]` 的 `name`（分组名）/`source`（源目录）/`skills[]`（skill 路径数组）。
+
+- 引入时机：仓内 skill 多到按用途分组比逐个安装省事时；当前实体只有 drawio，不引入
+- 引入方式：`skills.json` 条目加 `group` 字段，`make manifest` 从清单生成
+  marketplace.json，避免两处手写漂移；`official` 不入 manifest（不在仓内）
+
+来源：[vercel-labs/skills](https://github.com/vercel-labs/skills) README
+「Plugin Manifest Discovery」一节（核对版本 `skills@1.5.11`）；schema 与
+[Claude Code plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces) 兼容。
