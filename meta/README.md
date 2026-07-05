@@ -28,17 +28,8 @@ status: stub | ready
 
 ## 构建
 
-对 Claude 说「构建 `meta/skills/<name>.md`」：
-
-1. 读元指令；`stub` 先与用户对齐、补全成 `ready` 再继续
-2. skill → 先按 `templates/skill.md` 开头的检查步骤核实上游是否已有同类
-   （有则在 `skills.json` 记 `official`，不自建）；没有再用 `/skill-creator`
-   生成到 `skills/<name>/`，遵循 skills.sh 标准和
-   [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
-3. rule → `docs/rules/<name>.md`，创建前先过 `templates/rule.md` 的检查清单
-4. 跑 `make sync` 上账（`skills.json` 自动补 custom 条目）
-
-产物一律落仓内约定位置，元指令里写了别的路径（如 `~/.claude/skills/`）按本条修正。
+构建规则在 [`BUILD.md`](BUILD.md)——触发方式、各 target 的生成步骤与质量标准都以它为准。
+它决定产物品质，修改前先与用户确认。
 
 ## 回写纪律
 
