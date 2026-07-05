@@ -12,7 +12,7 @@
 
 ## 创建
 
-- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式、构建规则、回写纪律见 [`meta/BUILD.md`](meta/BUILD.md)
+- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式、构建规则、回写纪律见 [`meta/skills/BUILD.md`](meta/skills/BUILD.md)
 - `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），`make sync` 拉取
 - `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
 

@@ -30,11 +30,11 @@
    源只在 infra-ai 改，下游副本不回改，有价值改动回写中心后重新 copy
 
 4. **rule 与 skill 同构，走同一套源/构建/产物模型**——`meta/rules/<name>.md`
-   是源（永久保留），`meta/BUILD.md` 是构建指令，`rules/<类>/<name>.md`
+   是源（永久保留），`meta/rules/BUILD.md` 是构建指令（每类产物各有一份 BUILD），`rules/<类>/<name>.md`
    是产物（可随风格标准重建）。产物原则上由元指令构建而来，不直接手写；
    直接在产物上做的有价值修改必须回写元指令（回写纪律同 skill）。
    元指令声明作用域（global，或 scoped + glob），构建时据此决定产物落哪个子目录、
-   写不写 `paths`；`meta/BUILD.md` 的 `target: rule` 节补充此规则。
+   写不写 `paths`；规则写在 `meta/rules/BUILD.md`。
    现有 `python`、`typescript`、`readme-rule` 三个 stub 预期均为 global
 
 5. **`.claude/rules/`（自用）不动**——自用规则在两个以上项目被重复需要时，
@@ -52,5 +52,5 @@
 结构性约定，无可执行验证。落地时检查：
 
 - 两个子目录存在且根 README、SKILLS 相关文档指向一致
-- `meta/BUILD.md` `target: rule` 节含作用域声明规则
+- `meta/rules/BUILD.md` 含作用域声明规则
 - 首个 rule 产物构建时按声明落对子目录
