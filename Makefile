@@ -1,4 +1,4 @@
-.PHONY: help check sync list
+.PHONY: help check sync list list-rules
 .DEFAULT_GOAL := help
 
 help: ## List all commands
@@ -17,3 +17,6 @@ list: ## List all skills and their source (reads skills.json)
 		(if .source == "mirror" then .repo \
 		 elif .source == "official" then .repo + (if .plugin then "  (anthropic plugin: " + .plugin + ")" else "" end) \
 		 else "local" end)' skills.json | column -t -s "$$(printf '\t')"
+
+list-rules: ## Reconcile rule meta sources against build artifacts
+	@scripts/list-rules.sh
