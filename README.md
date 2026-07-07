@@ -12,11 +12,10 @@
 
   清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
   专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
-- [`docs/constitution/`](docs/constitution/) — constitution 与 architecture，供其他项目引用
-- `rules/` — 可分发 rule 的构建产物：`global/`（无条件加载）+ `scoped/`（按 `paths` 动态加载）。暂空，随首个产物出现
+- [`rules/`](rules/) — 可分发 rule 的构建产物：`global/`（无条件加载，含 constitution）+ `scoped/`（按 `paths` 动态加载）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
-- [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json 等）
-- [`meta/`](meta/) — 构建 skill/rule 的元指令（`skills/`、`rules/`），永久保留、可重复构建；构建规则在 [`meta/build/`](meta/build/)，每类产物一份
+- [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
+- [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；构建规则在 [`meta/build/`](meta/build/)，每类产物一份
 
 `docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
 

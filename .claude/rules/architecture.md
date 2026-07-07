@@ -5,112 +5,44 @@
 ```
 infra-ai/
 ├── .claude/
-│   ├── CLAUDE.md              # project entry point (<50 lines)
+│   ├── CLAUDE.md              # project entry point
 │   ├── settings.json          # permissions + env (project-scoped)
-│   ├── agents/                # custom agent definitions
-│   │   └── <name>.md          # one file per agent
-│   └── rules/                 # auto-loaded rule files
-│       ├── constitution.md    # core principles (no paths — always loaded)
-│       ├── architecture.md    # this file (no paths — always loaded)
-│       ├── context-management.md  # context hygiene rules (always loaded)
-│       └── skills.md          # skills architecture (paths: skills/**)
-├── skills/                    # publishable skill definitions — installable via `pnpx skills add`
-│   └── <name>/
-│       ├── SKILL.md           # entry point: frontmatter + workflow
-│       ├── assets/            # template files (filled by Claude during skill use)
-│       └── references/        # fill-in guides (how to use the templates)
-├── .mcp.json                  # MCP server config (API keys as placeholders)
-└── .gitignore
+│   └── rules/                 # 本仓自用规则，不分发
+│       ├── constitution.md    # rules/global/constitution.md 的分发副本
+│       └── architecture.md    # this file
+├── skills.json                # skill 账：存在与来源的 SSoT
+├── SKILLS.md                  # skills 专题（SSoT、创建、维护、使用）
+├── skills/                    # skill 产物（custom + mirror；official 留上游）
+├── meta/                      # 元指令源，永久保留
+│   ├── build/                 # 构建规则，每类产物一份（rule.md、skill.md、template.md）
+│   ├── rules/                 # rule 元指令
+│   ├── skills/                # skill 元指令
+│   └── templates/             # template 元指令
+├── rules/                     # 可分发 rule 产物
+│   ├── global/                # 无 paths frontmatter，无条件加载，copy 即用
+│   └── scoped/                # paths frontmatter，按 glob 触发加载
+├── templates/                 # 项目模板（含占位符，分发时实例化）
+├── docs/
+│   ├── mcp/                   # MCP server 知识文档
+│   └── superpowers/           # 设计文档（specs + plans）
+├── scripts/                   # make 目标的实现
+├── Makefile
+└── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```
 
----
+## 源→产物模型
 
-## Skills
+- `meta/` 元指令是源，永久保留；`skills/`、`rules/`、`templates/` 下的构建产物可重建
+- 构建与分发规则在 `meta/build/`，每类产物一份
+- 产物上的有价值修改必须回写元指令，否则下次重建丢失
 
-### SKILL.md Frontmatter
+## 分发
 
-Required fields:
+- `rules/global|scoped/` — 照搬型，手动 copy 到目标项目 `.claude/rules/`
+- `templates/` — 模板型，结合目标项目实例化占位符后落地
+- 源只在本仓改，下游副本不回改
 
-```yaml
----
-name: <matches directory name exactly>
-description: >
-  [What it does]. [When to trigger it — specific conditions].
-  Trigger phrases: "[phrase1]", "[phrase2]".
----
-```
+## 对账
 
-The `description` field is what Claude uses to auto-invoke the skill. It must be specific
-enough to disambiguate from other skills.
-
-### assets/ vs references/
-
-- `assets/` — template files that Claude fills in when executing the skill. May contain
-  `[ALL_CAPS]` placeholders. Never commit with placeholders unfilled (in actual project output).
-- `references/` — guides that tell Claude *how* to fill the templates. Prose, not templates.
-
-### Naming
-
-- Skill directory: `kebab-case`
-- Asset files: `<topic>.md` (e.g. `constitution.md`, `frontend.md`)
-- Reference files: `<topic>-guide.md` (e.g. `architecture-guide.md`)
-
----
-
-## Agents
-
-Each file in `agents/` defines one custom agent. Format:
-
-```yaml
----
-name: <kebab-case, matches filename without .md>
-description: >
-  [When to use this agent — specific triggers and examples].
-  Include <example> blocks for complex invocation patterns.
-model: sonnet | opus | haiku | inherit
-color: green | yellow | cyan | purple | red | blue
----
-
-[Agent system prompt — what it does, how it works, output format]
-```
-
-### Model Selection
-
-- `haiku` — fast validators, format checkers, context assessors (low reasoning needed)
-- `sonnet` — default for most agents (code review, architecture, skill review)
-- `opus` — reserved for deep analysis requiring maximum reasoning
-- `inherit` — uses the current session model
-
-### High-Value Agents in This Repo
-
-| Agent | Model | Trigger |
-|-------|-------|---------|
-| `skill-reviewer` | sonnet | After writing/modifying a SKILL.md |
-| `commit-validator` | haiku | Before every `git commit` |
-| `context-manager` | haiku | Session feels bloated, before new major task |
-
----
-
-## MCP Configuration
-
-`.mcp.json` at project root. API keys must be placeholders (not real keys) in version control.
-
-Four-tier retrieval strategy (see `skills/ctx-init/references/mcp-guide.md`):
-1. context7 — third-party library API docs
-2. exa — real-world code examples, comparison analysis
-3. tavily — general web search
-4. Brave Search (env fallback) — last resort
-
----
-
-## Rules Files
-
-| File | paths frontmatter | Purpose |
-|------|-------------------|---------|
-| `constitution.md` | none (always loaded) | Non-negotiable principles |
-| `architecture.md` | none (always loaded) | Structure + conventions |
-| `context-management.md` | none (always loaded) | Context hygiene |
-| `skills.md` | `skills/**` | Skills-specific rules |
-
-New rule files: use `paths` frontmatter only when the rule is irrelevant outside a specific
-directory. Otherwise omit it so the rule always loads.
+- skills：`make list` / `make check` / `make sync`
+- rules：`make list-rules`
