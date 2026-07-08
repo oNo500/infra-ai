@@ -1,39 +1,23 @@
 # CLAUDE.md
 
-**infra-ai** — Personal Claude Code infrastructure: skill definitions, agent definitions,
-and MCP configuration. Used as a template and reference for other projects.
+**infra-ai** — 个人 Claude Code 基础设施的中心源：skill、rule、模板、MCP 说明
+在此集中维护，其他项目和设备从这里派生。源只在本仓改，下游副本不回改。
 
-## Structure
+## 结构与模型
 
-- `skills/` — Publishable skill definitions, installable via `pnpx skills add <repo>`. Each skill has `SKILL.md` + optional `assets/` + `references/`.
-- `.claude/agents/` — Custom agent definitions. One `.md` file per agent.
-- `.mcp.json` — MCP server config (replace placeholder keys before use).
-- `.claude/rules/` — Auto-loaded project rules (see Architecture for which files load when).
+见 `.claude/rules/architecture.md`（自动加载）。一句话：`meta/` 元指令是源，
+`skills/`、`rules/`、`templates/` 是构建产物，产物可重建、改动必须回写元指令。
 
-## Key Commands
+## 命令
 
 ```bash
-# Validate a skill before committing
-# → use the skill-reviewer agent, point it at skills/<name>/
-
-# Check commit before pushing
-# → use the commit-validator agent
-
-# Context getting heavy? Run the context-manager agent first
+make list        # skill 清单及来源
+make check       # mirror 上游与 skills.json 对账（只读）
+make sync        # 拉取 mirror 更新、补齐清单（不 commit）
+make list-rules  # rule 元指令与产物对账
 ```
 
-## Adding a New Skill
+## 新增资产
 
-1. `mkdir skills/<name>` and create `SKILL.md` with required frontmatter
-2. Run `skill-reviewer` agent to validate
-3. Run `commit-validator` agent before committing
-
-## README Sync
-
-`README.md` (English) and `README.zh.md` (Chinese) must stay in sync.
-When updating either file, always update the other in the same commit.
-
-## Adding a New Agent
-
-Create `agents/<name>.md` with frontmatter: `name`, `description`, `model`, `color`.
-See `architecture.md` for model selection guide.
+1. 在 `meta/<类>/` 建元指令（`stub` 起步，`ready` 可构建）
+2. 对 Claude 说「构建 `meta/<类>/<name>.md`」——构建与分发规则见 `meta/build/<类>.md`
