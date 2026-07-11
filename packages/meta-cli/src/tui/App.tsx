@@ -15,6 +15,7 @@ import { adoptEntry, gatherFacts } from '../core/status'
 import { AssetDetail } from './AssetDetail'
 import { AssetList } from './AssetList'
 import { RunPanel, type Job } from './RunPanel'
+import { SkillsView } from './SkillsView'
 import { TargetsView } from './TargetsView'
 
 export function App({ repoRoot }: { repoRoot: string }) {
@@ -23,7 +24,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
   const [selected, setSelected] = useState(0)
   const [job, setJob] = useState<Job | null>(null)
   const [confirmQuit, setConfirmQuit] = useState(false)
-  const [view, setView] = useState<'assets' | 'targets' | 'detail'>('assets')
+  const [view, setView] = useState<'assets' | 'targets' | 'detail' | 'skills'>('assets')
 
   const reload = useCallback(() => {
     const next = loadOverview(repoRoot)
@@ -80,6 +81,10 @@ export function App({ repoRoot }: { repoRoot: string }) {
     if (view !== 'assets') return
     if (input === 't') {
       setView('targets')
+      return
+    }
+    if (input === 's') {
+      setView('skills')
       return
     }
     if (input === 'r') reload()
@@ -186,6 +191,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
           />
         )}
         {view === 'assets' && <AssetList rows={rows} selected={selected} />}
+        {view === 'skills' && <SkillsView repoRoot={repoRoot} onExit={() => setView('assets')} />}
       </Box>
       {job && (
         <Box marginTop={1}>
@@ -197,7 +203,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
           <Text dimColor>
             {confirmQuit
               ? 'press q again to quit'
-              : 'up/down move  Enter detail  a adopt  b build  B build stale  w writeback  d dist  D dist all  t targets  r reload  q quit'}
+              : 'up/down move  Enter detail  a adopt  b build  B build stale  w writeback  d dist  D dist all  t targets  s skills  r reload  q quit'}
           </Text>
         </Box>
       )}
