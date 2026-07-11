@@ -7,6 +7,7 @@ import {
   computeDownstreamState,
   distribute,
   downstreamPath,
+  downstreamStates,
   subscribers,
 } from '../src/core/dist'
 
@@ -65,5 +66,98 @@ describe('distribute', () => {
     expect(() =>
       distribute('/tmp', { ...ruleAsset, kind: 'template' }, { path: '/tmp', subscriptions: [] }),
     ).toThrow(/rule/)
+  })
+})
+
+describe('downstreamStates', () => {
+  test('subscribed target with no downstream copy → missing', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'meta-cli-repo-'))
+    const targetA = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    try {
+      mkdirSync(join(repoRoot, 'rules/global'), { recursive: true })
+      writeFileSync(join(repoRoot, 'rules/global/constitution.md'), '# Constitution\n')
+      const targets = [{ path: targetA, subscriptions: ['constitution'] }]
+      const result = downstreamStates(repoRoot, ruleAsset, targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].state).toBe('missing')
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true })
+      rmSync(targetA, { recursive: true, force: true })
+    }
+  })
+
+  test('subscribed target with identical copy → synced', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'meta-cli-repo-'))
+    const targetB = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    try {
+      const artifact = '# Constitution\n'
+      mkdirSync(join(repoRoot, 'rules/global'), { recursive: true })
+      writeFileSync(join(repoRoot, 'rules/global/constitution.md'), artifact)
+      mkdirSync(join(targetB, '.claude/rules'), { recursive: true })
+      writeFileSync(join(targetB, '.claude/rules/constitution.md'), artifact)
+      const targets = [{ path: targetB, subscriptions: ['constitution'] }]
+      const result = downstreamStates(repoRoot, ruleAsset, targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].state).toBe('synced')
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true })
+      rmSync(targetB, { recursive: true, force: true })
+    }
+  })
+
+  test('subscribed target with differing copy → drift', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'meta-cli-repo-'))
+    const targetC = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    try {
+      mkdirSync(join(repoRoot, 'rules/global'), { recursive: true })
+      writeFileSync(join(repoRoot, 'rules/global/constitution.md'), '# Constitution v2\n')
+      mkdirSync(join(targetC, '.claude/rules'), { recursive: true })
+      writeFileSync(join(targetC, '.claude/rules/constitution.md'), '# Constitution v1\n')
+      const targets = [{ path: targetC, subscriptions: ['constitution'] }]
+      const result = downstreamStates(repoRoot, ruleAsset, targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].state).toBe('drift')
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true })
+      rmSync(targetC, { recursive: true, force: true })
+    }
+  })
+
+  test('artifact file absent → all subscribers report missing', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'meta-cli-repo-'))
+    const targetD = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    try {
+      mkdirSync(join(repoRoot, 'rules/global'), { recursive: true })
+      mkdirSync(join(targetD, '.claude/rules'), { recursive: true })
+      writeFileSync(join(targetD, '.claude/rules/constitution.md'), '# Constitution\n')
+      const targets = [{ path: targetD, subscriptions: ['constitution'] }]
+      const result = downstreamStates(repoRoot, ruleAsset, targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].state).toBe('missing')
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true })
+      rmSync(targetD, { recursive: true, force: true })
+    }
+  })
+
+  test('non-subscribed targets excluded from result', () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), 'meta-cli-repo-'))
+    const targetE = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    const targetF = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
+    try {
+      mkdirSync(join(repoRoot, 'rules/global'), { recursive: true })
+      writeFileSync(join(repoRoot, 'rules/global/constitution.md'), '# Constitution\n')
+      const targets = [
+        { path: targetE, subscriptions: ['constitution'] },
+        { path: targetF, subscriptions: ['other-rule'] },
+      ]
+      const result = downstreamStates(repoRoot, ruleAsset, targets)
+      expect(result).toHaveLength(1)
+      expect(result[0].target.path).toBe(targetE)
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true })
+      rmSync(targetE, { recursive: true, force: true })
+      rmSync(targetF, { recursive: true, force: true })
+    }
   })
 })
