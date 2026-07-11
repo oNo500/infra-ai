@@ -1,0 +1,8 @@
+{
+  "name": "infra-ai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "meta": "bun run packages/meta-cli/src/index.tsx"
+  }
+}

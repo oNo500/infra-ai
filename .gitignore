@@ -6,3 +6,7 @@ CLAUDE.md
 
 # MCP keys — copy .mcp.json and fill in real keys locally, do not commit real keys
 # .mcp.json
+.superpowers/
+
+node_modules/
+dist/
