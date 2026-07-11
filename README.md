@@ -24,10 +24,10 @@
 ## 命令
 
 ```bash
-make meta    # 打开 meta-cli TUI：对账、构建、分发、回写
+make meta                     # TUI
+pnpm meta status [--json]     # 对账查询；有待收敛项时退出码为 1
+pnpm meta build <name>        # claude headless 构建；完整命令面 pnpm meta --help
 ```
-
-TUI 内：`b` 构建、`w` 回写、`d` 分发、`t` targets 管理、`s` skills 对账（ledger 核对、mirror 同步、已安装清单与推荐）。
 
 ## 在其他项目/设备使用
 

@@ -49,3 +49,9 @@ infra-ai/
 
 - `make meta` 打开 TUI：资产状态（stub/unbuilt/untracked/dirty/stale/synced）、
   下游漂移、skills ledger 与 mirror 上游，均在界面内收敛
+
+## 动作注册表（功能同步红线）
+
+- `packages/meta-cli/src/core/actions.ts` 是全部维护动作的 SSoT：
+  CLI 子命令由它生成，TUI 键位在 `src/tui/keymap.ts` 声明
+- 新增动作必须先进注册表，再接 keymap；`tests/parity.test.ts` 不过不得提交

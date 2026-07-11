@@ -11,10 +11,9 @@
 ## 命令
 
 ```bash
-make meta        # 打开 meta-cli TUI：对账、构建、分发、回写
+make meta                 # TUI：对账、构建、分发、回写
+pnpm meta status          # 命令式（面向 AI/脚本）：完整命令面见 pnpm meta --help
 ```
-
-TUI 内：`b` 构建、`w` 回写、`d` 分发、`t` targets 管理、`s` skills 对账（含已安装清单与推荐）。
 
 ## 新增资产
 
