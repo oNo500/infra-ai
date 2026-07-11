@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { render } from 'ink'
-import { App } from './tui/App'
+import { App } from './tui/app'
 
 const repoRoot = process.cwd()
 if (!existsSync(join(repoRoot, 'skills.json'))) {

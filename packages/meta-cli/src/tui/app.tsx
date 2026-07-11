@@ -13,12 +13,12 @@ import { loadOverview } from '../core/overview'
 import type { OverviewRow } from '../core/overview'
 import { loadLock, loadTargets, saveLock } from '../core/registry'
 import { adoptEntry, gatherFacts, lockKey } from '../core/status'
-import { AssetDetail } from './AssetDetail'
-import { AssetList } from './AssetList'
-import { RunPanel } from './RunPanel'
-import type { Job } from './RunPanel'
-import { SkillsView } from './SkillsView'
-import { TargetsView } from './TargetsView'
+import { AssetDetail } from './asset-detail'
+import { AssetList } from './asset-list'
+import { RunPanel } from './run-panel'
+import type { Job } from './run-panel'
+import { SkillsView } from './skills-view'
+import { TargetsView } from './targets-view'
 
 export function App({ repoRoot }: { repoRoot: string }) {
   const { exit } = useApp()

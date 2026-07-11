@@ -15,14 +15,6 @@ export default defineConfig({
       },
     },
     {
-      // React component files conventionally use PascalCase; the base
-      // unicorn preset enforces kebab-case repo-wide.
-      files: ['src/tui/**/*.tsx'],
-      rules: {
-        'unicorn/filename-case': ['error', { case: 'pascalCase' }],
-      },
-    },
-    {
       // Test helper closures (e.g. mock `run` functions) are intentionally
       // declared inline per-test for readability even when they capture
       // nothing; hoisting them adds indirection without benefit.
