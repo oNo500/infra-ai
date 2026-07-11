@@ -24,7 +24,7 @@ status: stub | ready
 
 ## 构建
 
-触发：对 Claude 说「构建 `meta/skills/<name>.md`」。
+触发：`make meta` 选中资产按 `b`（headless 构建），或对 Claude 说「构建 `meta/skills/<name>.md`」。
 
 1. 读元指令；`status: stub` 先与用户对齐意图、补全成 `ready` 再继续
 2. 先按 `templates/skill.md` 开头的检查步骤核实上游是否已有同类——
@@ -32,7 +32,7 @@ status: stub | ready
 3. 没有再用 `/skill-creator` 生成到仓库根 `skills/<name>/`，遵循 skills.sh 标准和
    [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
 4. 产物一律落仓内；元指令里写了别的路径（如 `~/.claude/skills/`），以本文件为准修正
-5. 跑 `make sync` 上账（`skills.json` 自动补 custom 条目）
+5. 在 `make meta` 的 `s` 视图按 `f` 上账（`skills.json` 自动补 custom 条目）
 
 ## 回写纪律
 

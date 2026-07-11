@@ -41,7 +41,7 @@ infra-ai/
 
 ## 分发
 
-- `rules/global|scoped/` — 照搬型，手动 copy 到目标项目 `.claude/rules/`
+- `rules/global|scoped/` — 照搬型，本机经 `make meta` 按订阅分发（targets.json），跨设备手动 copy 到目标项目 `.claude/rules/`
 - `templates/` — 模板型，结合目标项目实例化占位符后落地
 - 源只在本仓改，下游副本不回改
 
