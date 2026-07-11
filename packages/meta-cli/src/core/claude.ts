@@ -138,8 +138,8 @@ export function verifyBuild(repoRoot: string, asset: MetaAsset): string | null {
       if (data.name !== asset.name) {
         return `SKILL.md frontmatter name '${String(data.name)}' != '${asset.name}'`
       }
-    } catch (e) {
-      return `SKILL.md frontmatter unparseable: ${String(e)}`
+    } catch (error) {
+      return `SKILL.md frontmatter unparseable: ${String(error)}`
     }
   }
   return null

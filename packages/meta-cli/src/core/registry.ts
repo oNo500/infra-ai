@@ -30,8 +30,8 @@ function parseJsonFile<T>(repoRoot: string, filename: string): T | null {
   if (raw === null) return null
   try {
     return JSON.parse(raw) as T
-  } catch (e) {
-    throw new RegistryError(`${filename}: invalid JSON (${String(e)})`)
+  } catch (error) {
+    throw new RegistryError(`${filename}: invalid JSON (${String(error)})`)
   }
 }
 

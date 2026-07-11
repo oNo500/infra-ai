@@ -58,7 +58,7 @@ describe('parseMetaFile', () => {
   })
 
   test('invalid filename stem throws naming the file', () => {
-    expect(() => parseMetaFile('---\n---\n', '../evil.md', 'rule')).toThrow(/\.\.\/evil\.md/)
+    expect(() => parseMetaFile('---\n---\n', '../evil.md', 'rule')).toThrow(/\.\.\/evil\.md/u)
   })
 })
 
@@ -97,7 +97,9 @@ describe('discoverAssets', () => {
         join(root, 'meta/rules/b.md'),
         '---\nname: dup\ntarget: rule\nstatus: ready\n---\n',
       )
-      expect(() => discoverAssets(root)).toThrow(/dup.*a\.md.*b\.md|meta\/rules\/a\.md.*meta\/rules\/b\.md/)
+      expect(() => discoverAssets(root)).toThrow(
+        /dup.*a\.md.*b\.md|meta\/rules\/a\.md.*meta\/rules\/b\.md/u,
+      )
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

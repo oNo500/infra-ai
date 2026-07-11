@@ -2,7 +2,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import matter from 'gray-matter'
 import type { CommandRunner } from './io'
-import { loadSkills, saveSkills, type SkillEntry } from './registry'
+import { loadSkills, saveSkills } from './registry'
+import type { SkillEntry } from './registry'
 
 export interface LedgerIssue {
   dir: string
@@ -19,7 +20,7 @@ function scanSkillDirs(repoRoot: string): { dir: string; fmName: string }[] {
       const { data } = matter(readFileSync(join(skillsDir, e.name, 'SKILL.md'), 'utf8'))
       return { dir: e.name, fmName: typeof data.name === 'string' ? data.name : '' }
     })
-    .sort((a, b) => a.dir.localeCompare(b.dir))
+    .toSorted((a, b) => a.dir.localeCompare(b.dir))
 }
 
 function ledgerIssues(repoRoot: string): LedgerIssue[] {
@@ -108,7 +109,9 @@ export async function updateMirror(
   saveSkills(
     repoRoot,
     ledger.map((s) =>
-      s.name === status.name ? { ...s, commit: status.remoteCommit, updated: today } : s,
+      s.name === status.name
+        ? Object.assign({}, s, { commit: status.remoteCommit, updated: today })
+        : s,
     ),
   )
 }

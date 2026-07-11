@@ -1,7 +1,9 @@
 import { downstreamStates } from './dist'
-import { discoverAssets, type MetaAsset } from './meta'
+import { discoverAssets } from './meta'
+import type { MetaAsset } from './meta'
 import { loadLock, loadTargets } from './registry'
-import { computeStatus, gatherFacts, type ReconcileStatus } from './status'
+import { computeStatus, gatherFacts } from './status'
+import type { ReconcileStatus } from './status'
 
 export interface OverviewRow {
   asset: MetaAsset

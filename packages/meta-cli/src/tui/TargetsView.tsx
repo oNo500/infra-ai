@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 import { TextInput } from '@inkjs/ui'
-import { loadTargets, saveTargets, type Target } from '../core/registry'
+import { loadTargets, saveTargets } from '../core/registry'
+import type { Target } from '../core/registry'
 
 type Mode = 'list' | 'add' | 'subs'
 

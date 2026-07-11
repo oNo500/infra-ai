@@ -9,12 +9,14 @@ import {
   writebackPromptFor,
 } from '../core/claude'
 import { distribute, downstreamStates, subscribers } from '../core/dist'
-import { loadOverview, type OverviewRow } from '../core/overview'
+import { loadOverview } from '../core/overview'
+import type { OverviewRow } from '../core/overview'
 import { loadLock, loadTargets, saveLock } from '../core/registry'
 import { adoptEntry, gatherFacts, lockKey } from '../core/status'
 import { AssetDetail } from './AssetDetail'
 import { AssetList } from './AssetList'
-import { RunPanel, type Job } from './RunPanel'
+import { RunPanel } from './RunPanel'
+import type { Job } from './RunPanel'
 import { SkillsView } from './SkillsView'
 import { TargetsView } from './TargetsView'
 
@@ -41,7 +43,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
         setJob((j) => (j ? { ...j, lines: [...j.lines, ...t.split('\n')] } : j))
       fn(onText)
         .then((error) => setJob((j) => (j ? { ...j, done: true, error } : j)))
-        .catch((e) => setJob((j) => (j ? { ...j, done: true, error: String(e) } : j)))
+        .catch((error) => setJob((j) => (j ? { ...j, done: true, error: String(error) } : j)))
         .finally(reload)
     },
     [reload],

@@ -9,10 +9,8 @@ import {
   listInstalledSkills,
   officialRecommendations,
   updateMirror,
-  type LedgerIssue,
-  type MirrorStatus,
-  type Recommendation,
 } from '../core/skills-sync'
+import type { LedgerIssue, MirrorStatus, Recommendation } from '../core/skills-sync'
 
 export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () => void }) {
   const [issues, setIssues] = useState<LedgerIssue[]>(() => checkSkillsLedger(repoRoot))
@@ -39,8 +37,8 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
       (result) => {
         if (!cancelled) setMirrors(result)
       },
-      (e) => {
-        if (!cancelled) setMirrorError(String(e))
+      (error) => {
+        if (!cancelled) setMirrorError(String(error))
       },
     )
     return () => {
@@ -54,8 +52,8 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
       (result) => {
         if (!cancelled) setInstalled(result)
       },
-      (e) => {
-        if (!cancelled) setInstalledError(String(e))
+      (error) => {
+        if (!cancelled) setInstalledError(String(error))
       },
     )
     return () => {
@@ -88,8 +86,8 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
         setMirrors(next)
         setNotice(`updated: ${outdated.map((m) => m.name).join(', ')}`)
       })()
-        .catch((e) => {
-          if (mountedRef.current) setNotice(String(e))
+        .catch((error) => {
+          if (mountedRef.current) setNotice(String(error))
         })
         .finally(() => {
           if (mountedRef.current) setBusy(false)

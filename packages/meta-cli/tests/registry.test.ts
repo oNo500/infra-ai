@@ -66,7 +66,7 @@ describe('skills registry', () => {
     const root = tmpRoot()
     try {
       writeFileSync(join(root, 'skills.json'), '{ not json')
-      expect(() => loadSkills(root)).toThrow(/skills\.json/)
+      expect(() => loadSkills(root)).toThrow(/skills\.json/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

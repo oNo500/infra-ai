@@ -65,7 +65,7 @@ describe('distribute', () => {
   test('rejects non-rule assets', () => {
     expect(() =>
       distribute('/tmp', { ...ruleAsset, kind: 'template' }, { path: '/tmp', subscriptions: [] }),
-    ).toThrow(/rule/)
+    ).toThrow(/rule/u)
   })
 })
 

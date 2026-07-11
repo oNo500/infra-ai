@@ -85,7 +85,7 @@ describe('verifyBuild and recordBuild', () => {
       writeFileSync(join(root, 'skills.json'), '[]\n')
       mkdirSync(join(root, 'meta/rules'), { recursive: true })
       writeFileSync(join(root, 'meta/rules/constitution.md'), '---\nname: constitution\n---\n')
-      expect(verifyBuild(root, ruleAsset)).toMatch(/missing/)
+      expect(verifyBuild(root, ruleAsset)).toMatch(/missing/u)
 
       mkdirSync(join(root, 'rules/global'), { recursive: true })
       writeFileSync(join(root, 'rules/global/constitution.md'), '# Constitution\n')
@@ -109,7 +109,7 @@ describe('verifyBuild and recordBuild', () => {
     try {
       mkdirSync(join(root, 'skills/commit-lite'), { recursive: true })
       writeFileSync(join(root, 'skills/commit-lite/SKILL.md'), '---\nname: wrong\n---\nbody\n')
-      expect(verifyBuild(root, skillAsset)).toMatch(/name/)
+      expect(verifyBuild(root, skillAsset)).toMatch(/name/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
