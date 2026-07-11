@@ -16,16 +16,18 @@
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
 - [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；构建规则在 [`meta/build/`](meta/build/)，每类产物一份
+- [`packages/meta-cli/`](packages/meta-cli/) — 维护端 TUI（bun + ink）：对账、构建（claude headless）、分发、回写
+- `targets.json` / `artifacts.lock.json` — 分发登记（下游项目及订阅）与构建登记（meta/产物 hash 基线，键 `<kind>:<name>`），由 meta-cli 维护
 
 `docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
 
 ## 命令
 
 ```bash
-make list    # 列出全部 skill 及来源
-make check   # 检查 mirror 上游更新、核对 skills.json 清单（只读）
-make sync    # 拉取有更新的 mirror、补齐清单（不 commit）
+make meta    # 打开 meta-cli TUI：对账、构建、分发、回写
 ```
+
+TUI 内：`b` 构建、`w` 回写、`d` 分发、`t` targets 管理、`s` skills 对账（ledger 核对、mirror 同步、已安装清单与推荐）。
 
 ## 在其他项目/设备使用
 
@@ -37,7 +39,8 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则：手动复制到目标项目（不用 symlink，跨设备路径不可靠）
+# 规则：本机项目在 make meta 的 t 视图登记订阅后按 d 分发；
+# 也可手动复制（不用 symlink，跨设备路径不可靠）
 cp ~/code/infra-ai/rules/<类>/<topic>.md <project>/.claude/rules/<topic>.md
 
 # 新项目脚手架
