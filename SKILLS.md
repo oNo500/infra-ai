@@ -8,27 +8,24 @@
 - `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到 `skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
 - `official` — 符合 skills.sh 标准，不入仓，只记 `repo`；同时是 Anthropic 官方插件的另带 `plugin`
 
-清单记目标态，允许比实装超前：`custom` 条目可以先于产物存在。`make list` 查全量。
+清单记目标态，允许比实装超前：`custom` 条目可以先于产物存在。`make meta` 的 `s` 视图查全量（ledger、mirror、已安装、推荐）。
 
 ## 创建
 
 - `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式、构建规则、回写纪律见 [`meta/build/skill.md`](meta/build/skill.md)
-- `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），`make sync` 拉取
+- `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），在 `make meta` 的 `s` 视图按 `u` 拉取
 - `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
 
 ## 维护
 
-```bash
-make check   # mirror 上游差异 + 清单核对（只读）
-make sync    # 拉取有更新的 mirror、补齐清单
-```
+`make meta` 打开 TUI，`s` 进 skills 视图：进入即核对 ledger 与 mirror 上游差异，`f` 补账 unledgered，`u` 更新过期 mirror。
 
 - 改 `custom`：意图变更先改元指令再重建；直接改了产物就回写元指令
-- `make sync` 后 `skills/<name>/` 为空：上游目录挪了，用 `gh` 查 SKILL.md 新位置，更新 `path` 重拉
+- mirror 更新后 `skills/<name>/` 为空：上游目录挪了，用 `gh` 查 SKILL.md 新位置，更新 `path` 重拉
 - mirror 被 skills.sh 收录：条目改 `official`，删 `skills/<name>/`
-- 退役：删产物目录，并手动删清单条目（对账脚本只增不删）
+- 退役：删产物目录，并手动删清单条目（对账只增不删）
 
-`make sync` 后自行 review 再提交：`git diff skills/ && git add skills/ skills.json`。
+mirror 更新后自行 review 再提交：`git diff skills/ && git add skills/ skills.json`。
 
 ## 使用
 
