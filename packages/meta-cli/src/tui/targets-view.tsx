@@ -1,17 +1,21 @@
 import { useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 import { TextInput } from '@inkjs/ui'
-import { loadTargets, saveTargets } from '../core/registry'
+import type { ActionContext } from '../core/actions'
+import { getAction } from '../core/actions'
+import { loadTargets } from '../core/registry'
 import type { Target } from '../core/registry'
 
 type Mode = 'list' | 'add' | 'subs'
 
 export function TargetsView({
   repoRoot,
+  ctx,
   rules,
   onExit,
 }: {
   repoRoot: string
+  ctx: ActionContext
   rules: string[]
   onExit: () => void
 }) {
@@ -19,11 +23,9 @@ export function TargetsView({
   const [selected, setSelected] = useState(0)
   const [subSelected, setSubSelected] = useState(0)
   const [mode, setMode] = useState<Mode>('list')
+  const [notice, setNotice] = useState<string | null>(null)
 
-  const persist = (next: Target[]) => {
-    saveTargets(repoRoot, next)
-    setTargets(next)
-  }
+  const refresh = () => setTargets(loadTargets(repoRoot))
 
   useInput((input, key) => {
     if (mode === 'add') return
@@ -36,10 +38,15 @@ export function TargetsView({
       if (input === ' ') {
         const rule = rules[subSelected]
         if (!rule) return
-        const subs = target.subscriptions.includes(rule)
-          ? target.subscriptions.filter((s) => s !== rule)
-          : [...target.subscriptions, rule]
-        persist(targets.map((t, i) => (i === selected ? { ...t, subscriptions: subs } : t)))
+        const actionId = target.subscriptions.includes(rule)
+          ? 'targets:unsubscribe'
+          : 'targets:subscribe'
+        void getAction(actionId)
+          .execute(ctx, { positionals: [target.path, rule], flags: {} })
+          .then((r) => {
+            if (!r.ok) setNotice(r.message ?? 'failed')
+            refresh()
+          })
       }
       return
     }
@@ -48,7 +55,13 @@ export function TargetsView({
     if (key.downArrow) setSelected((s) => Math.min(targets.length - 1, s + 1))
     if (input === 'n') setMode('add')
     if (input === 'x' && targets[selected]) {
-      persist(targets.filter((_, i) => i !== selected))
+      const target = targets[selected]
+      void getAction('targets:remove')
+        .execute(ctx, { positionals: [target.path], flags: {} })
+        .then((r) => {
+          if (!r.ok) setNotice(r.message ?? 'failed')
+          refresh()
+        })
       setSelected((s) => Math.max(0, s - 1))
     }
     if (key.return && targets[selected]) {
@@ -63,8 +76,14 @@ export function TargetsView({
         <Text bold>新增 target（下游项目绝对路径，Enter 确认）</Text>
         <TextInput
           onSubmit={(value) => {
-            if (value.trim() !== '') {
-              persist([...targets, { path: value.trim(), subscriptions: [] }])
+            const trimmed = value.trim()
+            if (trimmed !== '') {
+              void getAction('targets:add')
+                .execute(ctx, { positionals: [trimmed], flags: {} })
+                .then((r) => {
+                  if (!r.ok) setNotice(r.message ?? 'failed')
+                  refresh()
+                })
             }
             setMode('list')
           }}
@@ -84,6 +103,11 @@ export function TargetsView({
           </Text>
         ))}
         {rules.length === 0 && <Text dimColor>没有已构建的 rule 产物</Text>}
+        {notice && (
+          <Box marginTop={1}>
+            <Text>{notice}</Text>
+          </Box>
+        )}
       </Box>
     )
   }
@@ -97,6 +121,11 @@ export function TargetsView({
         </Text>
       ))}
       {targets.length === 0 && <Text dimColor>暂无 target</Text>}
+      {notice && (
+        <Box marginTop={1}>
+          <Text>{notice}</Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text dimColor>n add  x delete  Enter subscriptions  t/Esc back</Text>
       </Box>

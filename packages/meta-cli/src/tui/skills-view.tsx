@@ -1,18 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Text, useInput } from 'ink'
+import type { ActionContext } from '../core/actions'
+import { getAction } from '../core/actions'
 import { runCommand } from '../core/io'
 import { loadSkills } from '../core/registry'
 import {
   checkMirrors,
   checkSkillsLedger,
-  fixSkillsLedger,
   listInstalledSkills,
   officialRecommendations,
-  updateMirror,
 } from '../core/skills-sync'
 import type { LedgerIssue, MirrorStatus, Recommendation } from '../core/skills-sync'
 
-export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () => void }) {
+export function SkillsView({
+  repoRoot,
+  ctx,
+  onExit,
+}: {
+  repoRoot: string
+  ctx: ActionContext
+  onExit: () => void
+}) {
   const [issues, setIssues] = useState<LedgerIssue[]>(() => checkSkillsLedger(repoRoot))
   const [mirrors, setMirrors] = useState<MirrorStatus[] | null>(null)
   const [mirrorError, setMirrorError] = useState<string | null>(null)
@@ -65,33 +73,32 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
     if (busy) return
     if (key.escape || input === 's') onExit()
     if (input === 'f') {
-      const result = fixSkillsLedger(repoRoot)
-      setIssues(result.issues)
-      setNotice(result.added.length > 0 ? `added: ${result.added.join(', ')}` : 'nothing to fix')
+      void getAction('skills:fix')
+        .execute(ctx, { positionals: [], flags: {} })
+        .then((r) => {
+          if (mountedRef.current) {
+            setIssues(checkSkillsLedger(repoRoot))
+            setNotice(r.message ?? null)
+          }
+        })
     }
     if (input === 'u' && mirrors) {
-      const outdated = mirrors.filter((m) => m.outdated)
-      if (outdated.length === 0) {
-        setNotice('all mirrors up-to-date')
-        return
-      }
       setBusy(true)
-      const today = new Date().toISOString().slice(0, 10)
-      ;(async () => {
-        for (const m of outdated) {
-          await updateMirror(repoRoot, m, today)
-        }
-        const next = await checkMirrors(loadSkills(repoRoot), runCommand)
-        if (!mountedRef.current) return
-        setMirrors(next)
-        setNotice(`updated: ${outdated.map((m) => m.name).join(', ')}`)
-      })()
-        .catch((error) => {
-          if (mountedRef.current) setNotice(String(error))
+      void getAction('skills:update')
+        .execute(
+          ctx,
+          { positionals: [], flags: {} },
+          { onText: (t) => mountedRef.current && setNotice(t) },
+        )
+        .then((r) => {
+          if (!mountedRef.current) return
+          setNotice(r.message ?? null)
+          return checkMirrors(loadSkills(repoRoot), runCommand).then((m) => {
+            if (mountedRef.current) setMirrors(m)
+          })
         })
-        .finally(() => {
-          if (mountedRef.current) setBusy(false)
-        })
+        .catch((error) => mountedRef.current && setNotice(String(error)))
+        .finally(() => mountedRef.current && setBusy(false))
     }
   })
 

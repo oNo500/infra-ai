@@ -1,18 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
-import {
-  allowedToolsFor,
-  buildPromptFor,
-  recordBuild,
-  runClaude,
-  verifyBuild,
-  writebackPromptFor,
-} from '../core/claude'
-import { distribute, downstreamStates, subscribers } from '../core/dist'
+import { defaultContext, getAction } from '../core/actions'
 import { loadOverview } from '../core/overview'
 import type { OverviewRow } from '../core/overview'
-import { loadLock, loadTargets, saveLock } from '../core/registry'
-import { adoptEntry, gatherFacts, lockKey } from '../core/status'
 import { AssetDetail } from './asset-detail'
 import { AssetList } from './asset-list'
 import { RunPanel } from './run-panel'
@@ -22,6 +12,7 @@ import { TargetsView } from './targets-view'
 
 export function App({ repoRoot }: { repoRoot: string }) {
   const { exit } = useApp()
+  const ctx = useMemo(() => defaultContext(repoRoot), [repoRoot])
   const [rows, setRows] = useState<OverviewRow[]>(() => loadOverview(repoRoot))
   const [selected, setSelected] = useState(0)
   const [job, setJob] = useState<Job | null>(null)
@@ -47,24 +38,6 @@ export function App({ repoRoot }: { repoRoot: string }) {
         .finally(reload)
     },
     [reload],
-  )
-
-  const buildOne = useCallback(
-    (row: OverviewRow, onText: (t: string) => void): Promise<string | null> =>
-      runClaude({
-        repoRoot,
-        prompt: buildPromptFor(row.asset),
-        allowedTools: allowedToolsFor(row.asset, 'build'),
-        onText,
-      }).then((res) => {
-        if (res.timedOut) return 'claude timed out'
-        if (res.code !== 0) return `claude exited ${res.code}: ${res.stderr.slice(-500)}`
-        const err = verifyBuild(repoRoot, row.asset)
-        if (err) return err
-        recordBuild(repoRoot, row.asset, new Date().toISOString())
-        return null
-      }),
-    [repoRoot],
   )
 
   const builtRules = rows
@@ -104,76 +77,42 @@ export function App({ repoRoot }: { repoRoot: string }) {
       return
     }
     if (input === 'd' && row.asset.kind === 'rule') {
-      const targets = loadTargets(repoRoot)
-      const subs = subscribers(targets, row.asset.name)
-      runJob(`dist ${row.asset.name} to ${subs.length} targets`, async (onText) => {
-        for (const target of subs) {
-          distribute(repoRoot, row.asset, target)
-          onText(`copied to ${target.path}`)
-        }
-        return null
-      })
+      runJob(`dist ${row.asset.name}`, (onText) =>
+        getAction('dist')
+          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+      )
     }
     if (input === 'D') {
-      const targets = loadTargets(repoRoot)
-      const pending = rows.filter(
-        (r) => r.asset.kind === 'rule' && r.downstream.drift + r.downstream.missing > 0,
+      runJob('dist all pending', (onText) =>
+        getAction('dist')
+          .execute(ctx, { positionals: [], flags: { all: true } }, { onText })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
       )
-      if (pending.length === 0) return
-      runJob(`dist ${pending.length} assets`, async (onText) => {
-        for (const r of pending) {
-          for (const { target, state } of downstreamStates(repoRoot, r.asset, targets)) {
-            if (state === 'synced') continue
-            distribute(repoRoot, r.asset, target)
-            onText(`${r.asset.name} -> ${target.path}`)
-          }
-        }
-        return null
-      })
     }
 
     if (input === 'a' && row.status === 'untracked') {
-      const facts = gatherFacts(repoRoot, row.asset, loadLock(repoRoot))
-      if (facts.artifactHash !== null) {
-        const lock = loadLock(repoRoot)
-        saveLock(repoRoot, {
-          ...lock,
-          [lockKey(row.asset)]: adoptEntry(
-            facts.metaHash,
-            facts.artifactHash,
-            new Date().toISOString(),
-          ),
-        })
-        reload()
-      }
+      void getAction('adopt').execute(ctx, { positionals: [row.asset.name], flags: {} }).then(reload)
     }
     if (input === 'b' && row.status !== 'stub') {
-      runJob(`build ${row.asset.name}`, (onText) => buildOne(row, onText))
+      runJob(`build ${row.asset.name}`, (onText) =>
+        getAction('build')
+          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+      )
     }
     if (input === 'B') {
-      const stale = rows.filter((r) => r.status === 'stale')
-      if (stale.length === 0) return
-      runJob(`build ${stale.length} stale assets`, async (onText) => {
-        for (const r of stale) {
-          onText(`--- ${r.asset.name} ---`)
-          const err = await buildOne(r, onText)
-          if (err) return `${r.asset.name}: ${err}`
-        }
-        return null
-      })
+      runJob('build stale assets', (onText) =>
+        getAction('build')
+          .execute(ctx, { positionals: [], flags: { stale: true } }, { onText })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+      )
     }
     if (input === 'w' && row.status === 'dirty') {
       runJob(`writeback ${row.asset.name}`, (onText) =>
-        runClaude({
-          repoRoot,
-          prompt: writebackPromptFor(row.asset),
-          allowedTools: allowedToolsFor(row.asset, 'writeback'),
-          onText,
-        }).then((res) => {
-          if (res.timedOut) return 'claude timed out'
-          if (res.code !== 0) return `claude exited ${res.code}: ${res.stderr.slice(-500)}`
-          return null
-        }),
+        getAction('writeback')
+          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
       )
     }
   })
@@ -185,6 +124,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
         {view === 'targets' && (
           <TargetsView
             repoRoot={repoRoot}
+            ctx={ctx}
             rules={builtRules}
             onExit={() => {
               setView('assets')
@@ -195,12 +135,14 @@ export function App({ repoRoot }: { repoRoot: string }) {
         {view === 'detail' && rows[selected] && (
           <AssetDetail
             row={rows[selected]}
-            states={downstreamStates(repoRoot, rows[selected].asset, loadTargets(repoRoot))}
+            states={rows[selected].targets}
             onExit={() => setView('assets')}
           />
         )}
         {view === 'assets' && <AssetList rows={rows} selected={selected} />}
-        {view === 'skills' && <SkillsView repoRoot={repoRoot} onExit={() => setView('assets')} />}
+        {view === 'skills' && (
+          <SkillsView repoRoot={repoRoot} ctx={ctx} onExit={() => setView('assets')} />
+        )}
       </Box>
       {job && (
         <Box marginTop={1}>

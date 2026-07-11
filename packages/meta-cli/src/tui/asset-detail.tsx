@@ -1,7 +1,6 @@
 import { Box, Text, useInput } from 'ink'
 import type { DownstreamState } from '../core/dist'
 import type { OverviewRow } from '../core/overview'
-import type { Target } from '../core/registry'
 
 export function AssetDetail({
   row,
@@ -9,7 +8,7 @@ export function AssetDetail({
   onExit,
 }: {
   row: OverviewRow
-  states: { target: Target; state: DownstreamState }[]
+  states: { path: string; state: DownstreamState }[]
   onExit: () => void
 }) {
   useInput((_input, key) => {
@@ -25,9 +24,9 @@ export function AssetDetail({
       {row.asset.scope && <Text>scope:    {row.asset.scope}</Text>}
       <Box marginTop={1} flexDirection="column">
         <Text bold>downstream</Text>
-        {states.map(({ target, state }) => (
-          <Text key={target.path}>
-            {state.padEnd(8)} {target.path}
+        {states.map(({ path, state }) => (
+          <Text key={path}>
+            {state.padEnd(8)} {path}
           </Text>
         ))}
         {states.length === 0 && <Text dimColor>无订阅方</Text>}
