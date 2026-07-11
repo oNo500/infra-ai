@@ -79,7 +79,7 @@ describe('downstreamStates', () => {
       const targets = [{ path: targetA, subscriptions: ['constitution'] }]
       const result = downstreamStates(repoRoot, ruleAsset, targets)
       expect(result).toHaveLength(1)
-      expect(result[0].state).toBe('missing')
+      expect(result[0]?.state).toBe('missing')
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
       rmSync(targetA, { recursive: true, force: true })
@@ -98,7 +98,7 @@ describe('downstreamStates', () => {
       const targets = [{ path: targetB, subscriptions: ['constitution'] }]
       const result = downstreamStates(repoRoot, ruleAsset, targets)
       expect(result).toHaveLength(1)
-      expect(result[0].state).toBe('synced')
+      expect(result[0]?.state).toBe('synced')
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
       rmSync(targetB, { recursive: true, force: true })
@@ -116,7 +116,7 @@ describe('downstreamStates', () => {
       const targets = [{ path: targetC, subscriptions: ['constitution'] }]
       const result = downstreamStates(repoRoot, ruleAsset, targets)
       expect(result).toHaveLength(1)
-      expect(result[0].state).toBe('drift')
+      expect(result[0]?.state).toBe('drift')
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
       rmSync(targetC, { recursive: true, force: true })
@@ -133,7 +133,7 @@ describe('downstreamStates', () => {
       const targets = [{ path: targetD, subscriptions: ['constitution'] }]
       const result = downstreamStates(repoRoot, ruleAsset, targets)
       expect(result).toHaveLength(1)
-      expect(result[0].state).toBe('missing')
+      expect(result[0]?.state).toBe('missing')
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
       rmSync(targetD, { recursive: true, force: true })
@@ -153,7 +153,7 @@ describe('downstreamStates', () => {
       ]
       const result = downstreamStates(repoRoot, ruleAsset, targets)
       expect(result).toHaveLength(1)
-      expect(result[0].target.path).toBe(targetE)
+      expect(result[0]?.target.path).toBe(targetE)
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
       rmSync(targetE, { recursive: true, force: true })
