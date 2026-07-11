@@ -327,4 +327,32 @@ describe('skills mutations', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('skills:update mid-loop failure reports already-updated mirrors and keeps ledger consistent', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'skills.json'),
+        `${JSON.stringify([
+          { name: 'm1', source: 'mirror', repo: 'r/x', path: 'p1', commit: 'old' },
+          { name: 'm2', source: 'mirror', repo: 'r/x', path: 'p2', commit: 'old' },
+        ])}\n`,
+      )
+      const run: ActionContext['run'] = async () => ({ code: 0, stdout: 'new\n', stderr: '' })
+      const download: ActionContext['download'] = async (input) => {
+        if (input === 'gh:r/x/p2') throw new Error('download failed')
+        return {}
+      }
+      const result = await getAction('skills:update').execute(
+        testContext(root, { run, download }),
+        { positionals: [], flags: {} },
+      )
+      expect(result.ok).toBe(false)
+      expect(result.message).toContain('already updated: m1')
+      const ledger = JSON.parse(readFileSync(join(root, 'skills.json'), 'utf8')) as { commit: string }[]
+      expect(ledger[0]?.commit).toBe('new')
+      expect(ledger[1]?.commit).toBe('old')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })

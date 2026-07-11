@@ -422,11 +422,18 @@ const skillsUpdateAction: ActionDef = {
     const mirrors = await checkMirrors(loadSkills(ctx.repoRoot), ctx.run)
     const outdated = mirrors.filter((m) => m.outdated)
     if (outdated.length === 0) return { ok: true, message: 'all mirrors up-to-date' }
+    const updated: string[] = []
     for (const m of outdated) {
       hooks?.onText?.(`updating ${m.name} ${m.localCommit.slice(0, 7)} -> ${m.remoteCommit.slice(0, 7)}`)
-      await updateMirror(ctx.repoRoot, m, ctx.now().slice(0, 10), ctx.download)
+      try {
+        await updateMirror(ctx.repoRoot, m, ctx.now().slice(0, 10), ctx.download)
+      } catch (error) {
+        const done = updated.length > 0 ? ` (already updated: ${updated.join(', ')})` : ''
+        return fail(`${m.name}: ${String(error)}${done}`)
+      }
+      updated.push(m.name)
     }
-    return { ok: true, message: `updated: ${outdated.map((m) => m.name).join(', ')}` }
+    return { ok: true, message: `updated: ${updated.join(', ')}` }
   },
 }
 
