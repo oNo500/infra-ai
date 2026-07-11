@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@inkjs/ui": "^2.0.0",
+    "giget": "^3.3.0",
     "gray-matter": "^4.0.3",
     "ink": "^6.0.0",
     "react": "^19.0.0"

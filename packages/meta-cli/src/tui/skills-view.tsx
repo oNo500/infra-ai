@@ -79,7 +79,7 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
       const today = new Date().toISOString().slice(0, 10)
       ;(async () => {
         for (const m of outdated) {
-          await updateMirror(repoRoot, m, runCommand, today)
+          await updateMirror(repoRoot, m, today)
         }
         const next = await checkMirrors(loadSkills(repoRoot), runCommand)
         if (!mountedRef.current) return

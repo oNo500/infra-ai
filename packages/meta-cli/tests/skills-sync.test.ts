@@ -11,6 +11,7 @@ import {
   listInstalledSkills,
   officialRecommendations,
   updateMirror,
+  type DownloadFn,
 } from '../src/core/skills-sync'
 
 function repoWith(skillDirs: Record<string, string>, ledger: SkillEntry[]): string {
@@ -71,26 +72,39 @@ describe('checkMirrors', () => {
 })
 
 describe('updateMirror', () => {
-  test('runs giget and rewrites ledger entry', async () => {
+  test('downloads via giget and rewrites ledger entry', async () => {
     const root = repoWith({}, [
       { name: 'drawio', source: 'mirror', repo: 'r/x', path: 'p', commit: 'old', updated: '2026-07-04' },
     ])
-    const calls: string[][] = []
-    const run: CommandRunner = async (cmd, args) => {
-      calls.push([cmd, ...args])
-      return { code: 0, stdout: '', stderr: '' }
+    const calls: [string, { dir?: string; forceClean?: boolean } | undefined][] = []
+    const download: DownloadFn = async (input, options) => {
+      calls.push([input, options])
+      return {}
     }
     try {
       await updateMirror(
         root,
         { name: 'drawio', localCommit: 'old', remoteCommit: 'new', outdated: true },
-        run,
         '2026-07-11',
+        download,
       )
-      expect(calls[0]?.[0]).toBe('pnpx')
+      expect(calls[0]?.[0]).toBe('gh:r/x/p')
+      expect(calls[0]?.[1]?.dir).toBe(join(root, 'skills', 'drawio'))
+      expect(calls[0]?.[1]?.forceClean).toBe(true)
       const ledger = JSON.parse(readFileSync(join(root, 'skills.json'), 'utf8')) as SkillEntry[]
       expect(ledger[0]?.commit).toBe('new')
       expect(ledger[0]?.updated).toBe('2026-07-11')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('rejects non-mirror skills', async () => {
+    const root = repoWith({}, [{ name: 'x', source: 'custom' }])
+    const download: DownloadFn = async () => ({})
+    try {
+      await expect(
+        updateMirror(root, { name: 'x', localCommit: '', remoteCommit: 'n', outdated: true }, '2026-07-11', download),
+      ).rejects.toThrow(/not a mirror/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

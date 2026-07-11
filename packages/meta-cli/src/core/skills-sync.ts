@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import matter from 'gray-matter'
+import { downloadTemplate } from 'giget'
 import type { CommandRunner } from './io'
 import { loadSkills, saveSkills } from './registry'
 import type { SkillEntry } from './registry'
@@ -90,28 +91,28 @@ export async function checkMirrors(
   return statuses
 }
 
+export type DownloadFn = (
+  input: string,
+  options?: { dir?: string; forceClean?: boolean },
+) => Promise<unknown>
+
 export async function updateMirror(
   repoRoot: string,
   status: MirrorStatus,
-  run: CommandRunner,
   today: string,
+  download: DownloadFn = downloadTemplate,
 ): Promise<void> {
   const ledger = loadSkills(repoRoot)
   const entry = ledger.find((s) => s.name === status.name)
   if (!entry || entry.source !== 'mirror') throw new Error(`not a mirror skill: ${status.name}`)
-  const res = await run('pnpx', [
-    'giget',
-    `gh:${entry.repo}/${entry.path}`,
-    join(repoRoot, 'skills', entry.name),
-    '--force',
-  ])
-  if (res.code !== 0) throw new Error(`giget failed for ${status.name}: ${res.stderr}`)
+  await download(`gh:${entry.repo}/${entry.path}`, {
+    dir: join(repoRoot, 'skills', entry.name),
+    forceClean: true,
+  })
   saveSkills(
     repoRoot,
     ledger.map((s) =>
-      s.name === status.name
-        ? Object.assign({}, s, { commit: status.remoteCommit, updated: today })
-        : s,
+      s.name === status.name ? Object.assign({}, s, { commit: status.remoteCommit, updated: today }) : s,
     ),
   )
 }
