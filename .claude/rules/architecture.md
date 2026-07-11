@@ -25,7 +25,10 @@ infra-ai/
 ├── docs/
 │   ├── mcp/                   # MCP server 知识文档
 │   └── superpowers/           # 设计文档（specs + plans）
-├── scripts/                   # make 目标的实现
+├── packages/meta-cli/         # 维护端 TUI（对账/构建/分发/回写）
+├── scripts/                   # init-project.sh（使用端脚手架，待迁往使用端 CLI）
+├── targets.json               # 分发登记：下游项目及订阅
+├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线
 ├── Makefile
 └── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```
@@ -44,5 +47,5 @@ infra-ai/
 
 ## 对账
 
-- skills：`make list` / `make check` / `make sync`
-- rules：`make list-rules`
+- `make meta` 打开 TUI：资产状态（stub/unbuilt/untracked/dirty/stale/synced）、
+  下游漂移、skills ledger 与 mirror 上游，均在界面内收敛
