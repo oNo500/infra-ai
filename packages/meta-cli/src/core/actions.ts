@@ -1,6 +1,5 @@
 import { downloadTemplate } from 'giget'
 import { runClaude } from './claude'
-import { downstreamStates } from './dist'
 import { runCommand } from './io'
 import type { CommandRunner } from './io'
 import { loadOverview } from './overview'
@@ -95,7 +94,6 @@ const statusAction: ActionDef = {
   args: [{ name: 'name', kind: 'positional', description: 'asset name (optional)' }],
   async execute(ctx, params) {
     const rows = loadOverview(ctx.repoRoot)
-    const targets = loadTargets(ctx.repoRoot)
     const name = params.positionals[0]
     const selected = name ? rows.filter((r) => r.asset.name === name) : rows
     if (name && selected.length === 0) return fail(`unknown asset: ${name}`)
@@ -107,10 +105,7 @@ const statusAction: ActionDef = {
       metaPath: r.asset.metaPath,
       artifactPath: r.asset.artifactPath,
       downstream: r.downstream,
-      targets:
-        r.asset.kind === 'rule'
-          ? downstreamStates(ctx.repoRoot, r.asset, targets).map((s) => ({ path: s.target.path, state: s.state }))
-          : [],
+      targets: r.targets,
     }))
     const pending = data.some(
       (d) => PENDING_STATUSES.has(d.status) || d.downstream.drift + d.downstream.missing > 0,

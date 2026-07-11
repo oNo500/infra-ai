@@ -1,4 +1,5 @@
 import { downstreamStates } from './dist'
+import type { DownstreamState } from './dist'
 import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadLock, loadTargets } from './registry'
@@ -9,6 +10,7 @@ export interface OverviewRow {
   asset: MetaAsset
   status: ReconcileStatus
   downstream: { synced: number; drift: number; missing: number }
+  targets: { path: string; state: DownstreamState }[]
 }
 
 export function loadOverview(repoRoot: string): OverviewRow[] {
@@ -24,6 +26,7 @@ export function loadOverview(repoRoot: string): OverviewRow[] {
         drift: states.filter((s) => s.state === 'drift').length,
         missing: states.filter((s) => s.state === 'missing').length,
       },
+      targets: states.map((s) => ({ path: s.target.path, state: s.state })),
     }
   })
 }

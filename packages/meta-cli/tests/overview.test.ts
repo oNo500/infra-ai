@@ -24,6 +24,7 @@ describe('loadOverview', () => {
       expect(rows).toHaveLength(1)
       expect(rows[0]?.status).toBe('untracked')
       expect(rows[0]?.downstream).toEqual({ synced: 0, drift: 0, missing: 1 })
+      expect(rows[0]?.targets).toEqual([{ path: target, state: 'missing' }])
     } finally {
       rmSync(root, { recursive: true, force: true })
       rmSync(target, { recursive: true, force: true })
