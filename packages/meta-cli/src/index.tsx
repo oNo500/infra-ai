@@ -1,7 +1,5 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { render } from 'ink'
-import { App } from './tui/app'
 
 const repoRoot = process.cwd()
 if (!existsSync(join(repoRoot, 'skills.json'))) {
@@ -9,4 +7,11 @@ if (!existsSync(join(repoRoot, 'skills.json'))) {
   process.exit(1)
 }
 
-render(<App repoRoot={repoRoot} />)
+if (process.argv.length > 2) {
+  const { runCli } = await import('./cli/index')
+  await runCli()
+} else {
+  const { render } = await import('ink')
+  const { App } = await import('./tui/app')
+  render(<App repoRoot={repoRoot} />)
+}
