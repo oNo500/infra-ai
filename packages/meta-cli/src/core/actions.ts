@@ -230,7 +230,10 @@ const buildAction: ActionDef = {
     for (const asset of assets) {
       hooks?.onText?.(`--- ${asset.name} ---`)
       const err = await buildOne(ctx, asset, hooks)
-      if (err) return fail(`${asset.name}: ${err}`)
+      if (err) {
+        const done = built.length > 0 ? ` (already built: ${built.join(', ')})` : ''
+        return fail(`${asset.name}: ${err}${done}`)
+      }
       built.push(asset.name)
     }
     return { ok: true, message: `built ${built.join(', ')}` }

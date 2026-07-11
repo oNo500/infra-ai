@@ -167,6 +167,32 @@ describe('build action', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('batch failure message lists already-built assets', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'meta/rules/baz.md'),
+        '---\nname: baz\ntarget: rule\nstatus: ready\nscope: global\n---\nbody\n',
+      )
+      const claude: ActionContext['claude'] = async (opts) => {
+        if (opts.prompt.includes('foo')) {
+          mkdirSync(join(root, 'rules/global'), { recursive: true })
+          writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+          return { code: 0, timedOut: false, stderr: '' }
+        }
+        return { code: 1, timedOut: false, stderr: 'boom' }
+      }
+      const result = await getAction('build').execute(testContext(root, { claude }), {
+        positionals: ['foo', 'baz'],
+        flags: {},
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toContain('baz:')
+      expect(result.message).toContain('already built: foo')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   test('--stale with nothing stale is a no-op success', async () => {
     const root = fixtureRepo()
     try {
