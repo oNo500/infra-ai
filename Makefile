@@ -12,11 +12,8 @@ sync: ## Sync updated mirrors and fix skills ledger (no commit)
 	@scripts/sync-skills.sh update
 	@scripts/check-ledger.sh fix
 
-list: ## List all skills and their source (reads skills.json)
-	@jq -r '.[] | "  \(.name)\t[\(.source)]\t" + \
-		(if .source == "mirror" then .repo \
-		 elif .source == "official" then .repo + (if .plugin then "  (anthropic plugin: " + .plugin + ")" else "" end) \
-		 else "local" end)' skills.json | column -t -s "$$(printf '\t')"
+list: ## List installed skills grouped by plugin, with descriptions
+	@scripts/list-skills.sh
 
 list-rules: ## Reconcile rule meta sources against build artifacts
 	@scripts/list-rules.sh
