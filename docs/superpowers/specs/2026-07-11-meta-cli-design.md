@@ -46,7 +46,7 @@
 6. **包管理 pnpm，运行时 bun**——根建 `pnpm-workspace.yaml`（`packages/*`）；
    开发与测试用 bun（`bun run` / `bun test`）。
 
-7. **脚手架借鉴 infra-code**——`bunx giget gh:oNo500/infra-code/starters/cli` 起底，
+7. **脚手架借鉴 infra-code**——`bunx giget@latest gh:oNo500/infra-code/starters/cli#master` 起底，
    保留 toolchain（`@infra-x/code-quality`、`@infra-x/typescript-config`、tsdown、
    bun test），替换 citty 为 ink + react。暂不发布 npm，本仓自用。
 
