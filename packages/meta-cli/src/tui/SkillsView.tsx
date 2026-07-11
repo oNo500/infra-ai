@@ -6,15 +6,23 @@ import {
   checkMirrors,
   checkSkillsLedger,
   fixSkillsLedger,
+  listInstalledSkills,
+  officialRecommendations,
   updateMirror,
   type LedgerIssue,
   type MirrorStatus,
+  type Recommendation,
 } from '../core/skills-sync'
 
 export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () => void }) {
   const [issues, setIssues] = useState<LedgerIssue[]>(() => checkSkillsLedger(repoRoot))
   const [mirrors, setMirrors] = useState<MirrorStatus[] | null>(null)
   const [mirrorError, setMirrorError] = useState<string | null>(null)
+  const [installed, setInstalled] = useState<string[] | null>(null)
+  const [installedError, setInstalledError] = useState<string | null>(null)
+  const [recommended] = useState<Recommendation[]>(() =>
+    officialRecommendations(loadSkills(repoRoot)),
+  )
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const mountedRef = useRef(true)
@@ -39,6 +47,21 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
       cancelled = true
     }
   }, [repoRoot])
+
+  useEffect(() => {
+    let cancelled = false
+    listInstalledSkills(runCommand).then(
+      (result) => {
+        if (!cancelled) setInstalled(result)
+      },
+      (e) => {
+        if (!cancelled) setInstalledError(String(e))
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useInput((input, key) => {
     if (busy) return
@@ -91,6 +114,21 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
           <Text key={m.name} color={m.outdated ? 'yellow' : 'green'}>
             [{m.outdated ? 'outdated' : 'up-to-date'}] {m.name}
             {m.outdated ? ` ${m.localCommit.slice(0, 7)} -> ${m.remoteCommit.slice(0, 7)}` : ''}
+          </Text>
+        ))}
+      </Box>
+      <Box marginTop={1} flexDirection="column">
+        <Text bold>installed</Text>
+        {installed === null && !installedError && <Text dimColor>loading...</Text>}
+        {installedError && <Text color="red">{installedError}</Text>}
+        {installed?.map((line) => <Text key={line}>{line}</Text>)}
+      </Box>
+      <Box marginTop={1} flexDirection="column">
+        <Text bold>recommended</Text>
+        {recommended.length === 0 && <Text dimColor>none</Text>}
+        {recommended.map((r) => (
+          <Text key={r.name} dimColor>
+            {r.name}  pnpx skills add {r.repo}
           </Text>
         ))}
       </Box>
