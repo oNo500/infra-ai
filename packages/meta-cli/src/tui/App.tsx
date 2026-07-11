@@ -8,11 +8,14 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from '../core/claude'
+import { distribute, downstreamStates, subscribers } from '../core/dist'
 import { loadOverview, type OverviewRow } from '../core/overview'
-import { loadLock, saveLock } from '../core/registry'
+import { loadLock, loadTargets, saveLock } from '../core/registry'
 import { adoptEntry, gatherFacts } from '../core/status'
+import { AssetDetail } from './AssetDetail'
 import { AssetList } from './AssetList'
 import { RunPanel, type Job } from './RunPanel'
+import { TargetsView } from './TargetsView'
 
 export function App({ repoRoot }: { repoRoot: string }) {
   const { exit } = useApp()
@@ -20,6 +23,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
   const [selected, setSelected] = useState(0)
   const [job, setJob] = useState<Job | null>(null)
   const [confirmQuit, setConfirmQuit] = useState(false)
+  const [view, setView] = useState<'assets' | 'targets' | 'detail'>('assets')
 
   const reload = useCallback(() => {
     const next = loadOverview(repoRoot)
@@ -60,6 +64,10 @@ export function App({ repoRoot }: { repoRoot: string }) {
     [repoRoot],
   )
 
+  const builtRules = rows
+    .filter((r) => r.asset.kind === 'rule' && r.status !== 'stub' && r.status !== 'unbuilt')
+    .map((r) => r.asset.name)
+
   useInput((input, key) => {
     if (running) return
     if (input === 'q') {
@@ -69,12 +77,50 @@ export function App({ repoRoot }: { repoRoot: string }) {
       return
     }
     setConfirmQuit(false)
+    if (view !== 'assets') return
+    if (input === 't') {
+      setView('targets')
+      return
+    }
     if (input === 'r') reload()
     if (key.upArrow) setSelected((s) => Math.max(0, s - 1))
     if (key.downArrow) setSelected((s) => Math.min(rows.length - 1, s + 1))
 
     const row = rows[selected]
     if (!row) return
+
+    if (key.return && row) {
+      setView('detail')
+      return
+    }
+    if (input === 'd' && row && row.asset.kind === 'rule') {
+      const targets = loadTargets(repoRoot)
+      const subs = subscribers(targets, row.asset.name)
+      runJob(`dist ${row.asset.name} to ${subs.length} targets`, async (onText) => {
+        for (const target of subs) {
+          distribute(repoRoot, row.asset, target)
+          onText(`copied to ${target.path}`)
+        }
+        return null
+      })
+    }
+    if (input === 'D') {
+      const targets = loadTargets(repoRoot)
+      const pending = rows.filter(
+        (r) => r.asset.kind === 'rule' && r.downstream.drift + r.downstream.missing > 0,
+      )
+      if (pending.length === 0) return
+      runJob(`dist ${pending.length} assets`, async (onText) => {
+        for (const r of pending) {
+          for (const { target, state } of downstreamStates(repoRoot, r.asset, targets)) {
+            if (state === 'synced') continue
+            distribute(repoRoot, r.asset, target)
+            onText(`${r.asset.name} -> ${target.path}`)
+          }
+        }
+        return null
+      })
+    }
 
     if (input === 'a' && row.status === 'untracked') {
       const facts = gatherFacts(repoRoot, row.asset, loadLock(repoRoot))
@@ -122,20 +168,39 @@ export function App({ repoRoot }: { repoRoot: string }) {
     <Box flexDirection="column" padding={1}>
       <Text bold>infra-ai meta</Text>
       <Box marginTop={1}>
-        <AssetList rows={rows} selected={selected} />
+        {view === 'targets' && (
+          <TargetsView
+            repoRoot={repoRoot}
+            rules={builtRules}
+            onExit={() => {
+              setView('assets')
+              reload()
+            }}
+          />
+        )}
+        {view === 'detail' && rows[selected] && (
+          <AssetDetail
+            row={rows[selected]}
+            states={downstreamStates(repoRoot, rows[selected].asset, loadTargets(repoRoot))}
+            onExit={() => setView('assets')}
+          />
+        )}
+        {view === 'assets' && <AssetList rows={rows} selected={selected} />}
       </Box>
       {job && (
         <Box marginTop={1}>
           <RunPanel job={job} />
         </Box>
       )}
-      <Box marginTop={1}>
-        <Text dimColor>
-          {confirmQuit
-            ? 'press q again to quit'
-            : 'up/down move  a adopt  b build  B build stale  w writeback  r reload  q quit'}
-        </Text>
-      </Box>
+      {view === 'assets' && (
+        <Box marginTop={1}>
+          <Text dimColor>
+            {confirmQuit
+              ? 'press q again to quit'
+              : 'up/down move  Enter detail  a adopt  b build  B build stale  w writeback  d dist  D dist all  t targets  r reload  q quit'}
+          </Text>
+        </Box>
+      )}
     </Box>
   )
 }
