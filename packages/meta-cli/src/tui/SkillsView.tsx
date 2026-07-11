@@ -121,7 +121,7 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
         <Text bold>installed</Text>
         {installed === null && !installedError && <Text dimColor>loading...</Text>}
         {installedError && <Text color="red">{installedError}</Text>}
-        {installed?.map((line) => <Text key={line}>{line}</Text>)}
+        {installed?.map((line, i) => <Text key={`${line}-${i}`}>{line}</Text>)}
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text bold>recommended</Text>

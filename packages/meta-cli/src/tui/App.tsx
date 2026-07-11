@@ -69,16 +69,19 @@ export function App({ repoRoot }: { repoRoot: string }) {
     .filter((r) => r.asset.kind === 'rule' && r.status !== 'stub' && r.status !== 'unbuilt')
     .map((r) => r.asset.name)
 
+  // Ink dispatches every keypress to all mounted useInput handlers, so
+  // sub-views (TargetsView, SkillsView) receive keys alongside App. App must
+  // bail out immediately for non-assets views; sub-views own their own exit
+  // keys (Esc/t/s/Enter) and App's q/confirmQuit must never fire for them.
   useInput((input, key) => {
     if (running) return
+    if (view !== 'assets') return
     if (input === 'q') {
-      if (job && !job.done) return
       if (confirmQuit || !job) exit()
       setConfirmQuit(true)
       return
     }
     setConfirmQuit(false)
-    if (view !== 'assets') return
     if (input === 't') {
       setView('targets')
       return
@@ -98,7 +101,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       setView('detail')
       return
     }
-    if (input === 'd' && row && row.asset.kind === 'rule') {
+    if (input === 'd' && row.asset.kind === 'rule') {
       const targets = loadTargets(repoRoot)
       const subs = subscribers(targets, row.asset.name)
       runJob(`dist ${row.asset.name} to ${subs.length} targets`, async (onText) => {
