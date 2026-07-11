@@ -80,43 +80,61 @@ export function App({ repoRoot }: { repoRoot: string }) {
       runJob(`dist ${row.asset.name}`, (onText) =>
         getAction('dist')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
     if (input === 'D') {
       runJob('dist all pending', (onText) =>
         getAction('dist')
           .execute(ctx, { positionals: [], flags: { all: true } }, { onText })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
 
     if (input === 'a' && row.status === 'untracked') {
-      runJob(`adopt ${row.asset.name}`, () =>
+      runJob(`adopt ${row.asset.name}`, (onText) =>
         getAction('adopt')
           .execute(ctx, { positionals: [row.asset.name], flags: {} })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
     if (input === 'b' && row.status !== 'stub') {
       runJob(`build ${row.asset.name}`, (onText) =>
         getAction('build')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
     if (input === 'B') {
       runJob('build stale assets', (onText) =>
         getAction('build')
           .execute(ctx, { positionals: [], flags: { stale: true } }, { onText })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
     if (input === 'w' && row.status === 'dirty') {
       runJob(`writeback ${row.asset.name}`, (onText) =>
         getAction('writeback')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+          .then((r) => {
+            if (r.ok && r.message) onText(r.message)
+            return r.ok ? null : (r.message ?? 'failed')
+          }),
       )
     }
   })

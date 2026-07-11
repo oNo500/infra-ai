@@ -18,4 +18,4 @@ pnpm meta status          # 命令式（面向 AI/脚本）：完整命令面见
 ## 新增资产
 
 1. 在 `meta/<类>/` 建元指令（`stub` 起步，`ready` 可构建）
-2. 打开 `make meta`，选中该资产按 `b` 构建——构建与分发规则见 `meta/build/<类>.md`
+2. 构建：`pnpm meta build <name>`（或 `make meta` 里选中按 `b`）——构建与分发规则见 `meta/build/<类>.md`
