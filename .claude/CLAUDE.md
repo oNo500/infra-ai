@@ -11,11 +11,11 @@
 ## 命令
 
 ```bash
-make meta                 # TUI：对账、构建、分发、回写
+meta                      # TUI：对账、构建、分发、回写（pnpm link --global 后全局可用）
 pnpm meta status          # 命令式（面向 AI/脚本）：完整命令面见 pnpm meta --help
 ```
 
 ## 新增资产
 
 1. 在 `meta/<类>/` 建元指令（`stub` 起步，`ready` 可构建）
-2. 构建：`pnpm meta build <name>`（或 `make meta` 里选中按 `b`）——构建与分发规则见 `meta/build/<类>.md`
+2. 构建：`pnpm meta build <name>`（或 `meta` 里选中按 `b`）——构建与分发规则见 `meta/build/<类>.md`

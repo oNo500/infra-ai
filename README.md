@@ -24,7 +24,7 @@
 ## 命令
 
 ```bash
-make meta                     # TUI
+meta                          # TUI；开发期在 packages/meta-cli 跑 pnpm link --global 后全局可用（或 pnpm meta）
 pnpm meta status [--json]     # 对账查询；有待收敛项时退出码为 1
 pnpm meta build <name>        # claude headless 构建；完整命令面 pnpm meta --help
 ```
@@ -39,7 +39,7 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则：本机项目在 make meta 的 t 视图登记订阅后按 d 分发；
+# 规则：本机项目在 meta 的 t 视图登记订阅后按 d 分发（或 meta targets/dist 子命令）；
 # 也可手动复制（不用 symlink，跨设备路径不可靠）
 cp ~/code/infra-ai/rules/<类>/<topic>.md <project>/.claude/rules/<topic>.md
 
