@@ -114,6 +114,10 @@ export function runClaude(opts: {
     })
     child.on('close', (code) => {
       clearTimeout(timer)
+      if (buffer !== '') {
+        const event = parseStreamJsonLine(buffer)
+        if (event?.text) opts.onText?.(event.text)
+      }
       resolve({ code: code ?? -1, timedOut, stderr })
     })
     child.on('error', (err) => {
