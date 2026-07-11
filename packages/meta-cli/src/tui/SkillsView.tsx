@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 import { runCommand } from '../core/io'
 import { loadSkills } from '../core/registry'
@@ -17,11 +17,27 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
   const [mirrorError, setMirrorError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    checkMirrors(loadSkills(repoRoot), runCommand).then(setMirrors, (e) =>
-      setMirrorError(String(e)),
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    checkMirrors(loadSkills(repoRoot), runCommand).then(
+      (result) => {
+        if (!cancelled) setMirrors(result)
+      },
+      (e) => {
+        if (!cancelled) setMirrorError(String(e))
+      },
     )
+    return () => {
+      cancelled = true
+    }
   }, [repoRoot])
 
   useInput((input, key) => {
@@ -44,11 +60,17 @@ export function SkillsView({ repoRoot, onExit }: { repoRoot: string; onExit: () 
         for (const m of outdated) {
           await updateMirror(repoRoot, m, runCommand, today)
         }
-        setMirrors(await checkMirrors(loadSkills(repoRoot), runCommand))
+        const next = await checkMirrors(loadSkills(repoRoot), runCommand)
+        if (!mountedRef.current) return
+        setMirrors(next)
         setNotice(`updated: ${outdated.map((m) => m.name).join(', ')}`)
       })()
-        .catch((e) => setNotice(String(e)))
-        .finally(() => setBusy(false))
+        .catch((e) => {
+          if (mountedRef.current) setNotice(String(e))
+        })
+        .finally(() => {
+          if (mountedRef.current) setBusy(false)
+        })
     }
   })
 
