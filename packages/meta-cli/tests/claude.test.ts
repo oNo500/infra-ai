@@ -96,7 +96,7 @@ describe('verifyBuild and recordBuild', () => {
         string,
         { metaHash: string; artifactHash: string; builtAt: string }
       >
-      const entry = lock.constitution
+      const entry = lock['rule:constitution']
       expect(entry?.builtAt).toBe('2026-07-11T00:00:00Z')
       expect(entry?.metaHash).toHaveLength(64)
       expect(entry?.artifactHash).toHaveLength(64)

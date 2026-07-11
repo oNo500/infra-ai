@@ -28,7 +28,7 @@ infra-ai/
 ├── packages/meta-cli/         # 维护端 TUI（对账/构建/分发/回写）
 ├── scripts/                   # init-project.sh（使用端脚手架，待迁往使用端 CLI）
 ├── targets.json               # 分发登记：下游项目及订阅
-├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线
+├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线（键 <kind>:<name>）
 ├── Makefile
 └── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```

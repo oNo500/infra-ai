@@ -11,7 +11,7 @@ import {
 import { distribute, downstreamStates, subscribers } from '../core/dist'
 import { loadOverview, type OverviewRow } from '../core/overview'
 import { loadLock, loadTargets, saveLock } from '../core/registry'
-import { adoptEntry, gatherFacts } from '../core/status'
+import { adoptEntry, gatherFacts, lockKey } from '../core/status'
 import { AssetDetail } from './AssetDetail'
 import { AssetList } from './AssetList'
 import { RunPanel, type Job } from './RunPanel'
@@ -136,7 +136,11 @@ export function App({ repoRoot }: { repoRoot: string }) {
         const lock = loadLock(repoRoot)
         saveLock(repoRoot, {
           ...lock,
-          [row.asset.name]: adoptEntry(facts.metaHash, facts.artifactHash, new Date().toISOString()),
+          [lockKey(row.asset)]: adoptEntry(
+            facts.metaHash,
+            facts.artifactHash,
+            new Date().toISOString(),
+          ),
         })
         reload()
       }

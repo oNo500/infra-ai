@@ -21,6 +21,10 @@ export function computeStatus(f: AssetFacts): ReconcileStatus {
   return 'synced'
 }
 
+export function lockKey(asset: MetaAsset): string {
+  return `${asset.kind}:${asset.name}`
+}
+
 export function gatherFacts(repoRoot: string, asset: MetaAsset, lock: Lock): AssetFacts {
   const metaContent = readTextIfExists(join(repoRoot, asset.metaPath)) ?? ''
   const artifactContent = readTextIfExists(join(repoRoot, asset.artifactPath))
@@ -28,7 +32,7 @@ export function gatherFacts(repoRoot: string, asset: MetaAsset, lock: Lock): Ass
     metaStatus: asset.status,
     metaHash: sha256(metaContent),
     artifactHash: artifactContent === null ? null : sha256(artifactContent),
-    lock: lock[asset.name] ?? null,
+    lock: lock[lockKey(asset)] ?? null,
   }
 }
 

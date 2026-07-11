@@ -31,9 +31,16 @@ export function artifactPathFor(kind: AssetKind, name: string, scope: string | n
   return `templates/${name}.md`
 }
 
+const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/u
+
 export function parseMetaFile(content: string, filename: string, kind: AssetKind): MetaAsset {
   const { data } = matter(content)
-  const name = typeof data.name === 'string' ? data.name : filename.replace(/\.md$/, '')
+  const stem = filename.replace(/\.md$/u, '')
+  const frontmatterName = typeof data.name === 'string' ? data.name : null
+  const name = frontmatterName !== null && NAME_PATTERN.test(frontmatterName) ? frontmatterName : stem
+  if (!NAME_PATTERN.test(name)) {
+    throw new Error(`${filename}: invalid asset name '${name}'`)
+  }
   const status: MetaStatus = data.status === 'ready' ? 'ready' : 'stub'
   const scope = kind === 'rule' && typeof data.scope === 'string' ? data.scope : null
   return {
@@ -48,14 +55,22 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
 
 export function discoverAssets(repoRoot: string): MetaAsset[] {
   const assets: MetaAsset[] = []
+  const seen = new Map<string, string>()
   for (const kind of KIND_ORDER) {
     const dir = join(repoRoot, 'meta', KIND_DIR[kind])
     if (!existsSync(dir)) continue
     const files = readdirSync(dir)
       .filter((f) => f.endsWith('.md'))
-      .sort()
+      .toSorted()
     for (const f of files) {
-      assets.push(parseMetaFile(readFileSync(join(dir, f), 'utf8'), f, kind))
+      const asset = parseMetaFile(readFileSync(join(dir, f), 'utf8'), f, kind)
+      const key = `${asset.kind}:${asset.name}`
+      const prior = seen.get(key)
+      if (prior !== undefined) {
+        throw new Error(`duplicate asset name '${asset.name}' in ${prior} and ${asset.metaPath}`)
+      }
+      seen.set(key, asset.metaPath)
+      assets.push(asset)
     }
   }
   return assets

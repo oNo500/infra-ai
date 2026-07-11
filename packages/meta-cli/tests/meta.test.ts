@@ -41,6 +41,25 @@ describe('parseMetaFile', () => {
     expect(asset.status).toBe('stub')
     expect(asset.scope).toBeNull()
   })
+
+  test('crafted path-traversal name falls back to filename stem', () => {
+    const asset = parseMetaFile('---\nname: "../../x"\n---\n', 'python.md', 'rule')
+    expect(asset.name).toBe('python')
+  })
+
+  test('crafted allowedTools-injection name falls back to filename stem', () => {
+    const asset = parseMetaFile('---\nname: "x),Bash(*"\n---\n', 'python.md', 'rule')
+    expect(asset.name).toBe('python')
+  })
+
+  test('valid frontmatter name passes through unchanged', () => {
+    const asset = parseMetaFile('---\nname: my-rule_2.0\n---\n', 'python.md', 'rule')
+    expect(asset.name).toBe('my-rule_2.0')
+  })
+
+  test('invalid filename stem throws naming the file', () => {
+    expect(() => parseMetaFile('---\n---\n', '../evil.md', 'rule')).toThrow(/\.\.\/evil\.md/)
+  })
 })
 
 describe('discoverAssets', () => {
@@ -61,6 +80,24 @@ describe('discoverAssets', () => {
       const assets = discoverAssets(root)
       expect(assets.map((a) => a.name)).toEqual(['constitution', 'commit-lite'])
       expect(assets.map((a) => a.kind)).toEqual(['rule', 'skill'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test('throws when two meta files in the same kind resolve to the same name', () => {
+    const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
+    try {
+      mkdirSync(join(root, 'meta/rules'), { recursive: true })
+      writeFileSync(
+        join(root, 'meta/rules/a.md'),
+        '---\nname: dup\ntarget: rule\nstatus: ready\n---\n',
+      )
+      writeFileSync(
+        join(root, 'meta/rules/b.md'),
+        '---\nname: dup\ntarget: rule\nstatus: ready\n---\n',
+      )
+      expect(() => discoverAssets(root)).toThrow(/dup.*a\.md.*b\.md|meta\/rules\/a\.md.*meta\/rules\/b\.md/)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

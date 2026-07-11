@@ -4,6 +4,7 @@ import matter from 'gray-matter'
 import { readTextIfExists, sha256 } from './io'
 import type { MetaAsset } from './meta'
 import { loadLock, saveLock } from './registry'
+import { lockKey } from './status'
 
 const BUILD_RULE: Record<MetaAsset['kind'], string> = {
   rule: 'meta/build/rule.md',
@@ -150,7 +151,7 @@ export function recordBuild(repoRoot: string, asset: MetaAsset, builtAt: string)
   const lock = loadLock(repoRoot)
   saveLock(repoRoot, {
     ...lock,
-    [asset.name]: {
+    [lockKey(asset)]: {
       metaHash: sha256(metaContent),
       artifactHash: sha256(artifactContent),
       builtAt,
