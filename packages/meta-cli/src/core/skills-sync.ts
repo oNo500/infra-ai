@@ -112,3 +112,23 @@ export async function updateMirror(
     ),
   )
 }
+
+export interface Recommendation {
+  name: string
+  repo: string
+}
+
+export function officialRecommendations(skills: SkillEntry[]): Recommendation[] {
+  return skills
+    .filter((s) => s.source === 'official')
+    .map((s) => ({ name: s.name, repo: s.repo ?? '' }))
+}
+
+export async function listInstalledSkills(run: CommandRunner): Promise<string[]> {
+  const res = await run('pnpx', ['skills', 'ls'])
+  if (res.code !== 0) throw new Error(`pnpx skills ls failed: ${res.stderr}`)
+  return res.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+}
