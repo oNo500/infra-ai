@@ -25,8 +25,7 @@ export function renderTargets(targets: Target[]): string {
 }
 
 export function renderSkills(data: SkillsStatusData): string {
-  const lines: string[] = []
-  lines.push('ledger')
+  const lines: string[] = ['ledger']
   if (data.issues.length === 0) lines.push('  ledger clean')
   for (const issue of data.issues) lines.push(`  [${issue.kind}] ${issue.dir}: ${issue.detail}`)
   lines.push('mirrors')
