@@ -13,12 +13,14 @@ import type { CommandRunner } from './io'
 import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
-import { loadLock, loadSkills, loadTargets, saveLock } from './registry'
+import { loadLock, loadSkills, loadTargets, saveLock, saveTargets } from './registry'
 import {
   checkMirrors,
   checkSkillsLedger,
+  fixSkillsLedger,
   listInstalledSkills,
   officialRecommendations,
+  updateMirror,
 } from './skills-sync'
 import type { DownloadFn, LedgerIssue, MirrorStatus, Recommendation } from './skills-sync'
 import { adoptEntry, computeStatus, gatherFacts, lockKey } from './status'
@@ -309,6 +311,125 @@ const distAction: ActionDef = {
   },
 }
 
+const targetsAddAction: ActionDef = {
+  id: 'targets:add',
+  summary: 'Register a downstream project path',
+  kind: 'mutation',
+  args: [{ name: 'path', kind: 'positional', required: true, description: 'absolute path of downstream project' }],
+  async execute(ctx, params) {
+    const path = params.positionals[0]
+    if (!path) return fail('path required')
+    if (!path.startsWith('/')) return fail('path must be absolute')
+    const targets = loadTargets(ctx.repoRoot)
+    if (targets.some((t) => t.path === path)) return fail(`target already registered: ${path}`)
+    saveTargets(ctx.repoRoot, [...targets, { path, subscriptions: [] }])
+    return { ok: true, message: `added target ${path}` }
+  },
+}
+
+const targetsRemoveAction: ActionDef = {
+  id: 'targets:remove',
+  summary: 'Unregister a downstream project path',
+  kind: 'mutation',
+  args: [{ name: 'path', kind: 'positional', required: true, description: 'registered target path' }],
+  async execute(ctx, params) {
+    const path = params.positionals[0]
+    if (!path) return fail('path required')
+    const targets = loadTargets(ctx.repoRoot)
+    if (!targets.some((t) => t.path === path)) return fail(`unknown target: ${path}`)
+    saveTargets(ctx.repoRoot, targets.filter((t) => t.path !== path))
+    return { ok: true, message: `removed target ${path}` }
+  },
+}
+
+function isSubscribableRule(repoRoot: string, name: string): string | null {
+  const row = loadOverview(repoRoot).find((r) => r.asset.name === name)
+  if (!row) return `unknown asset: ${name}`
+  if (row.asset.kind !== 'rule') return `${name} is not a rule`
+  if (row.status === 'stub' || row.status === 'unbuilt') return `${name} has no built artifact (status: ${row.status})`
+  return null
+}
+
+const targetsSubscribeAction: ActionDef = {
+  id: 'targets:subscribe',
+  summary: 'Subscribe a target to a built rule artifact',
+  kind: 'mutation',
+  args: [
+    { name: 'path', kind: 'positional', required: true, description: 'registered target path' },
+    { name: 'rule', kind: 'positional', required: true, description: 'rule asset name' },
+  ],
+  async execute(ctx, params) {
+    const [path, rule] = params.positionals
+    if (!path || !rule) return fail('path and rule required')
+    const targets = loadTargets(ctx.repoRoot)
+    const target = targets.find((t) => t.path === path)
+    if (!target) return fail(`unknown target: ${path}`)
+    const err = isSubscribableRule(ctx.repoRoot, rule)
+    if (err) return fail(err)
+    if (target.subscriptions.includes(rule)) return fail(`${path} already subscribes to ${rule}`)
+    saveTargets(
+      ctx.repoRoot,
+      targets.map((t) => (t.path === path ? Object.assign({}, t, { subscriptions: [...t.subscriptions, rule] }) : t)),
+    )
+    return { ok: true, message: `${path} subscribed to ${rule}` }
+  },
+}
+
+const targetsUnsubscribeAction: ActionDef = {
+  id: 'targets:unsubscribe',
+  summary: 'Remove a rule subscription from a target',
+  kind: 'mutation',
+  args: [
+    { name: 'path', kind: 'positional', required: true, description: 'registered target path' },
+    { name: 'rule', kind: 'positional', required: true, description: 'rule asset name' },
+  ],
+  async execute(ctx, params) {
+    const [path, rule] = params.positionals
+    if (!path || !rule) return fail('path and rule required')
+    const targets = loadTargets(ctx.repoRoot)
+    const target = targets.find((t) => t.path === path)
+    if (!target) return fail(`unknown target: ${path}`)
+    if (!target.subscriptions.includes(rule)) return fail(`${path} does not subscribe to ${rule}`)
+    saveTargets(
+      ctx.repoRoot,
+      targets.map((t) =>
+        t.path === path ? Object.assign({}, t, { subscriptions: t.subscriptions.filter((s) => s !== rule) }) : t,
+      ),
+    )
+    return { ok: true, message: `${path} unsubscribed from ${rule}` }
+  },
+}
+
+const skillsFixAction: ActionDef = {
+  id: 'skills:fix',
+  summary: 'Add unledgered skill directories to skills.json as custom entries',
+  kind: 'mutation',
+  args: [],
+  async execute(ctx) {
+    const { added, issues } = fixSkillsLedger(ctx.repoRoot)
+    const parts = [added.length > 0 ? `added: ${added.join(', ')}` : 'nothing to fix']
+    for (const issue of issues) parts.push(`[${issue.kind}] ${issue.dir}: ${issue.detail}`)
+    return { ok: issues.length === 0, message: parts.join('\n'), exitCode: issues.length > 0 ? 1 : 0 }
+  },
+}
+
+const skillsUpdateAction: ActionDef = {
+  id: 'skills:update',
+  summary: 'Update outdated mirror skills from upstream and rewrite the ledger',
+  kind: 'mutation',
+  args: [],
+  async execute(ctx, _params, hooks) {
+    const mirrors = await checkMirrors(loadSkills(ctx.repoRoot), ctx.run)
+    const outdated = mirrors.filter((m) => m.outdated)
+    if (outdated.length === 0) return { ok: true, message: 'all mirrors up-to-date' }
+    for (const m of outdated) {
+      hooks?.onText?.(`updating ${m.name} ${m.localCommit.slice(0, 7)} -> ${m.remoteCommit.slice(0, 7)}`)
+      await updateMirror(ctx.repoRoot, m, ctx.now().slice(0, 10), ctx.download)
+    }
+    return { ok: true, message: `updated: ${outdated.map((m) => m.name).join(', ')}` }
+  },
+}
+
 export const ACTIONS: ActionDef[] = [
   statusAction,
   adoptAction,
@@ -316,7 +437,13 @@ export const ACTIONS: ActionDef[] = [
   writebackAction,
   distAction,
   targetsListAction,
+  targetsAddAction,
+  targetsRemoveAction,
+  targetsSubscribeAction,
+  targetsUnsubscribeAction,
   skillsStatusAction,
+  skillsFixAction,
+  skillsUpdateAction,
 ]
 
 export function getAction(id: string): ActionDef {

@@ -248,3 +248,83 @@ describe('dist action', () => {
     }
   })
 })
+
+describe('targets mutations', () => {
+  test('add validates absolute path and rejects duplicates; remove validates existence', async () => {
+    const root = fixtureRepo()
+    try {
+      const rel = await getAction('targets:add').execute(testContext(root), { positionals: ['x/y'], flags: {} })
+      expect(rel.ok).toBe(false)
+      const add = await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
+      expect(add.ok).toBe(true)
+      const dup = await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
+      expect(dup.ok).toBe(false)
+      const gone = await getAction('targets:remove').execute(testContext(root), { positionals: ['/tmp/b'], flags: {} })
+      expect(gone.ok).toBe(false)
+      const rm = await getAction('targets:remove').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
+      expect(rm.ok).toBe(true)
+      expect(JSON.parse(readFileSync(join(root, 'targets.json'), 'utf8'))).toEqual([])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('subscribe requires built rule and no duplicates; unsubscribe requires existing', async () => {
+    const root = fixtureRepo()
+    try {
+      await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
+      const unbuilt = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
+      expect(unbuilt.ok).toBe(false)
+      syncLock(root)
+      const sub = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
+      expect(sub.ok).toBe(true)
+      const dup = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
+      expect(dup.ok).toBe(false)
+      const un = await getAction('targets:unsubscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
+      expect(un.ok).toBe(true)
+      const missing = await getAction('targets:unsubscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
+      expect(missing.ok).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('skills mutations', () => {
+  test('skills:fix adds unledgered dirs and reports remaining issues', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'skills/extra'), { recursive: true })
+      writeFileSync(join(root, 'skills/extra/SKILL.md'), '---\nname: extra\n---\n')
+      const result = await getAction('skills:fix').execute(testContext(root), { positionals: [], flags: {} })
+      expect(result.ok).toBe(true)
+      expect(result.message).toContain('extra')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('skills:update updates only outdated mirrors via injected download', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'skills.json'),
+        `${JSON.stringify([{ name: 'm', source: 'mirror', repo: 'r/x', path: 'p', commit: 'old' }])}\n`,
+      )
+      const downloads: string[] = []
+      const run: ActionContext['run'] = async () => ({ code: 0, stdout: 'new\n', stderr: '' })
+      const download: ActionContext['download'] = async (input) => {
+        downloads.push(input)
+        return {}
+      }
+      const result = await getAction('skills:update').execute(
+        testContext(root, { run, download }),
+        { positionals: [], flags: {} },
+      )
+      expect(result.ok).toBe(true)
+      expect(downloads).toEqual(['gh:r/x/p'])
+      const ledger = JSON.parse(readFileSync(join(root, 'skills.json'), 'utf8')) as { commit: string }[]
+      expect(ledger[0]?.commit).toBe('new')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
