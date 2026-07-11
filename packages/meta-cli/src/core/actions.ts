@@ -24,6 +24,7 @@ import {
 } from './skills-sync'
 import type { DownloadFn, LedgerIssue, MirrorStatus, Recommendation } from './skills-sync'
 import { adoptEntry, computeStatus, gatherFacts, lockKey } from './status'
+import type { ReconcileStatus } from './status'
 
 export interface ActionContext {
   repoRoot: string
@@ -101,8 +102,10 @@ function findAsset(repoRoot: string, name: string): MetaAsset | null {
   return discoverAssets(repoRoot).find((a) => a.name === name) ?? null
 }
 
-// spec Decision 7: dirty/stale/unbuilt 或下游 drift/missing 计入待收敛；untracked 与 stub 不计
-const PENDING_STATUSES = new Set(['dirty', 'stale', 'unbuilt'])
+// spec Decision 7: dirty/stale/unbuilt/untracked 或下游 drift/missing 计入待收敛；stub 不计
+const PENDING_STATUSES: ReadonlySet<string> = new Set(
+  ['dirty', 'stale', 'unbuilt', 'untracked'] satisfies ReconcileStatus[],
+)
 
 const statusAction: ActionDef = {
   id: 'status',
@@ -213,6 +216,7 @@ const buildAction: ActionDef = {
   async execute(ctx, params, hooks) {
     let assets: MetaAsset[]
     if (params.flags.stale) {
+      if (params.positionals.length > 0) return fail('--stale takes no asset names')
       assets = loadOverview(ctx.repoRoot)
         .filter((r) => r.status === 'stale')
         .map((r) => r.asset)

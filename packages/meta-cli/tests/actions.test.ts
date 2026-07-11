@@ -52,6 +52,19 @@ describe('status action', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('untracked asset (artifact present, no lock) yields exitCode 1', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'rules/global'), { recursive: true })
+      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
+      expect(result.exitCode).toBe(1)
+      const rows = result.data as StatusRowData[]
+      expect(rows[0]?.status).toBe('untracked')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   test('all synced yields exitCode 0; named lookup filters; unknown name fails', async () => {
     const root = fixtureRepo()
     try {
@@ -199,6 +212,19 @@ describe('build action', () => {
       const result = await getAction('build').execute(testContext(root), { positionals: [], flags: { stale: true } })
       expect(result.ok).toBe(true)
       expect(result.message).toBe('no stale assets')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('--stale with explicit asset names fails', async () => {
+    const root = fixtureRepo()
+    try {
+      const result = await getAction('build').execute(testContext(root), {
+        positionals: ['foo'],
+        flags: { stale: true },
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/--stale/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
