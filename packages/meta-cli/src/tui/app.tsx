@@ -92,7 +92,11 @@ export function App({ repoRoot }: { repoRoot: string }) {
     }
 
     if (input === 'a' && row.status === 'untracked') {
-      void getAction('adopt').execute(ctx, { positionals: [row.asset.name], flags: {} }).then(reload)
+      runJob(`adopt ${row.asset.name}`, () =>
+        getAction('adopt')
+          .execute(ctx, { positionals: [row.asset.name], flags: {} })
+          .then((r) => (r.ok ? null : (r.message ?? 'failed'))),
+      )
     }
     if (input === 'b' && row.status !== 'stub') {
       runJob(`build ${row.asset.name}`, (onText) =>
