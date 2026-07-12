@@ -12,7 +12,8 @@
 
 ## 创建
 
-- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式、构建规则、回写纪律见 [`meta/build/skill.md`](meta/build/skill.md)
+- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式见 [`meta/README.md`](meta/README.md)，AI 构建契约见
+  [`meta/prompts/skill-build.md`](meta/prompts/skill-build.md)
 - `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），在 `imeta` 的 `s` 视图按 `u` 拉取
 - `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
 

@@ -15,7 +15,7 @@
 - [`rules/`](rules/) — 可分发 rule 的构建产物：`global/`（无条件加载，含 constitution）+ `scoped/`（按 `paths` 动态加载）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
-- [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；构建规则在 [`meta/build/`](meta/build/)，每类产物一份
+- [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；AI 构建契约在 [`meta/prompts/`](meta/prompts/)，每类两份（build/writeback）
 - [`packages/meta-cli/`](packages/meta-cli/) — 维护端 CLI/TUI（bun + ink + citty）：对账、构建（claude headless）、回写；动作注册表保证两种界面功能同步
 - `artifacts.lock.json` — 构建登记（meta/产物 hash 基线，键 `<kind>:<name>`），由 meta-cli 维护
 

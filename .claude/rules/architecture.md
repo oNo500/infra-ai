@@ -14,7 +14,8 @@ infra-ai/
 ├── SKILLS.md                  # skills 专题（SSoT、创建、维护、使用）
 ├── skills/                    # skill 产物（custom + mirror；official 留上游）
 ├── meta/                      # 元指令源，永久保留
-│   ├── build/                 # 构建规则，每类产物一份（rule.md、skill.md、template.md）
+│   ├── prompts/               # AI 行为契约，每类两份（<类>-build.md、<类>-writeback.md）
+│   ├── README.md              # 元指令格式与新增资产说明
 │   ├── rules/                 # rule 元指令
 │   ├── skills/                # skill 元指令
 │   └── templates/             # template 元指令
@@ -34,7 +35,8 @@ infra-ai/
 ## 源→产物模型
 
 - `meta/` 元指令是源，永久保留；`skills/`、`rules/`、`templates/` 下的构建产物可重建
-- 构建与分发规则在 `meta/build/`，每类产物一份
+- AI 构建/回写契约在 `meta/prompts/`，每类两份；流程的 SSoT 是
+  `packages/meta-cli/src/core/actions.ts`（imeta --help 与 run log 即流程文档）
 - 产物上的有价值修改必须回写元指令，否则下次重建丢失
 
 ## 分发
