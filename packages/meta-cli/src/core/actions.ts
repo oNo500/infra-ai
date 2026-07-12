@@ -187,9 +187,13 @@ const adoptAction: ActionDef = {
 }
 
 async function statusSnapshot(ctx: ActionContext): Promise<Set<string> | string> {
-  const res = await ctx.run('git', ['status', '--porcelain'], { cwd: ctx.repoRoot })
+  const res = await ctx.run('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: ctx.repoRoot })
   if (res.code !== 0) return `changeset guard: git status failed: ${res.stderr}`
   return new Set(res.stdout.split('\n').filter((line) => line !== ''))
+}
+
+function unquotePath(raw: string): string {
+  return raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw
 }
 
 async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHooks): Promise<string | null> {
@@ -202,6 +206,7 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
       preErr = `pre-build check failed: ${String(error)}`
     }
     if (preErr) return preErr
+    hooks?.onStep?.('preBuildCheck', { ok: true })
   }
   const before = await statusSnapshot(ctx)
   if (typeof before === 'string') return before
@@ -221,11 +226,12 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
   // outside the allowedTools sandbox, not the sole safeguard.
   const escaped = [...after]
     .filter((line) => !before.has(line))
-    .map((line) => line.slice(3))
+    .map((line) => unquotePath(line.slice(3)))
     .filter((path) => !path.startsWith(prefix))
   if (escaped.length > 0) {
     return `changeset guard: files changed outside the build sandbox: ${escaped.join(', ')}`
   }
+  hooks?.onStep?.('changeset-guard', { ok: true })
   const err = verifyBuild(ctx.repoRoot, asset)
   if (err === null) {
     hooks?.onStep?.('verify', { ok: true })
@@ -305,8 +311,14 @@ const writebackAction: ActionDef = {
     if (sha256(after) === sha256(before)) {
       return fail(`${name}: writeback made no change to the meta instruction`)
     }
-    const fmBefore = matter(before).data as Record<string, unknown>
-    const fmAfter = matter(after).data as Record<string, unknown>
+    let fmBefore: Record<string, unknown>
+    let fmAfter: Record<string, unknown>
+    try {
+      fmBefore = matter(before).data as Record<string, unknown>
+      fmAfter = matter(after).data as Record<string, unknown>
+    } catch (error) {
+      return fail(`${name}: writeback produced unparseable frontmatter: ${String(error)}`)
+    }
     for (const key of new Set([...Object.keys(fmBefore), ...Object.keys(fmAfter)])) {
       if (asset.kind === 'rule' && key === 'scope') continue
       if (JSON.stringify(fmBefore[key]) !== JSON.stringify(fmAfter[key])) {

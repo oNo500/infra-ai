@@ -231,10 +231,12 @@ describe('build action', () => {
         { onStep: (step, data) => steps.push([step, data]) },
       )
       expect(result.ok).toBe(true)
-      expect(steps[0]?.[0]).toBe('verify')
+      expect(steps[0]?.[0]).toBe('changeset-guard')
       expect(steps[0]?.[1]?.ok).toBe(true)
-      expect(steps[1]?.[0]).toBe('record')
-      expect(steps[1]?.[1]?.key).toBe('rule:foo')
+      expect(steps[1]?.[0]).toBe('verify')
+      expect(steps[1]?.[1]?.ok).toBe(true)
+      expect(steps[2]?.[0]).toBe('record')
+      expect(steps[2]?.[1]?.key).toBe('rule:foo')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -285,9 +287,12 @@ describe('build preBuildCheck gate', () => {
 })
 
 describe('build changeset guard', () => {
-  function seqRunner(outputs: string[]): ActionContext['run'] {
+  function seqRunner(outputs: string[], calls?: string[][]): ActionContext['run'] {
     let call = 0
-    return async () => ({ code: 0, stdout: outputs[Math.min(call++, outputs.length - 1)] ?? '', stderr: '' })
+    return async (cmd, args) => {
+      calls?.push([cmd, ...args])
+      return { code: 0, stdout: outputs[Math.min(call++, outputs.length - 1)] ?? '', stderr: '' }
+    }
   }
   test('out-of-scope changes fail the build', async () => {
     const root = fixtureRepo()
@@ -338,6 +343,55 @@ describe('build changeset guard', () => {
       })
       expect(result.ok).toBe(false)
       expect(result.message).toMatch(/changeset guard/u)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('git status is invoked with --untracked-files=all so a collapsed directory line cannot false-positive', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'meta/skills'), { recursive: true })
+      writeFileSync(join(root, 'meta/skills/dup.md'), '---\nname: dup\nstatus: ready\n---\nbody\n')
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'skills/dup'), { recursive: true })
+        writeFileSync(join(root, 'skills/dup/SKILL.md'), '---\nname: dup\n---\nbody\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const calls: string[][] = []
+      // With --untracked-files=all git reports the file itself rather than a collapsed
+      // '?? skills/' directory line; the fake mirrors that expansion to prove the build
+      // passes once the flag is honored, and the args assertion below proves the flag is sent.
+      const run = seqRunner(['', '?? skills/dup/SKILL.md\n'], calls)
+      const result = await getAction('build').execute(testContext(root, { claude, run }), {
+        positionals: ['dup'],
+        flags: {},
+      })
+      expect(result.ok).toBe(true)
+      const gitCalls = calls.filter((c) => c[0] === 'git')
+      expect(gitCalls.length).toBeGreaterThan(0)
+      for (const call of gitCalls) {
+        expect(call).toContain('--untracked-files=all')
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('quoted porcelain path with a space is unwrapped before the prefix check', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        // an unrelated in-scope file with a space in its name; git quotes such paths in porcelain
+        writeFileSync(join(root, 'rules/global/foo with space.md'), '# built\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const run = seqRunner(['', ' M rules/global/foo.md\n?? "rules/global/foo with space.md"\n'])
+      const result = await getAction('build').execute(testContext(root, { claude, run }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(true)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -405,6 +459,27 @@ describe('writeback action', () => {
         flags: {},
       })
       expect(r3.ok).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test('malformed frontmatter from writeback fails cleanly instead of throwing', async () => {
+    const root = fixtureRepo()
+    try {
+      syncLock(root)
+      writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
+      const metaPath = join(root, 'meta/rules/foo.md')
+      const claude: ActionContext['claude'] = async () => {
+        writeFileSync(metaPath, '---\nname: [broken\n---\nbody\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const result = await getAction('writeback').execute(testContext(root, { claude }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/unparseable frontmatter/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -503,7 +578,18 @@ describe('runAction', () => {
       const steps = lines.map((l) => l.step)
       // first 'text' is buildAction's '--- foo ---' separator (hooks.onText fires before claude spawns);
       // second 'text' is claude streaming output forwarded through the same wrapped hook
-      expect(steps).toEqual(['start', 'text', 'claude:spawn', 'claude:event', 'text', 'claude:exit', 'verify', 'record', 'result'])
+      expect(steps).toEqual([
+        'start',
+        'text',
+        'claude:spawn',
+        'claude:event',
+        'text',
+        'claude:exit',
+        'changeset-guard',
+        'verify',
+        'record',
+        'result',
+      ])
       expect(lines[1]?.text).toBe('--- foo ---')
       expect(lines[4]?.text).toBe('hi')
       expect(lines.every((l) => l.action === 'build')).toBe(true)
