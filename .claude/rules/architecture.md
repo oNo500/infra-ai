@@ -40,16 +40,16 @@ infra-ai/
 
 ## 分发
 
-- `rules/global|scoped/` — 照搬型，本机经 `meta` 按订阅分发（targets.json），跨设备手动 copy 到目标项目 `.claude/rules/`
+- `rules/global|scoped/` — 照搬型，本机经 `imeta` 按订阅分发（targets.json），跨设备手动 copy 到目标项目 `.claude/rules/`
 - `templates/` — 模板型，结合目标项目实例化占位符后落地
 - 源只在本仓改，下游副本不回改
 
 ## 对账
 
-- `meta` 打开 TUI（全局命令：`packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta`）：
+- `imeta` 打开 TUI（全局命令：`packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta`）：
   资产状态（stub/unbuilt/untracked/dirty/stale/synced）、下游漂移、
   skills ledger 与 mirror 上游，均在界面内收敛
-- 非交互：`meta status [--json]` 等子命令，退出码语义化
+- 非交互：`imeta status [--json]` 等子命令，退出码语义化
 
 ## 动作注册表（功能同步红线）
 

@@ -24,12 +24,12 @@
 ## 命令
 
 ```bash
-meta                     # TUI
-meta status [--json]     # 对账查询；有待收敛项时退出码为 1
-meta build <name>        # claude headless 构建；完整命令面 meta --help
+imeta                     # TUI
+imeta status [--json]     # 对账查询；有待收敛项时退出码为 1
+imeta build <name>        # claude headless 构建；完整命令面 imeta --help
 ```
 
-全局 `meta` 命令来自 `packages/meta-cli` 内执行一次 `pnpm link --global`；
+全局 `imeta` 命令来自 `packages/meta-cli` 内执行一次 `pnpm link --global`；
 未 link 时在仓库根用 `pnpm meta <...>` 等价调用。
 
 ## 在其他项目/设备使用

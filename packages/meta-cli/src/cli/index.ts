@@ -86,7 +86,7 @@ export function buildMainCommand(): CommandDef {
     })
   }
   return defineCommand({
-    meta: { name: 'meta', description: 'infra-ai meta asset maintenance' },
+    meta: { name: 'imeta', description: 'infra-ai meta asset maintenance' },
     subCommands,
   })
 }

@@ -25,7 +25,7 @@ status: stub | ready
 
 ## 构建
 
-触发：`meta` 选中资产按 `b`（headless 构建），或对 Claude 说「构建 `meta/templates/<name>.md`」。
+触发：`imeta` 选中资产按 `b`（headless 构建），或对 Claude 说「构建 `meta/templates/<name>.md`」。
 
 1. 读元指令；`status: stub` 先与用户对齐意图、补全成 `ready` 再继续
 2. 生成产物到 `templates/<name>.md`，占位符只留项目间真正会变的部分

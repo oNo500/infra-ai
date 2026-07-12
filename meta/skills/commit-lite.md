@@ -88,7 +88,7 @@ BREAKING CHANGE: /v1/* routes removed.
 
 ## 输出路径
 
-仓库根 `skills/commit-lite/SKILL.md`，`meta` 的 `s` 视图 `f` 上账后各处安装：
+仓库根 `skills/commit-lite/SKILL.md`，`imeta` 的 `s` 视图 `f` 上账后各处安装：
 
 ```bash
 pnpx skills add oNo500/infra-ai -s commit-lite

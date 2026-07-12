@@ -5,7 +5,7 @@
   "description": "TUI for meta asset reconcile/build/dist/writeback",
   "type": "module",
   "bin": {
-    "meta": "./src/index.tsx"
+    "imeta": "./src/index.tsx"
   },
   "scripts": {
     "dev": "bun run src/index.tsx",
