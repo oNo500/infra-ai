@@ -11,7 +11,10 @@ markdown 文件。读完本文件与元指令后再动笔。
    - `scope: global` — 产物落 `rules/global/<name>.md`，不写 `paths`
    - `scope: "<glob>"` — 产物落 `rules/scoped/<name>.md`，glob 写进产物的
      `paths` frontmatter
-4. 写产物。只写产物这一个文件，不修改其他文件，不提交
+   - 落点与 `paths` 一律以元指令 `scope` 为准；检查清单只影响写法与是否成文
+4. 检查清单结论为「不该独立成文」或与 `scope` 明显冲突时：不生成产物，
+   在最终回复里说明理由与建议，由人裁决后修订元指令再建
+5. 写产物。只写产物这一个文件，不修改其他文件，不提交
 
 ## 检查清单
 
