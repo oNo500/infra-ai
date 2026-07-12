@@ -311,6 +311,7 @@ describe('writeback action', () => {
       syncLock(root)
       writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
       const metaPath = join(root, 'meta/rules/foo.md')
+      const goodMeta = '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\n---\nbody\n'
 
       const noop: ActionContext['claude'] = async () => ({ code: 0, timedOut: false, stderr: '' })
       const r1 = await getAction('writeback').execute(testContext(root, { claude: noop }), {
@@ -320,6 +321,9 @@ describe('writeback action', () => {
       expect(r1.ok).toBe(false)
       expect(r1.message).toMatch(/no change/u)
 
+      // Re-prime the meta: the action reports validation failures without rolling back,
+      // so each sub-case starts from known-good content itself.
+      writeFileSync(metaPath, goodMeta)
       const tamper: ActionContext['claude'] = async () => {
         writeFileSync(metaPath, '---\nname: renamed\nstatus: ready\nscope: global\n---\nbody\n')
         return { code: 0, timedOut: false, stderr: '' }
@@ -331,6 +335,7 @@ describe('writeback action', () => {
       expect(r2.ok).toBe(false)
       expect(r2.message).toMatch(/frontmatter/u)
 
+      writeFileSync(metaPath, goodMeta)
       const scopeChange: ActionContext['claude'] = async () => {
         writeFileSync(metaPath, '---\nname: foo\ntarget: rule\nstatus: ready\nscope: "src/**"\n---\nbody updated\n')
         return { code: 0, timedOut: false, stderr: '' }

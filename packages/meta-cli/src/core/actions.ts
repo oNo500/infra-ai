@@ -9,7 +9,7 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from './claude'
-import { readTextIfExists, runCommand, sha256, writeFileAtomic } from './io'
+import { readTextIfExists, runCommand, sha256 } from './io'
 import type { CommandRunner } from './io'
 import { KINDS } from './kinds'
 import type { FetchJson } from './kinds'
@@ -289,10 +289,6 @@ const writebackAction: ActionDef = {
     for (const key of new Set([...Object.keys(fmBefore), ...Object.keys(fmAfter)])) {
       if (asset.kind === 'rule' && key === 'scope') continue
       if (JSON.stringify(fmBefore[key]) !== JSON.stringify(fmAfter[key])) {
-        // Restore original state on validation failure
-        if (before.length > 0) {
-          writeFileAtomic(metaAbs, before)
-        }
         return fail(`${name}: writeback modified frontmatter field '${key}'`)
       }
     }
