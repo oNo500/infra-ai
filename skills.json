@@ -1,22 +1,86 @@
 [
-  { "name": "drawio", "source": "mirror", "repo": "jgraph/drawio-mcp", "path": "plugins/claude-code/skills/drawio", "commit": "516965c7c49e9ec408529d0b1a653f67814cb920", "updated": "2026-07-04" },
-
-  { "name": "explaining-code", "source": "custom" },
-  { "name": "clarify", "source": "custom" },
-  { "name": "gitflow-commit", "source": "custom" },
-  { "name": "chezmoi-sync", "source": "custom" },
-  { "name": "obsidian-cli", "source": "custom" },
-  { "name": "obsidian-markdown", "source": "custom" },
-  { "name": "obsidian-bases", "source": "custom" },
-  { "name": "note", "source": "custom" },
-  { "name": "ctx-init", "source": "custom" },
-  { "name": "anki-connect", "source": "custom" },
-  { "name": "json-canvas", "source": "custom" },
-  { "name": "edit-markdown", "source": "custom" },
-  { "name": "tailwindcss-icons", "source": "custom" },
-
-  { "name": "deep-research", "source": "official", "repo": "affaan-m/everything-claude-code" },
-  { "name": "find-skills", "source": "official", "repo": "vercel-labs/skills" },
-  { "name": "ai-sdk", "source": "official", "repo": "vercel/ai" },
-  { "name": "shadcn", "source": "official", "repo": "shadcn-ui/ui" }
+  {
+    "name": "drawio",
+    "source": "mirror",
+    "repo": "jgraph/drawio-mcp",
+    "path": "plugins/claude-code/skills/drawio",
+    "commit": "516965c7c49e9ec408529d0b1a653f67814cb920",
+    "updated": "2026-07-04"
+  },
+  {
+    "name": "explaining-code",
+    "source": "custom"
+  },
+  {
+    "name": "clarify",
+    "source": "custom"
+  },
+  {
+    "name": "gitflow-commit",
+    "source": "custom"
+  },
+  {
+    "name": "chezmoi-sync",
+    "source": "custom"
+  },
+  {
+    "name": "obsidian-cli",
+    "source": "custom"
+  },
+  {
+    "name": "obsidian-markdown",
+    "source": "custom"
+  },
+  {
+    "name": "obsidian-bases",
+    "source": "custom"
+  },
+  {
+    "name": "note",
+    "source": "custom"
+  },
+  {
+    "name": "ctx-init",
+    "source": "custom"
+  },
+  {
+    "name": "anki-connect",
+    "source": "custom"
+  },
+  {
+    "name": "json-canvas",
+    "source": "custom"
+  },
+  {
+    "name": "edit-markdown",
+    "source": "custom"
+  },
+  {
+    "name": "tailwindcss-icons",
+    "source": "custom"
+  },
+  {
+    "name": "deep-research",
+    "source": "official",
+    "repo": "affaan-m/everything-claude-code"
+  },
+  {
+    "name": "find-skills",
+    "source": "official",
+    "repo": "vercel-labs/skills"
+  },
+  {
+    "name": "ai-sdk",
+    "source": "official",
+    "repo": "vercel/ai"
+  },
+  {
+    "name": "shadcn",
+    "source": "official",
+    "repo": "shadcn-ui/ui"
+  },
+  {
+    "name": "commit-lite",
+    "source": "custom"
+  }
 ]

@@ -32,7 +32,9 @@ status: stub | ready
 3. 没有再用 `/skill-creator` 生成到仓库根 `skills/<name>/`，遵循 skills.sh 标准和
    [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
 4. 产物一律落仓内；元指令里写了别的路径（如 `~/.claude/skills/`），以本文件为准修正
-5. 在 `imeta` 的 `s` 视图按 `f` 上账（`skills.json` 自动补 custom 条目）
+5. 语言：正文以中文为主，术语、type 名、命令、代码与标识保留英文；
+   frontmatter（`name`/`description`）保持英文（skills.sh 生态与触发匹配）
+6. 在 `imeta` 的 `s` 视图按 `f` 上账（`skills.json` 自动补 custom 条目）
 
 ## 回写纪律
 
