@@ -3,5 +3,15 @@
     "metaHash": "4a5e6c4cba207b931938c81c963b10ffeab500c12118204d95d02dff68a86052",
     "artifactHash": "8a368c48331599738f8af3e21494b07b078eb7a40b87942ece2b818a087cefd0",
     "builtAt": "2026-07-12T12:37:42.450Z"
+  },
+  "rule:constitution": {
+    "metaHash": "0afe64f11dc7078320d33bee5798810c9a6f67f2af14e38791b87bb4aa5d84eb",
+    "artifactHash": "73b67df57246e61b20cdad5ac0bbbb75499c284df21cab62b177b0a126642632",
+    "builtAt": "2026-07-12T15:30:44.033Z"
+  },
+  "template:architecture": {
+    "metaHash": "e6e0764b8503b644c133adccaa07e079d7dfdd3cb4950bc6bbb893762c2a891d",
+    "artifactHash": "9696a13600022381670e2cab5026d74695ada63d5f23824f698f410ac11a7ac4",
+    "builtAt": "2026-07-12T15:30:44.118Z"
   }
 }
