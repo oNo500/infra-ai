@@ -11,12 +11,10 @@ export interface KindDef {
   writebackPrompt: string
   writableGlob: (name: string) => string
   extraAllowedTools: readonly string[]
-  verifyArtifact: (repoRoot: string, asset: { name: string; artifactPath: string }) => string | null
+  verifyArtifact: (repoRoot: string, asset: { name: string; artifactPath: string; scope: string | null }) => string | null
 }
 
 export const KIND_ORDER: readonly AssetKind[] = ['rule', 'skill', 'template']
-
-const noExtraVerify = () => null
 
 export const KINDS: Record<AssetKind, KindDef> = {
   rule: {
@@ -29,7 +27,26 @@ export const KINDS: Record<AssetKind, KindDef> = {
     writebackPrompt: 'meta/prompts/rule-writeback.md',
     writableGlob: () => 'rules/**',
     extraAllowedTools: [],
-    verifyArtifact: noExtraVerify,
+    verifyArtifact: (repoRoot, asset) => {
+      const content = readTextIfExists(join(repoRoot, asset.artifactPath))
+      if (content === null) return null // 存在性由通用校验负责
+      let data: Record<string, unknown>
+      try {
+        data = matter(content).data as Record<string, unknown>
+      } catch (error) {
+        return `rule frontmatter unparseable: ${String(error)}`
+      }
+      const scoped = asset.scope !== null && asset.scope !== 'global'
+      const paths = data.paths
+      if (scoped) {
+        if (!Array.isArray(paths) || !paths.includes(asset.scope)) {
+          return `scoped rule must carry paths frontmatter matching scope '${asset.scope}'`
+        }
+        return null
+      }
+      if (paths !== undefined) return 'global rule must not carry paths frontmatter'
+      return null
+    },
   },
   skill: {
     metaDir: 'meta/skills',
@@ -59,6 +76,13 @@ export const KINDS: Record<AssetKind, KindDef> = {
     writebackPrompt: 'meta/prompts/template-writeback.md',
     writableGlob: () => 'templates/**',
     extraAllowedTools: [],
-    verifyArtifact: noExtraVerify,
+    verifyArtifact: (repoRoot, asset) => {
+      const content = readTextIfExists(join(repoRoot, asset.artifactPath))
+      if (content === null) return null
+      if (!/\[[A-Z][A-Z0-9_]*\]/u.test(content)) {
+        return 'template must keep at least one [ALL_CAPS] placeholder'
+      }
+      return null
+    },
   },
 }
