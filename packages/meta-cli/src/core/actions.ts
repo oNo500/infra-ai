@@ -1,4 +1,6 @@
+import matter from 'gray-matter'
 import { downloadTemplate } from 'giget'
+import { join } from 'node:path'
 import {
   allowedToolsFor,
   buildPromptFor,
@@ -7,7 +9,7 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from './claude'
-import { runCommand } from './io'
+import { readTextIfExists, runCommand, sha256, writeFileAtomic } from './io'
 import type { CommandRunner } from './io'
 import { KINDS } from './kinds'
 import type { FetchJson } from './kinds'
@@ -268,6 +270,8 @@ const writebackAction: ActionDef = {
     if (!asset) return fail(`unknown asset: ${name}`)
     const status = computeStatus(gatherFacts(ctx.repoRoot, asset, loadLock(ctx.repoRoot)))
     if (status !== 'dirty') return fail(`${name} is not dirty (status: ${status})`)
+    const metaAbs = join(ctx.repoRoot, asset.metaPath)
+    const before = readTextIfExists(metaAbs) ?? ''
     const res = await ctx.claude({
       repoRoot: ctx.repoRoot,
       prompt: writebackPromptFor(asset),
@@ -276,6 +280,22 @@ const writebackAction: ActionDef = {
     })
     if (res.timedOut) return fail('claude timed out')
     if (res.code !== 0) return fail(`claude exited ${res.code}: ${res.stderr.slice(-500)}`)
+    const after = readTextIfExists(metaAbs) ?? ''
+    if (sha256(after) === sha256(before)) {
+      return fail(`${name}: writeback made no change to the meta instruction`)
+    }
+    const fmBefore = matter(before).data as Record<string, unknown>
+    const fmAfter = matter(after).data as Record<string, unknown>
+    for (const key of new Set([...Object.keys(fmBefore), ...Object.keys(fmAfter)])) {
+      if (asset.kind === 'rule' && key === 'scope') continue
+      if (JSON.stringify(fmBefore[key]) !== JSON.stringify(fmAfter[key])) {
+        // Restore original state on validation failure
+        if (before.length > 0) {
+          writeFileAtomic(metaAbs, before)
+        }
+        return fail(`${name}: writeback modified frontmatter field '${key}'`)
+      }
+    }
     return { ok: true, message: `wrote back ${name}; meta changed, asset is now stale` }
   },
 }

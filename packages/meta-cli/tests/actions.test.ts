@@ -293,9 +293,53 @@ describe('writeback action', () => {
       expect(notDirty.ok).toBe(false)
       expect(notDirty.message).toMatch(/not dirty/u)
       writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
-      const claude: ActionContext['claude'] = async () => ({ code: 0, timedOut: false, stderr: '' })
+      const metaPath = join(root, 'meta/rules/foo.md')
+      const claude: ActionContext['claude'] = async () => {
+        writeFileSync(metaPath, '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\n---\nbody updated\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
       const dirty = await getAction('writeback').execute(testContext(root, { claude }), { positionals: ['foo'], flags: {} })
       expect(dirty.ok).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  test('no-op writeback fails; frontmatter tampering fails; scope change allowed', async () => {
+    const root = fixtureRepo()
+    try {
+      syncLock(root)
+      writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
+      const metaPath = join(root, 'meta/rules/foo.md')
+
+      const noop: ActionContext['claude'] = async () => ({ code: 0, timedOut: false, stderr: '' })
+      const r1 = await getAction('writeback').execute(testContext(root, { claude: noop }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(r1.ok).toBe(false)
+      expect(r1.message).toMatch(/no change/u)
+
+      const tamper: ActionContext['claude'] = async () => {
+        writeFileSync(metaPath, '---\nname: renamed\nstatus: ready\nscope: global\n---\nbody\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const r2 = await getAction('writeback').execute(testContext(root, { claude: tamper }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(r2.ok).toBe(false)
+      expect(r2.message).toMatch(/frontmatter/u)
+
+      const scopeChange: ActionContext['claude'] = async () => {
+        writeFileSync(metaPath, '---\nname: foo\ntarget: rule\nstatus: ready\nscope: "src/**"\n---\nbody updated\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const r3 = await getAction('writeback').execute(testContext(root, { claude: scopeChange }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(r3.ok).toBe(true)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
