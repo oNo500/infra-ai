@@ -11,7 +11,7 @@
 ## 命令
 
 ```bash
-imeta                     # TUI：对账、构建、分发、回写
+imeta                     # TUI：对账、构建、回写
 imeta status              # 命令式（面向 AI/脚本）：完整命令面见 imeta --help
 ```
 
