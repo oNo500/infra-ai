@@ -18,7 +18,7 @@ tool_use 调用、prompt、退出详情都不可追溯。其它 mutation（adopt
 
 3. **落盘**——`.imeta/logs/<时间戳>-<action>-<对象>.jsonl`（action id 的 `:` 换 `-`，
    批量对象为 `stale`/`all`）；`.imeta/` git-ignored；创建时按 mtime 清理，
-   只留最近 50 个文件，清理失败不阻塞动作。
+   只留最近 1000 个文件，清理失败不阻塞动作。
 
 4. **写入层用 pino**（library-first；方案 C——OpenTelemetry spans——为将来接观测
    平台的后备升级路径，本地阶段不引入）：

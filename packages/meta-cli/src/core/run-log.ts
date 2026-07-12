@@ -8,7 +8,7 @@ export interface RunLog {
   close: () => void
 }
 
-export const DEFAULT_RETAIN = 50
+export const DEFAULT_RETAIN = 1000
 
 function cleanup(dir: string, keep: number): void {
   try {
