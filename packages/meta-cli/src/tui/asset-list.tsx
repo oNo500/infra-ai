@@ -15,12 +15,12 @@ function downstreamSummary(row: OverviewRow): string {
   if (row.asset.kind !== 'rule') return ''
   const d = row.downstream
   const total = d.synced + d.drift + d.missing
-  if (total === 0) return 'no subscribers'
+  if (total === 0) return '无订阅'
   const parts: string[] = []
-  if (d.synced > 0) parts.push(`${d.synced} synced`)
-  if (d.drift > 0) parts.push(`${d.drift} drift`)
-  if (d.missing > 0) parts.push(`${d.missing} missing`)
-  return parts.join(', ')
+  if (d.synced > 0) parts.push(`${d.synced} 已同步`)
+  if (d.drift > 0) parts.push(`${d.drift} 漂移`)
+  if (d.missing > 0) parts.push(`${d.missing} 缺失`)
+  return parts.join('，')
 }
 
 export function AssetList({ rows, selected }: { rows: OverviewRow[]; selected: number }) {

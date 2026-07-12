@@ -19,11 +19,11 @@ export function AssetDetail({
       <Text bold>
         {row.asset.name} ({row.asset.kind}) — {row.status}
       </Text>
-      <Text>meta:     {row.asset.metaPath}</Text>
-      <Text>artifact: {row.asset.artifactPath}</Text>
-      {row.asset.scope && <Text>scope:    {row.asset.scope}</Text>}
+      <Text>元指令  {row.asset.metaPath}</Text>
+      <Text>产物    {row.asset.artifactPath}</Text>
+      {row.asset.scope && <Text>范围    {row.asset.scope}</Text>}
       <Box marginTop={1} flexDirection="column">
-        <Text bold>downstream</Text>
+        <Text bold>下游副本</Text>
         {states.map(({ path, state }) => (
           <Text key={path}>
             {state.padEnd(8)} {path}
@@ -32,7 +32,7 @@ export function AssetDetail({
         {states.length === 0 && <Text dimColor>无订阅方</Text>}
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>Enter/Esc back</Text>
+        <Text dimColor>Enter/Esc 返回</Text>
       </Box>
     </Box>
   )

@@ -77,7 +77,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       return
     }
     if (input === 'd' && row.asset.kind === 'rule') {
-      runJob(`dist ${row.asset.name}`, (onText) =>
+      runJob(`分发 ${row.asset.name}`, (onText) =>
         getAction('dist')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
           .then((r) => {
@@ -87,7 +87,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       )
     }
     if (input === 'D') {
-      runJob('dist all pending', (onText) =>
+      runJob('分发全部待同步', (onText) =>
         getAction('dist')
           .execute(ctx, { positionals: [], flags: { all: true } }, { onText })
           .then((r) => {
@@ -98,7 +98,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
     }
 
     if (input === 'a' && row.status === 'untracked') {
-      runJob(`adopt ${row.asset.name}`, (onText) =>
+      runJob(`收编 ${row.asset.name}`, (onText) =>
         getAction('adopt')
           .execute(ctx, { positionals: [row.asset.name], flags: {} })
           .then((r) => {
@@ -108,7 +108,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       )
     }
     if (input === 'b' && row.status !== 'stub') {
-      runJob(`build ${row.asset.name}`, (onText) =>
+      runJob(`构建 ${row.asset.name}`, (onText) =>
         getAction('build')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
           .then((r) => {
@@ -118,7 +118,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       )
     }
     if (input === 'B') {
-      runJob('build stale assets', (onText) =>
+      runJob('批量构建 stale 资产', (onText) =>
         getAction('build')
           .execute(ctx, { positionals: [], flags: { stale: true } }, { onText })
           .then((r) => {
@@ -128,7 +128,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
       )
     }
     if (input === 'w' && row.status === 'dirty') {
-      runJob(`writeback ${row.asset.name}`, (onText) =>
+      runJob(`回写 ${row.asset.name}`, (onText) =>
         getAction('writeback')
           .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
           .then((r) => {
@@ -175,8 +175,8 @@ export function App({ repoRoot }: { repoRoot: string }) {
         <Box marginTop={1}>
           <Text dimColor>
             {confirmQuit
-              ? 'press q again to quit'
-              : 'up/down move  Enter detail  a adopt  b build  B build stale  w writeback  d dist  D dist all  t targets  s skills  r reload  q quit'}
+              ? '再按一次 q 退出'
+              : '上下 移动  Enter 详情  a 收编  b 构建  B 批量构建 stale  w 回写  d 分发  D 全部分发  t 分发目标  s skills 对账  r 刷新  q 退出'}
           </Text>
         </Box>
       )}

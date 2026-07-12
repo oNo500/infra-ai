@@ -73,7 +73,7 @@ export function TargetsView({
   if (mode === 'add') {
     return (
       <Box flexDirection="column">
-        <Text bold>新增 target（下游项目绝对路径，Enter 确认）</Text>
+        <Text bold>新增分发目标（下游项目绝对路径，Enter 确认）</Text>
         <TextInput
           onSubmit={(value) => {
             const trimmed = value.trim()
@@ -114,20 +114,20 @@ export function TargetsView({
 
   return (
     <Box flexDirection="column">
-      <Text bold>targets</Text>
+      <Text bold>分发目标</Text>
       {targets.map((t, i) => (
         <Text key={t.path} inverse={i === selected}>
           {t.path}  [{t.subscriptions.join(', ')}]
         </Text>
       ))}
-      {targets.length === 0 && <Text dimColor>暂无 target</Text>}
+      {targets.length === 0 && <Text dimColor>暂无分发目标</Text>}
       {notice && (
         <Box marginTop={1}>
           <Text>{notice}</Text>
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor>n add  x delete  Enter subscriptions  t/Esc back</Text>
+        <Text dimColor>n 新增  x 删除  Enter 订阅  t/Esc 返回</Text>
       </Box>
     </Box>
   )

@@ -104,33 +104,33 @@ export function SkillsView({
 
   return (
     <Box flexDirection="column">
-      <Text bold>skills ledger</Text>
+      <Text bold>skills 清单核对</Text>
       {issues.map((i) => (
         <Text key={i.dir} color={i.kind === 'name-mismatch' ? 'red' : 'yellow'}>
           [{i.kind}] {i.dir}: {i.detail}
         </Text>
       ))}
-      {issues.length === 0 && <Text color="green">ledger clean</Text>}
+      {issues.length === 0 && <Text color="green">清单与目录一致</Text>}
       <Box marginTop={1} flexDirection="column">
-        <Text bold>mirrors</Text>
-        {mirrors === null && !mirrorError && <Text dimColor>checking upstreams...</Text>}
+        <Text bold>mirror 上游</Text>
+        {mirrors === null && !mirrorError && <Text dimColor>检查上游中...</Text>}
         {mirrorError && <Text color="red">{mirrorError}</Text>}
         {mirrors?.map((m) => (
           <Text key={m.name} color={m.outdated ? 'yellow' : 'green'}>
-            [{m.outdated ? 'outdated' : 'up-to-date'}] {m.name}
+            [{m.outdated ? '过期' : '最新'}] {m.name}
             {m.outdated ? ` ${m.localCommit.slice(0, 7)} -> ${m.remoteCommit.slice(0, 7)}` : ''}
           </Text>
         ))}
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text bold>installed</Text>
-        {installed === null && !installedError && <Text dimColor>loading...</Text>}
+        <Text bold>已安装</Text>
+        {installed === null && !installedError && <Text dimColor>加载中...</Text>}
         {installedError && <Text color="red">{installedError}</Text>}
         {installed?.map((line, i) => <Text key={`${line}-${i}`}>{line}</Text>)}
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text bold>recommended</Text>
-        {recommended.length === 0 && <Text dimColor>none</Text>}
+        <Text bold>精选推荐</Text>
+        {recommended.length === 0 && <Text dimColor>无</Text>}
         {recommended.map((r) => (
           <Text key={r.name} dimColor>
             {r.name}  pnpx skills add {r.repo}
@@ -143,7 +143,7 @@ export function SkillsView({
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor>{busy ? 'updating...' : 'f fix ledger  u update mirrors  s/Esc back'}</Text>
+        <Text dimColor>{busy ? '更新中...' : 'f 补齐清单  u 更新 mirror  s/Esc 返回'}</Text>
       </Box>
     </Box>
   )

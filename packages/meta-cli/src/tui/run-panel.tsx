@@ -12,7 +12,7 @@ export function RunPanel({ job }: { job: Job }) {
   return (
     <Box flexDirection="column" borderStyle="single" paddingX={1}>
       <Text bold>
-        {job.title} {job.done ? (job.error ? '[failed]' : '[done]') : '[running]'}
+        {job.title} {job.done ? (job.error ? '[失败]' : '[完成]') : '[运行中]'}
       </Text>
       {tail.map((line, i) => (
         <Text key={i} wrap="truncate-end" dimColor>
