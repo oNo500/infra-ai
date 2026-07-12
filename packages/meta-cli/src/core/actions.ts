@@ -13,6 +13,7 @@ import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
 import { loadLock, loadSkills, saveLock } from './registry'
+import { createRunLog } from './run-log'
 import {
   checkMirrors,
   checkSkillsLedger,
@@ -311,4 +312,56 @@ export function getAction(id: string): ActionDef {
   const action = ACTIONS.find((a) => a.id === id)
   if (!action) throw new Error(`unknown action: ${id}`)
   return action
+}
+
+export interface RunActionResult extends ActionResult {
+  logPath?: string
+}
+
+export async function runAction(
+  ctx: ActionContext,
+  id: string,
+  params: ActionParams,
+  hooks?: ActionHooks,
+): Promise<RunActionResult> {
+  const action = getAction(id)
+  if (action.kind === 'query') return action.execute(ctx, params, hooks)
+  const runLog = createRunLog(ctx.repoRoot, id, params, ctx.now())
+  runLog.event('start', { params })
+  const wrappedHooks: ActionHooks = {
+    onStep: (step, data) => {
+      runLog.event(step, data)
+      hooks?.onStep?.(step, data)
+    },
+  }
+  const claude: ActionContext['claude'] = (opts) => {
+    runLog.event('claude:spawn', { prompt: opts.prompt, allowedTools: opts.allowedTools })
+    return ctx
+      .claude({
+        ...opts,
+        onEvent: (raw) => runLog.event('claude:event', { event: raw }),
+        onText: (t) => {
+          runLog.event('text', { text: t })
+          opts.onText?.(t)
+        },
+      })
+      .then((res) => {
+        runLog.event('claude:exit', {
+          code: res.code,
+          timedOut: res.timedOut,
+          stderr: res.stderr.slice(-2000),
+        })
+        return res
+      })
+  }
+  try {
+    const result = await action.execute({ ...ctx, claude }, params, wrappedHooks)
+    runLog.event('result', { ok: result.ok, message: result.message, exitCode: result.exitCode })
+    return { ...result, logPath: runLog.path }
+  } catch (error) {
+    runLog.event('error', { error: String(error) })
+    throw error
+  } finally {
+    runLog.close()
+  }
 }

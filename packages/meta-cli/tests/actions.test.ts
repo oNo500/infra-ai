@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getAction, type ActionContext, type StatusRowData } from '../src/core/actions'
+import { getAction, runAction, type ActionContext, type StatusRowData } from '../src/core/actions'
 import { sha256 } from '../src/core/io'
 
 export function fixtureRepo(): string {
@@ -320,6 +320,71 @@ describe('skills mutations', () => {
       const ledger = JSON.parse(readFileSync(join(root, 'skills.json'), 'utf8')) as { commit: string }[]
       expect(ledger[0]?.commit).toBe('new')
       expect(ledger[1]?.commit).toBe('old')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('runAction', () => {
+  test('mutation writes a run log with the full step sequence', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async (opts) => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        opts.onEvent?.({ type: 'assistant', message: { content: [{ type: 'text', text: 'hi' }] } })
+        opts.onText?.('hi')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const result = await runAction(testContext(root, { claude }), 'build', {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(true)
+      expect(result.logPath).toBeDefined()
+      const lines = readFileSync(result.logPath ?? '', 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l) as Record<string, unknown>)
+      const steps = lines.map((l) => l.step)
+      expect(steps).toEqual(['start', 'claude:spawn', 'claude:event', 'text', 'claude:exit', 'verify', 'record', 'result'])
+      expect(lines.every((l) => l.action === 'build')).toBe(true)
+      const spawn = lines[1]
+      expect(String(spawn?.prompt)).toContain('meta/rules/foo.md')
+      expect(String(spawn?.allowedTools)).toContain('Write(rules/**)')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('failed mutation still returns logPath and logs a failed result', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async () => ({ code: 1, timedOut: false, stderr: 'boom' })
+      const result = await runAction(testContext(root, { claude }), 'build', {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(false)
+      expect(result.logPath).toBeDefined()
+      const lines = readFileSync(result.logPath ?? '', 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l) as Record<string, unknown>)
+      const last = lines.at(-1)
+      expect(last?.step).toBe('result')
+      expect(last?.ok).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('query actions produce no log directory', async () => {
+    const root = fixtureRepo()
+    try {
+      const result = await runAction(testContext(root), 'status', { positionals: [], flags: {} })
+      expect(result.ok).toBe(true)
+      expect(result.logPath).toBeUndefined()
+      expect(existsSync(join(root, '.imeta'))).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
