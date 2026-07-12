@@ -27,7 +27,6 @@ infra-ai/
 │   └── superpowers/           # 设计文档（specs + plans）
 ├── packages/meta-cli/         # 维护端 CLI/TUI（对账/构建/分发/回写；bin: meta）
 ├── scripts/                   # init-project.sh（使用端脚手架，待迁往使用端 CLI）
-├── targets.json               # 分发登记：下游项目及订阅
 ├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线（键 <kind>:<name>）
 └── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```
@@ -40,14 +39,14 @@ infra-ai/
 
 ## 分发
 
-- `rules/global|scoped/` — 照搬型，本机经 `imeta` 按订阅分发（targets.json），跨设备手动 copy 到目标项目 `.claude/rules/`
+- `rules/global|scoped/` — 照搬型，手动 copy 到目标项目 `.claude/rules/`（分发能力属使用端 CLI，待立项）
 - `templates/` — 模板型，结合目标项目实例化占位符后落地
 - 源只在本仓改，下游副本不回改
 
 ## 对账
 
 - `imeta` 打开 TUI（全局命令：`packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta`）：
-  资产状态（stub/unbuilt/untracked/dirty/stale/synced）、下游漂移、
+  资产状态（stub/unbuilt/untracked/dirty/stale/synced）、
   skills ledger 与 mirror 上游，均在界面内收敛
 - 非交互：`imeta status [--json]` 等子命令，退出码语义化
 

@@ -1,6 +1,6 @@
 export interface KeymapEntry {
   actionId: string
-  view: 'assets' | 'targets' | 'detail' | 'skills'
+  view: 'assets' | 'detail' | 'skills'
   key?: string
 }
 
@@ -11,12 +11,6 @@ export const KEYMAP: KeymapEntry[] = [
   { actionId: 'adopt', view: 'assets', key: 'a' },
   { actionId: 'build', view: 'assets', key: 'b' },
   { actionId: 'writeback', view: 'assets', key: 'w' },
-  { actionId: 'dist', view: 'assets', key: 'd' },
-  { actionId: 'targets:list', view: 'targets' },
-  { actionId: 'targets:add', view: 'targets', key: 'n' },
-  { actionId: 'targets:remove', view: 'targets', key: 'x' },
-  { actionId: 'targets:subscribe', view: 'targets', key: 'space' },
-  { actionId: 'targets:unsubscribe', view: 'targets', key: 'space' },
   { actionId: 'skills:status', view: 'skills' },
   { actionId: 'skills:fix', view: 'skills', key: 'f' },
   { actionId: 'skills:update', view: 'skills', key: 'u' },

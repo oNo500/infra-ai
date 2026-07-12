@@ -2,12 +2,10 @@ import { defineCommand, runMain } from 'citty'
 import type { ArgsDef, CommandDef } from 'citty'
 import { ACTIONS, defaultContext } from '../core/actions'
 import type { ActionDef, ActionParams, SkillsStatusData, StatusRowData } from '../core/actions'
-import type { Target } from '../core/registry'
-import { renderSkills, renderStatus, renderTargets } from './render'
+import { renderSkills, renderStatus } from './render'
 
 const QUERY_RENDERERS: Record<string, (data: unknown) => string> = {
   status: (d) => renderStatus(d as StatusRowData[]),
-  'targets:list': (d) => renderTargets(d as Target[]),
   'skills:status': (d) => renderSkills(d as SkillsStatusData),
 }
 

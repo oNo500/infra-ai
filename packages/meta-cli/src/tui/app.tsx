@@ -8,7 +8,6 @@ import { AssetList } from './asset-list'
 import { RunPanel } from './run-panel'
 import type { Job } from './run-panel'
 import { SkillsView } from './skills-view'
-import { TargetsView } from './targets-view'
 
 export function App({ repoRoot }: { repoRoot: string }) {
   const { exit } = useApp()
@@ -17,7 +16,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
   const [selected, setSelected] = useState(0)
   const [job, setJob] = useState<Job | null>(null)
   const [confirmQuit, setConfirmQuit] = useState(false)
-  const [view, setView] = useState<'assets' | 'targets' | 'detail' | 'skills'>('assets')
+  const [view, setView] = useState<'assets' | 'detail' | 'skills'>('assets')
 
   const reload = useCallback(() => {
     const next = loadOverview(repoRoot)
@@ -40,14 +39,10 @@ export function App({ repoRoot }: { repoRoot: string }) {
     [reload],
   )
 
-  const builtRules = rows
-    .filter((r) => r.asset.kind === 'rule' && r.status !== 'stub' && r.status !== 'unbuilt')
-    .map((r) => r.asset.name)
-
   // Ink dispatches every keypress to all mounted useInput handlers, so
-  // sub-views (TargetsView, SkillsView) receive keys alongside App. App must
-  // bail out immediately for non-assets views; sub-views own their own exit
-  // keys (Esc/t/s/Enter) and App's q/confirmQuit must never fire for them.
+  // sub-views (SkillsView) receive keys alongside App. App must bail out
+  // immediately for non-assets views; sub-views own their own exit keys
+  // (Esc/s/Enter) and App's q/confirmQuit must never fire for them.
   useInput((input, key) => {
     if (running) return
     if (view !== 'assets') return
@@ -57,10 +52,6 @@ export function App({ repoRoot }: { repoRoot: string }) {
       return
     }
     setConfirmQuit(false)
-    if (input === 't') {
-      setView('targets')
-      return
-    }
     if (input === 's') {
       setView('skills')
       return
@@ -75,26 +66,6 @@ export function App({ repoRoot }: { repoRoot: string }) {
     if (key.return && row) {
       setView('detail')
       return
-    }
-    if (input === 'd' && row.asset.kind === 'rule') {
-      runJob(`分发 ${row.asset.name}`, (onText) =>
-        getAction('dist')
-          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
-      )
-    }
-    if (input === 'D') {
-      runJob('分发全部待同步', (onText) =>
-        getAction('dist')
-          .execute(ctx, { positionals: [], flags: { all: true } }, { onText })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
-      )
     }
 
     if (input === 'a' && row.status === 'untracked') {
@@ -143,23 +114,8 @@ export function App({ repoRoot }: { repoRoot: string }) {
     <Box flexDirection="column" padding={1}>
       <Text bold>infra-ai meta</Text>
       <Box marginTop={1}>
-        {view === 'targets' && (
-          <TargetsView
-            repoRoot={repoRoot}
-            ctx={ctx}
-            rules={builtRules}
-            onExit={() => {
-              setView('assets')
-              reload()
-            }}
-          />
-        )}
         {view === 'detail' && rows[selected] && (
-          <AssetDetail
-            row={rows[selected]}
-            states={rows[selected].targets}
-            onExit={() => setView('assets')}
-          />
+          <AssetDetail row={rows[selected]} onExit={() => setView('assets')} />
         )}
         {view === 'assets' && <AssetList rows={rows} selected={selected} />}
         {view === 'skills' && (
@@ -176,7 +132,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
           <Text dimColor>
             {confirmQuit
               ? '再按一次 q 退出'
-              : '上下 移动  Enter 详情  a 收编  b 构建  B 批量构建 stale  w 回写  d 分发  D 全部分发  t 分发目标  s skills 对账  r 刷新  q 退出'}
+              : '上下 移动  Enter 详情  a 收编  b 构建  B 批量构建 stale  w 回写  s skills 对账  r 刷新  q 退出'}
           </Text>
         </Box>
       )}

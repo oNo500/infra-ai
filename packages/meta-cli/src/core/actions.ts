@@ -7,13 +7,12 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from './claude'
-import { downstreamStates, distribute, subscribers } from './dist'
 import { runCommand } from './io'
 import type { CommandRunner } from './io'
 import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
-import { loadLock, loadSkills, loadTargets, saveLock, saveTargets } from './registry'
+import { loadLock, loadSkills, saveLock } from './registry'
 import {
   checkMirrors,
   checkSkillsLedger,
@@ -83,8 +82,6 @@ export interface StatusRowData {
   scope: string | null
   metaPath: string
   artifactPath: string
-  downstream: { synced: number; drift: number; missing: number }
-  targets: { path: string; state: string }[]
 }
 
 export interface SkillsStatusData {
@@ -124,23 +121,9 @@ const statusAction: ActionDef = {
       scope: r.asset.scope,
       metaPath: r.asset.metaPath,
       artifactPath: r.asset.artifactPath,
-      downstream: r.downstream,
-      targets: r.targets,
     }))
-    const pending = data.some(
-      (d) => PENDING_STATUSES.has(d.status) || d.downstream.drift + d.downstream.missing > 0,
-    )
+    const pending = data.some((d) => PENDING_STATUSES.has(d.status))
     return { ok: true, data, exitCode: pending ? 1 : 0 }
-  },
-}
-
-const targetsListAction: ActionDef = {
-  id: 'targets:list',
-  summary: 'List distribution targets and their subscriptions',
-  kind: 'query',
-  args: [],
-  async execute(ctx) {
-    return { ok: true, data: loadTargets(ctx.repoRoot), exitCode: 0 }
   },
 }
 
@@ -270,140 +253,6 @@ const writebackAction: ActionDef = {
   },
 }
 
-const distAction: ActionDef = {
-  id: 'dist',
-  summary: 'Copy rule artifacts to subscribed downstream projects',
-  kind: 'mutation',
-  args: [
-    { name: 'name', kind: 'positional', variadic: true, description: 'rule asset names' },
-    { name: 'all', kind: 'flag', description: 'distribute all rules with drift or missing downstream copies' },
-  ],
-  async execute(ctx, params, hooks) {
-    const targets = loadTargets(ctx.repoRoot)
-    const copied: string[] = []
-    if (params.flags.all) {
-      const pending = loadOverview(ctx.repoRoot).filter(
-        (r) => r.asset.kind === 'rule' && r.downstream.drift + r.downstream.missing > 0,
-      )
-      for (const r of pending) {
-        for (const { target, state } of downstreamStates(ctx.repoRoot, r.asset, targets)) {
-          if (state === 'synced') continue
-          distribute(ctx.repoRoot, r.asset, target)
-          hooks?.onText?.(`${r.asset.name} -> ${target.path}`)
-          copied.push(target.path)
-        }
-      }
-      return {
-        ok: true,
-        message: copied.length > 0 ? `distributed ${copied.length} copies` : 'nothing to distribute',
-      }
-    }
-    if (params.positionals.length === 0) return fail('asset name required (or --all)')
-    for (const name of params.positionals) {
-      const asset = findAsset(ctx.repoRoot, name)
-      if (!asset) return fail(`unknown asset: ${name}`)
-      if (asset.kind !== 'rule') return fail(`${name} is not a rule (only rules are distributable)`)
-      const subs = subscribers(targets, name)
-      if (subs.length === 0) return fail(`${name} has no subscribers (register via: meta targets subscribe <path> ${name})`)
-      for (const target of subs) {
-        distribute(ctx.repoRoot, asset, target)
-        hooks?.onText?.(`${name} -> ${target.path}`)
-        copied.push(target.path)
-      }
-    }
-    return { ok: true, message: `distributed ${copied.length} copies` }
-  },
-}
-
-const targetsAddAction: ActionDef = {
-  id: 'targets:add',
-  summary: 'Register a downstream project path',
-  kind: 'mutation',
-  args: [{ name: 'path', kind: 'positional', required: true, description: 'absolute path of downstream project' }],
-  async execute(ctx, params) {
-    const path = params.positionals[0]
-    if (!path) return fail('path required')
-    if (!path.startsWith('/')) return fail('path must be absolute')
-    const targets = loadTargets(ctx.repoRoot)
-    if (targets.some((t) => t.path === path)) return fail(`target already registered: ${path}`)
-    saveTargets(ctx.repoRoot, [...targets, { path, subscriptions: [] }])
-    return { ok: true, message: `added target ${path}` }
-  },
-}
-
-const targetsRemoveAction: ActionDef = {
-  id: 'targets:remove',
-  summary: 'Unregister a downstream project path',
-  kind: 'mutation',
-  args: [{ name: 'path', kind: 'positional', required: true, description: 'registered target path' }],
-  async execute(ctx, params) {
-    const path = params.positionals[0]
-    if (!path) return fail('path required')
-    const targets = loadTargets(ctx.repoRoot)
-    if (!targets.some((t) => t.path === path)) return fail(`unknown target: ${path}`)
-    saveTargets(ctx.repoRoot, targets.filter((t) => t.path !== path))
-    return { ok: true, message: `removed target ${path}` }
-  },
-}
-
-function isSubscribableRule(repoRoot: string, name: string): string | null {
-  const row = loadOverview(repoRoot).find((r) => r.asset.name === name)
-  if (!row) return `unknown asset: ${name}`
-  if (row.asset.kind !== 'rule') return `${name} is not a rule`
-  if (row.status === 'stub' || row.status === 'unbuilt') return `${name} has no built artifact (status: ${row.status})`
-  return null
-}
-
-const targetsSubscribeAction: ActionDef = {
-  id: 'targets:subscribe',
-  summary: 'Subscribe a target to a built rule artifact',
-  kind: 'mutation',
-  args: [
-    { name: 'path', kind: 'positional', required: true, description: 'registered target path' },
-    { name: 'rule', kind: 'positional', required: true, description: 'rule asset name' },
-  ],
-  async execute(ctx, params) {
-    const [path, rule] = params.positionals
-    if (!path || !rule) return fail('path and rule required')
-    const targets = loadTargets(ctx.repoRoot)
-    const target = targets.find((t) => t.path === path)
-    if (!target) return fail(`unknown target: ${path}`)
-    const err = isSubscribableRule(ctx.repoRoot, rule)
-    if (err) return fail(err)
-    if (target.subscriptions.includes(rule)) return fail(`${path} already subscribes to ${rule}`)
-    saveTargets(
-      ctx.repoRoot,
-      targets.map((t) => (t.path === path ? Object.assign({}, t, { subscriptions: [...t.subscriptions, rule] }) : t)),
-    )
-    return { ok: true, message: `${path} subscribed to ${rule}` }
-  },
-}
-
-const targetsUnsubscribeAction: ActionDef = {
-  id: 'targets:unsubscribe',
-  summary: 'Remove a rule subscription from a target',
-  kind: 'mutation',
-  args: [
-    { name: 'path', kind: 'positional', required: true, description: 'registered target path' },
-    { name: 'rule', kind: 'positional', required: true, description: 'rule asset name' },
-  ],
-  async execute(ctx, params) {
-    const [path, rule] = params.positionals
-    if (!path || !rule) return fail('path and rule required')
-    const targets = loadTargets(ctx.repoRoot)
-    const target = targets.find((t) => t.path === path)
-    if (!target) return fail(`unknown target: ${path}`)
-    if (!target.subscriptions.includes(rule)) return fail(`${path} does not subscribe to ${rule}`)
-    saveTargets(
-      ctx.repoRoot,
-      targets.map((t) =>
-        t.path === path ? Object.assign({}, t, { subscriptions: t.subscriptions.filter((s) => s !== rule) }) : t,
-      ),
-    )
-    return { ok: true, message: `${path} unsubscribed from ${rule}` }
-  },
-}
-
 const skillsFixAction: ActionDef = {
   id: 'skills:fix',
   summary: 'Add unledgered skill directories to skills.json as custom entries',
@@ -446,12 +295,6 @@ export const ACTIONS: ActionDef[] = [
   adoptAction,
   buildAction,
   writebackAction,
-  distAction,
-  targetsListAction,
-  targetsAddAction,
-  targetsRemoveAction,
-  targetsSubscribeAction,
-  targetsUnsubscribeAction,
   skillsStatusAction,
   skillsFixAction,
   skillsUpdateAction,

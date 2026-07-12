@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { renderSkills, renderStatus, renderTargets } from '../src/cli/render'
+import { renderSkills, renderStatus } from '../src/cli/render'
 import { runCommand } from '../src/core/io'
 import { sha256 } from '../src/core/io'
 
@@ -20,7 +20,7 @@ function cliFixture(): string {
 }
 
 describe('renderers', () => {
-  test('renderStatus aligns rows and shows downstream summary for rules', () => {
+  test('renderStatus aligns rows', () => {
     const out = renderStatus([
       {
         name: 'foo',
@@ -29,16 +29,12 @@ describe('renderers', () => {
         scope: 'global',
         metaPath: 'meta/rules/foo.md',
         artifactPath: 'rules/global/foo.md',
-        downstream: { synced: 1, drift: 0, missing: 1 },
-        targets: [],
       },
     ])
     expect(out).toContain('foo')
-    expect(out).toContain('1 synced, 1 missing')
+    expect(out).toContain('synced')
   })
-  test('renderTargets and renderSkills produce deterministic text', () => {
-    expect(renderTargets([])).toBe('no targets')
-    expect(renderTargets([{ path: '/a', subscriptions: ['x'] }])).toBe('/a  [x]')
+  test('renderSkills produces deterministic text', () => {
     const out = renderSkills({
       issues: [],
       mirrors: [{ name: 'm', localCommit: 'aaaaaaa1', remoteCommit: 'aaaaaaa1', outdated: false }],
@@ -94,19 +90,6 @@ describe('cli end-to-end', () => {
       const bad = await runCommand('bun', ['run', INDEX, 'adopt', 'nope'], { cwd: root })
       expect(bad.code).toBe(1)
       expect(bad.stderr).toContain('unknown asset')
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-  test('nested targets commands work end-to-end', async () => {
-    const root = cliFixture()
-    try {
-      const add = await runCommand('bun', ['run', INDEX, 'targets', 'add', '/tmp/cli-demo'], { cwd: root })
-      expect(add.code).toBe(0)
-      const dup = await runCommand('bun', ['run', INDEX, 'targets', 'add', '/tmp/cli-demo'], { cwd: root })
-      expect(dup.code).toBe(1)
-      const list = await runCommand('bun', ['run', INDEX, 'targets', 'list', '--json'], { cwd: root })
-      expect(JSON.parse(list.stdout)).toEqual([{ path: '/tmp/cli-demo', subscriptions: [] }])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -1,11 +1,6 @@
 import { join } from 'node:path'
 import { readTextIfExists, writeFileAtomic } from './io'
 
-export interface Target {
-  path: string
-  subscriptions: string[]
-}
-
 export interface LockEntry {
   metaHash: string
   artifactHash: string
@@ -37,14 +32,6 @@ function parseJsonFile<T>(repoRoot: string, filename: string): T | null {
 
 function saveJsonFile(repoRoot: string, filename: string, data: unknown): void {
   writeFileAtomic(join(repoRoot, filename), `${JSON.stringify(data, null, 2)}\n`)
-}
-
-export function loadTargets(repoRoot: string): Target[] {
-  return parseJsonFile<Target[]>(repoRoot, 'targets.json') ?? []
-}
-
-export function saveTargets(repoRoot: string, targets: Target[]): void {
-  saveJsonFile(repoRoot, 'targets.json', targets)
 }
 
 export function loadLock(repoRoot: string): Lock {

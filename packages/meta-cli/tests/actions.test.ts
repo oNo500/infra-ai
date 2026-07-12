@@ -82,20 +82,6 @@ describe('status action', () => {
   })
 })
 
-describe('targets:list action', () => {
-  test('returns targets registry data', async () => {
-    const root = fixtureRepo()
-    try {
-      writeFileSync(join(root, 'targets.json'), `${JSON.stringify([{ path: '/tmp/a', subscriptions: ['foo'] }])}\n`)
-      const result = await getAction('targets:list').execute(testContext(root), { positionals: [], flags: {} })
-      expect(result.ok).toBe(true)
-      expect(result.data).toEqual([{ path: '/tmp/a', subscriptions: ['foo'] }])
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-})
-
 describe('skills:status action', () => {
   test('aggregates ledger, mirrors, installed, recommendations', async () => {
     const root = fixtureRepo()
@@ -243,72 +229,6 @@ describe('writeback action', () => {
       const claude: ActionContext['claude'] = async () => ({ code: 0, timedOut: false, stderr: '' })
       const dirty = await getAction('writeback').execute(testContext(root, { claude }), { positionals: ['foo'], flags: {} })
       expect(dirty.ok).toBe(true)
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-})
-
-describe('dist action', () => {
-  test('copies to subscribers; rejects no-subscriber and non-rule; --all skips synced', async () => {
-    const root = fixtureRepo()
-    const downstream = mkdtempSync(join(tmpdir(), 'meta-cli-target-'))
-    try {
-      syncLock(root)
-      const none = await getAction('dist').execute(testContext(root), { positionals: ['foo'], flags: {} })
-      expect(none.ok).toBe(false)
-      expect(none.message).toMatch(/no subscribers/u)
-      writeFileSync(
-        join(root, 'targets.json'),
-        `${JSON.stringify([{ path: downstream, subscriptions: ['foo'] }])}\n`,
-      )
-      const one = await getAction('dist').execute(testContext(root), { positionals: ['foo'], flags: {} })
-      expect(one.ok).toBe(true)
-      expect(readFileSync(join(downstream, '.claude/rules/foo.md'), 'utf8')).toBe('# foo\n')
-      const allSynced = await getAction('dist').execute(testContext(root), { positionals: [], flags: { all: true } })
-      expect(allSynced.ok).toBe(true)
-      expect(allSynced.message).toBe('nothing to distribute')
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-      rmSync(downstream, { recursive: true, force: true })
-    }
-  })
-})
-
-describe('targets mutations', () => {
-  test('add validates absolute path and rejects duplicates; remove validates existence', async () => {
-    const root = fixtureRepo()
-    try {
-      const rel = await getAction('targets:add').execute(testContext(root), { positionals: ['x/y'], flags: {} })
-      expect(rel.ok).toBe(false)
-      const add = await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
-      expect(add.ok).toBe(true)
-      const dup = await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
-      expect(dup.ok).toBe(false)
-      const gone = await getAction('targets:remove').execute(testContext(root), { positionals: ['/tmp/b'], flags: {} })
-      expect(gone.ok).toBe(false)
-      const rm = await getAction('targets:remove').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
-      expect(rm.ok).toBe(true)
-      expect(JSON.parse(readFileSync(join(root, 'targets.json'), 'utf8'))).toEqual([])
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-  test('subscribe requires built rule and no duplicates; unsubscribe requires existing', async () => {
-    const root = fixtureRepo()
-    try {
-      await getAction('targets:add').execute(testContext(root), { positionals: ['/tmp/a'], flags: {} })
-      const unbuilt = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
-      expect(unbuilt.ok).toBe(false)
-      syncLock(root)
-      const sub = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
-      expect(sub.ok).toBe(true)
-      const dup = await getAction('targets:subscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
-      expect(dup.ok).toBe(false)
-      const un = await getAction('targets:unsubscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
-      expect(un.ok).toBe(true)
-      const missing = await getAction('targets:unsubscribe').execute(testContext(root), { positionals: ['/tmp/a', 'foo'], flags: {} })
-      expect(missing.ok).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

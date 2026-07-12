@@ -1,27 +1,8 @@
 import type { SkillsStatusData, StatusRowData } from '../core/actions'
-import type { Target } from '../core/registry'
-
-function downstreamSummary(row: StatusRowData): string {
-  if (row.kind !== 'rule') return ''
-  const d = row.downstream
-  if (d.synced + d.drift + d.missing === 0) return 'no subscribers'
-  const parts: string[] = []
-  if (d.synced > 0) parts.push(`${d.synced} synced`)
-  if (d.drift > 0) parts.push(`${d.drift} drift`)
-  if (d.missing > 0) parts.push(`${d.missing} missing`)
-  return parts.join(', ')
-}
 
 export function renderStatus(rows: StatusRowData[]): string {
   if (rows.length === 0) return 'no assets'
-  return rows
-    .map((r) => `${r.name.padEnd(20)} ${r.kind.padEnd(8)} ${r.status.padEnd(10)} ${downstreamSummary(r)}`.trimEnd())
-    .join('\n')
-}
-
-export function renderTargets(targets: Target[]): string {
-  if (targets.length === 0) return 'no targets'
-  return targets.map((t) => `${t.path}  [${t.subscriptions.join(', ')}]`).join('\n')
+  return rows.map((r) => `${r.name.padEnd(20)} ${r.kind.padEnd(8)} ${r.status.padEnd(10)}`.trimEnd()).join('\n')
 }
 
 export function renderSkills(data: SkillsStatusData): string {
