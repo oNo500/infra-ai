@@ -42,9 +42,22 @@ export function saveLock(repoRoot: string, lock: Lock): void {
   saveJsonFile(repoRoot, 'artifacts.lock.json', lock)
 }
 
+const SKILL_SOURCES = new Set(['custom', 'mirror', 'official'])
+
 export function loadSkills(repoRoot: string): SkillEntry[] {
   const skills = parseJsonFile<SkillEntry[]>(repoRoot, 'skills.json')
   if (skills === null) throw new RegistryError('skills.json: file not found')
+  for (const entry of skills) {
+    if (typeof entry.name !== 'string' || entry.name === '') {
+      throw new RegistryError('skills.json: entry with missing or empty name')
+    }
+    if (!SKILL_SOURCES.has(entry.source)) {
+      throw new RegistryError(`skills.json: ${entry.name}: invalid source '${String(entry.source)}'`)
+    }
+    if (entry.source === 'mirror' && (!entry.repo || !entry.path || !entry.commit)) {
+      throw new RegistryError(`skills.json: mirror '${entry.name}' requires repo, path and commit`)
+    }
+  }
   return skills
 }
 

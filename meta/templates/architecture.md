@@ -1,6 +1,5 @@
 ---
 name: architecture
-target: template
 status: ready
 ---
 

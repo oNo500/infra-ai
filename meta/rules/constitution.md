@@ -1,6 +1,5 @@
 ---
 name: constitution
-target: rule
 status: ready
 scope: global
 ---

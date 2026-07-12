@@ -43,3 +43,29 @@ describe('skills registry', () => {
     }
   })
 })
+
+describe('skills schema', () => {
+  test('mirror entries require repo, path and commit', () => {
+    const root = tmpRoot()
+    try {
+      writeFileSync(
+        join(root, 'skills.json'),
+        `${JSON.stringify([{ name: 'm', source: 'mirror', repo: 'r/x' }])}\n`,
+      )
+      expect(() => loadSkills(root)).toThrow(/mirror 'm' requires/u)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('invalid source and empty name are rejected', () => {
+    const root = tmpRoot()
+    try {
+      writeFileSync(join(root, 'skills.json'), `${JSON.stringify([{ name: '', source: 'custom' }])}\n`)
+      expect(() => loadSkills(root)).toThrow(RegistryError)
+      writeFileSync(join(root, 'skills.json'), `${JSON.stringify([{ name: 'x', source: 'weird' }])}\n`)
+      expect(() => loadSkills(root)).toThrow(/invalid source/u)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})

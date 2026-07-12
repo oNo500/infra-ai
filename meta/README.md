@@ -9,7 +9,6 @@
 ```yaml
 ---
 name: <产物名，与文件名一致，小写连字符>
-target: rule | skill | template
 status: stub | ready
 scope: global | "<glob>"        # 仅 rule
 ---

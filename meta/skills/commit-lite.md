@@ -1,6 +1,5 @@
 ---
 name: commit-lite
-target: skill
 status: ready
 ---
 
