@@ -1,6 +1,6 @@
 import { defineCommand, runMain } from 'citty'
 import type { ArgsDef, CommandDef } from 'citty'
-import { ACTIONS, defaultContext } from '../core/actions'
+import { ACTIONS, defaultContext, runAction } from '../core/actions'
 import type { ActionDef, ActionParams, SkillsStatusData, StatusRowData } from '../core/actions'
 import { renderSkills, renderStatus } from './render'
 
@@ -43,11 +43,12 @@ function commandFor(action: ActionDef): CommandDef {
     async run(cmdCtx) {
       const cmdArgs = cmdCtx.args as Record<string, unknown>
       const params = paramsFrom(cmdArgs)
-      const result = await action.execute(defaultContext(process.cwd()), params, {
+      const result = await runAction(defaultContext(process.cwd()), action.id, params, {
         onText: (t) => console.log(t),
       })
       if (!result.ok) {
         console.error(result.message ?? 'failed')
+        if (result.logPath) console.error(`log: ${result.logPath}`)
       } else if (action.kind === 'query') {
         const renderer = QUERY_RENDERERS[action.id]
         console.log(

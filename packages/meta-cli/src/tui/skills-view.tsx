@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 import type { ActionContext } from '../core/actions'
-import { getAction } from '../core/actions'
+import { runAction } from '../core/actions'
 import { runCommand } from '../core/io'
 import { loadSkills } from '../core/registry'
 import {
@@ -73,26 +73,24 @@ export function SkillsView({
     if (busy) return
     if (key.escape || input === 's') onExit()
     if (input === 'f') {
-      void getAction('skills:fix')
-        .execute(ctx, { positionals: [], flags: {} })
-        .then((r) => {
-          if (mountedRef.current) {
-            setIssues(checkSkillsLedger(repoRoot))
-            setNotice(r.message ?? null)
-          }
-        })
+      void runAction(ctx, 'skills:fix', { positionals: [], flags: {} }).then((r) => {
+        if (mountedRef.current) {
+          setIssues(checkSkillsLedger(repoRoot))
+          setNotice(r.ok ? (r.message ?? null) : `${r.message ?? 'failed'}（log: ${r.logPath ?? ''}）`)
+        }
+      })
     }
     if (input === 'u' && mirrors) {
       setBusy(true)
-      void getAction('skills:update')
-        .execute(
-          ctx,
-          { positionals: [], flags: {} },
-          { onText: (t) => mountedRef.current && setNotice(t) },
-        )
+      void runAction(
+        ctx,
+        'skills:update',
+        { positionals: [], flags: {} },
+        { onText: (t) => mountedRef.current && setNotice(t) },
+      )
         .then((r) => {
           if (!mountedRef.current) return
-          setNotice(r.message ?? null)
+          setNotice(r.ok ? (r.message ?? null) : `${r.message ?? 'failed'}（log: ${r.logPath ?? ''}）`)
           return checkMirrors(loadSkills(repoRoot), runCommand).then((m) => {
             if (mountedRef.current) setMirrors(m)
           })

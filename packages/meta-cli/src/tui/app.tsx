@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
-import { defaultContext, getAction } from '../core/actions'
+import { defaultContext, runAction } from '../core/actions'
 import { loadOverview } from '../core/overview'
 import type { OverviewRow } from '../core/overview'
 import { AssetDetail } from './asset-detail'
@@ -70,42 +70,34 @@ export function App({ repoRoot }: { repoRoot: string }) {
 
     if (input === 'a' && row.status === 'untracked') {
       runJob(`收编 ${row.asset.name}`, (onText) =>
-        getAction('adopt')
-          .execute(ctx, { positionals: [row.asset.name], flags: {} })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
+        runAction(ctx, 'adopt', { positionals: [row.asset.name], flags: {} }).then((r) => {
+          if (r.ok && r.message) onText(r.message)
+          return r.ok ? null : `${r.message ?? 'failed'}${r.logPath ? `\nlog: ${r.logPath}` : ''}`
+        }),
       )
     }
     if (input === 'b' && row.status !== 'stub') {
       runJob(`构建 ${row.asset.name}`, (onText) =>
-        getAction('build')
-          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
+        runAction(ctx, 'build', { positionals: [row.asset.name], flags: {} }, { onText }).then((r) => {
+          if (r.ok && r.message) onText(r.message)
+          return r.ok ? null : `${r.message ?? 'failed'}${r.logPath ? `\nlog: ${r.logPath}` : ''}`
+        }),
       )
     }
     if (input === 'B') {
       runJob('批量构建 stale 资产', (onText) =>
-        getAction('build')
-          .execute(ctx, { positionals: [], flags: { stale: true } }, { onText })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
+        runAction(ctx, 'build', { positionals: [], flags: { stale: true } }, { onText }).then((r) => {
+          if (r.ok && r.message) onText(r.message)
+          return r.ok ? null : `${r.message ?? 'failed'}${r.logPath ? `\nlog: ${r.logPath}` : ''}`
+        }),
       )
     }
     if (input === 'w' && row.status === 'dirty') {
       runJob(`回写 ${row.asset.name}`, (onText) =>
-        getAction('writeback')
-          .execute(ctx, { positionals: [row.asset.name], flags: {} }, { onText })
-          .then((r) => {
-            if (r.ok && r.message) onText(r.message)
-            return r.ok ? null : (r.message ?? 'failed')
-          }),
+        runAction(ctx, 'writeback', { positionals: [row.asset.name], flags: {} }, { onText }).then((r) => {
+          if (r.ok && r.message) onText(r.message)
+          return r.ok ? null : `${r.message ?? 'failed'}${r.logPath ? `\nlog: ${r.logPath}` : ''}`
+        }),
       )
     }
   })

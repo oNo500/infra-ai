@@ -90,6 +90,8 @@ describe('cli end-to-end', () => {
       const bad = await runCommand('bun', ['run', INDEX, 'adopt', 'nope'], { cwd: root })
       expect(bad.code).toBe(1)
       expect(bad.stderr).toContain('unknown asset')
+      expect(bad.stderr).toContain('log: ')
+      expect(bad.stderr).toContain('.imeta/logs/')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
