@@ -14,6 +14,7 @@ import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
 import { loadLock, loadSkills, saveLock } from './registry'
 import { createRunLog } from './run-log'
+import type { RunLog } from './run-log'
 import {
   checkMirrors,
   checkSkillsLedger,
@@ -326,9 +327,16 @@ export async function runAction(
 ): Promise<RunActionResult> {
   const action = getAction(id)
   if (action.kind === 'query') return action.execute(ctx, params, hooks)
-  const runLog = createRunLog(ctx.repoRoot, id, params, ctx.now())
+  let runLog: RunLog
+  try {
+    runLog = createRunLog(ctx.repoRoot, id, params, ctx.now())
+  } catch (error) {
+    console.error(`run-log unavailable: ${String(error)}`)
+    runLog = { path: '', event: () => {}, close: () => {} }
+  }
   runLog.event('start', { params })
   const wrappedHooks: ActionHooks = {
+    ...hooks,
     onText: (t) => {
       runLog.event('text', { text: t })
       hooks?.onText?.(t)
@@ -341,7 +349,13 @@ export async function runAction(
   const claude: ActionContext['claude'] = (opts) => {
     runLog.event('claude:spawn', { prompt: opts.prompt, allowedTools: opts.allowedTools })
     return ctx
-      .claude({ ...opts, onEvent: (raw) => runLog.event('claude:event', { event: raw }) })
+      .claude({
+        ...opts,
+        onEvent: (raw) => {
+          runLog.event('claude:event', { event: raw })
+          opts.onEvent?.(raw)
+        },
+      })
       .then((res) => {
         runLog.event('claude:exit', {
           code: res.code,
@@ -354,7 +368,7 @@ export async function runAction(
   try {
     const result = await action.execute({ ...ctx, claude }, params, wrappedHooks)
     runLog.event('result', { ok: result.ok, message: result.message, exitCode: result.exitCode })
-    return { ...result, logPath: runLog.path }
+    return { ...result, ...(runLog.path === '' ? {} : { logPath: runLog.path }) }
   } catch (error) {
     runLog.event('error', { error: String(error) })
     throw error

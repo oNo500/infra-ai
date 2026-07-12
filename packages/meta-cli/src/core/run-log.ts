@@ -34,8 +34,9 @@ export function createRunLog(
   mkdirSync(dir, { recursive: true })
   cleanup(dir, Math.max(0, retain - 1))
   const subject = params.positionals[0] ?? (params.flags.stale ? 'stale' : 'run')
+  const safeSubject = subject.replaceAll(/[^A-Za-z0-9._-]/gu, '-').slice(0, 64)
   const stamp = now.replaceAll('-', '').replaceAll(':', '').replaceAll('.', '')
-  const runId = `${stamp}-${actionId.replaceAll(':', '-')}-${subject}`
+  const runId = `${stamp}-${actionId.replaceAll(':', '-')}-${safeSubject}`
   const path = join(dir, `${runId}.jsonl`)
   const destination = pino.destination({ dest: path, sync: true })
   const logger = pino(
@@ -58,6 +59,7 @@ export function createRunLog(
     close() {
       try {
         destination.flushSync()
+        destination.destroy()
       } catch {
         // sync destination may have nothing to flush
       }

@@ -393,6 +393,20 @@ describe('runAction', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('createRunLog failure does not block the action; result has no logPath', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'rules/global'), { recursive: true })
+      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      // a file named .imeta makes mkdirSync inside createRunLog throw ENOTDIR
+      writeFileSync(join(root, '.imeta'), '')
+      const result = await runAction(testContext(root), 'adopt', { positionals: ['foo'], flags: {} })
+      expect(result.ok).toBe(true)
+      expect(result.logPath).toBeUndefined()
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   test('caller onText receives text and the log records text steps', async () => {
     const root = fixtureRepo()
     try {

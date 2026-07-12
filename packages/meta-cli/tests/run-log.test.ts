@@ -39,6 +39,33 @@ describe('createRunLog', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('subject with slashes and traversal segments is sanitized into a safe filename', () => {
+    const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
+    try {
+      const log = createRunLog(root, 'adopt', { positionals: ['../../evil'], flags: {} }, NOW)
+      log.close()
+      const dir = join(root, '.imeta/logs')
+      expect(log.path.startsWith(`${dir}/`)).toBe(true)
+      const filename = log.path.slice(dir.length + 1)
+      expect(filename).toBe('20260712T090459969Z-adopt-..-..-evil.jsonl')
+      expect(filename).not.toContain('/')
+      expect(existsSync(log.path)).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('subject with a slash cannot escape the logs directory', () => {
+    const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
+    try {
+      const log = createRunLog(root, 'adopt', { positionals: ['a/b'], flags: {} }, NOW)
+      log.close()
+      const dir = join(root, '.imeta/logs')
+      expect(log.path).toBe(join(dir, '20260712T090459969Z-adopt-a-b.jsonl'))
+      expect(existsSync(log.path)).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
   test('retention keeps only the newest N files', () => {
     const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
     try {

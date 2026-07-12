@@ -49,11 +49,11 @@ infra-ai/
   资产状态（stub/unbuilt/untracked/dirty/stale/synced）、
   skills ledger 与 mirror 上游，均在界面内收敛
 - 非交互：`imeta status [--json]` 等子命令，退出码语义化
+- mutation 动作运行留痕 `.imeta/logs/*.jsonl`（git-ignored，留最近 50 次，
+  含 claude 原始事件流）；失败输出附 `log: <path>` 指向现场
 
 ## 动作注册表（功能同步红线）
 
 - `packages/meta-cli/src/core/actions.ts` 是全部维护动作的 SSoT：
   CLI 子命令由它生成，TUI 键位在 `src/tui/keymap.ts` 声明
 - 新增动作必须先进注册表，再接 keymap；`tests/parity.test.ts` 不过不得提交
-- mutation 动作运行留痕 `.imeta/logs/*.jsonl`（git-ignored，留最近 50 次，
-  含 claude 原始事件流）；失败输出附 `log: <path>` 指向现场
