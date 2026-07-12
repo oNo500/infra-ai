@@ -51,16 +51,17 @@ describe('parseStreamJsonLine', () => {
 })
 
 describe('prompts', () => {
-  test('build prompt references meta path, build rule, artifact path', () => {
+  test('build prompt references meta path, prompt doc, artifact path', () => {
     const p = buildPromptFor(ruleAsset)
     expect(p).toContain('meta/rules/constitution.md')
-    expect(p).toContain('meta/build/rule.md')
+    expect(p).toContain('meta/prompts/rule-build.md')
     expect(p).toContain('rules/global/constitution.md')
   })
-  test('writeback prompt references both paths and restricts edits to meta', () => {
+  test('writeback prompt is a pointer to the writeback doc', () => {
     const p = writebackPromptFor(ruleAsset)
     expect(p).toContain('meta/rules/constitution.md')
-    expect(p).toContain('rules/global/constitution.md')
+    expect(p).toContain('meta/prompts/rule-writeback.md')
+    expect(p).toContain('不要改产物')
   })
 })
 

@@ -1,16 +1,10 @@
 import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import matter from 'gray-matter'
+import { join } from 'node:path'
+import { KINDS } from './kinds'
 import { readTextIfExists, sha256 } from './io'
 import type { MetaAsset } from './meta'
 import { loadLock, saveLock } from './registry'
 import { lockKey } from './status'
-
-const BUILD_RULE: Record<MetaAsset['kind'], string> = {
-  rule: 'meta/build/rule.md',
-  skill: 'meta/build/skill.md',
-  template: 'meta/build/template.md',
-}
 
 export function parseStreamJsonLine(
   line: string,
@@ -45,7 +39,7 @@ export function parseStreamJsonLine(
 
 export function buildPromptFor(asset: MetaAsset): string {
   return [
-    `构建 ${asset.metaPath}，遵循 ${BUILD_RULE[asset.kind]} 的构建规则。`,
+    `构建 ${asset.metaPath}，遵循 ${KINDS[asset.kind].buildPrompt} 的构建规则。`,
     `产物写入 ${asset.artifactPath}。不要修改其他文件，不要提交。`,
   ].join('\n')
 }
@@ -53,22 +47,18 @@ export function buildPromptFor(asset: MetaAsset): string {
 export function writebackPromptFor(asset: MetaAsset): string {
   return [
     `产物 ${asset.artifactPath} 相对上次构建被直接修改过。`,
-    `对照元指令 ${asset.metaPath}，把产物中元指令未覆盖的有价值内容回写进元指令正文，`,
-    `保持 frontmatter 不变。只修改 ${asset.metaPath}，不要改产物，不要提交。`,
+    `回写 ${asset.metaPath}，遵循 ${KINDS[asset.kind].writebackPrompt} 的回写规则。`,
+    `只修改 ${asset.metaPath}，不要改产物，不要提交。`,
   ].join('\n')
 }
 
 export function allowedToolsFor(asset: MetaAsset, mode: 'build' | 'writeback'): string {
-  const writable =
-    mode === 'writeback'
-      ? asset.metaPath
-      : asset.kind === 'skill'
-        ? `${dirname(asset.artifactPath)}/**`
-        : `${asset.artifactPath.split('/')[0]}/**`
-  // skill 构建规则要求核实上游是否已有同类（meta/build/skill.md 第 2 步）；
-  // ungh 只读免认证，比放行 Bash(gh api:*) 面窄
-  const upstream = mode === 'build' && asset.kind === 'skill' ? ',WebFetch(domain:ungh.cc)' : ''
-  return `Read,Glob,Grep,Write(${writable}),Edit(${writable})${upstream}`
+  const writable = mode === 'writeback' ? asset.metaPath : KINDS[asset.kind].writableGlob(asset.name)
+  const extras =
+    mode === 'build' && KINDS[asset.kind].extraAllowedTools.length > 0
+      ? `,${KINDS[asset.kind].extraAllowedTools.join(',')}`
+      : ''
+  return `Read,Glob,Grep,Write(${writable}),Edit(${writable})${extras}`
 }
 
 export interface RunResult {
@@ -144,17 +134,7 @@ export function verifyBuild(repoRoot: string, asset: MetaAsset): string | null {
   const content = readTextIfExists(join(repoRoot, asset.artifactPath))
   if (content === null) return `artifact missing: ${asset.artifactPath}`
   if (content.trim() === '') return `artifact empty: ${asset.artifactPath}`
-  if (asset.kind === 'skill') {
-    try {
-      const { data } = matter(content)
-      if (data.name !== asset.name) {
-        return `SKILL.md frontmatter name '${String(data.name)}' != '${asset.name}'`
-      }
-    } catch (error) {
-      return `SKILL.md frontmatter unparseable: ${String(error)}`
-    }
-  }
-  return null
+  return KINDS[asset.kind].verifyArtifact(repoRoot, asset)
 }
 
 export function recordBuild(repoRoot: string, asset: MetaAsset, builtAt: string): void {

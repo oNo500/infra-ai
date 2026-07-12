@@ -1,8 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import matter from 'gray-matter'
+import { KINDS, KIND_ORDER } from './kinds'
+import type { AssetKind } from './kinds'
 
-export type AssetKind = 'rule' | 'skill' | 'template'
+export type { AssetKind } from './kinds'
 export type MetaStatus = 'stub' | 'ready'
 
 export interface MetaAsset {
@@ -14,21 +16,8 @@ export interface MetaAsset {
   artifactPath: string
 }
 
-const KIND_DIR: Record<AssetKind, string> = {
-  rule: 'rules',
-  skill: 'skills',
-  template: 'templates',
-}
-
-const KIND_ORDER: AssetKind[] = ['rule', 'skill', 'template']
-
 export function artifactPathFor(kind: AssetKind, name: string, scope: string | null): string {
-  if (kind === 'rule') {
-    const sub = scope !== null && scope !== 'global' ? 'scoped' : 'global'
-    return `rules/${sub}/${name}.md`
-  }
-  if (kind === 'skill') return `skills/${name}/SKILL.md`
-  return `templates/${name}.md`
+  return KINDS[kind].artifactPath(name, scope)
 }
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/u
@@ -48,7 +37,7 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
     kind,
     status,
     scope,
-    metaPath: `meta/${KIND_DIR[kind]}/${filename}`,
+    metaPath: `${KINDS[kind].metaDir}/${filename}`,
     artifactPath: artifactPathFor(kind, name, scope),
   }
 }
@@ -57,7 +46,7 @@ export function discoverAssets(repoRoot: string): MetaAsset[] {
   const assets: MetaAsset[] = []
   const seen = new Map<string, string>()
   for (const kind of KIND_ORDER) {
-    const dir = join(repoRoot, 'meta', KIND_DIR[kind])
+    const dir = join(repoRoot, KINDS[kind].metaDir)
     if (!existsSync(dir)) continue
     const files = readdirSync(dir)
       .filter((f) => f.endsWith('.md'))
