@@ -215,6 +215,29 @@ describe('build action', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
+  test('build emits verify and record steps via onStep', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const steps: [string, Record<string, unknown> | undefined][] = []
+      const result = await getAction('build').execute(
+        testContext(root, { claude }),
+        { positionals: ['foo'], flags: {} },
+        { onStep: (step, data) => steps.push([step, data]) },
+      )
+      expect(result.ok).toBe(true)
+      expect(steps[0]?.[0]).toBe('verify')
+      expect(steps[0]?.[1]?.ok).toBe(true)
+      expect(steps[1]?.[0]).toBe('record')
+      expect(steps[1]?.[1]?.key).toBe('rule:foo')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
 })
 
 describe('writeback action', () => {

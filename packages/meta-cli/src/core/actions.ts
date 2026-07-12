@@ -45,6 +45,7 @@ export function defaultContext(repoRoot: string): ActionContext {
 
 export interface ActionHooks {
   onText?: (t: string) => void
+  onStep?: (step: string, data?: Record<string, unknown>) => void
 }
 
 export interface ArgSpec {
@@ -183,8 +184,14 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
   if (res.timedOut) return 'claude timed out'
   if (res.code !== 0) return `claude exited ${res.code}: ${res.stderr.slice(-500)}`
   const err = verifyBuild(ctx.repoRoot, asset)
-  if (err) return err
+  if (err === null) {
+    hooks?.onStep?.('verify', { ok: true })
+  } else {
+    hooks?.onStep?.('verify', { ok: false, error: err })
+    return err
+  }
   recordBuild(ctx.repoRoot, asset, ctx.now())
+  hooks?.onStep?.('record', { key: lockKey(asset) })
   return null
 }
 

@@ -32,15 +32,17 @@ const skillAsset: MetaAsset = {
 
 describe('parseStreamJsonLine', () => {
   test('assistant event yields concatenated text blocks', () => {
-    const line = JSON.stringify({
+    const payload = {
       type: 'assistant',
       message: { content: [{ type: 'text', text: 'hello' }, { type: 'tool_use', name: 'Write' }] },
-    })
-    expect(parseStreamJsonLine(line)).toEqual({ type: 'assistant', text: 'hello' })
+    }
+    const line = JSON.stringify(payload)
+    expect(parseStreamJsonLine(line)).toEqual({ type: 'assistant', text: 'hello', raw: payload })
   })
   test('result event has type result', () => {
-    const line = JSON.stringify({ type: 'result', result: 'done' })
-    expect(parseStreamJsonLine(line)).toEqual({ type: 'result', text: 'done' })
+    const payload = { type: 'result', result: 'done' }
+    const line = JSON.stringify(payload)
+    expect(parseStreamJsonLine(line)).toEqual({ type: 'result', text: 'done', raw: payload })
   })
   test('blank or invalid lines yield null', () => {
     expect(parseStreamJsonLine('')).toBeNull()

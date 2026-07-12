@@ -12,7 +12,9 @@ const BUILD_RULE: Record<MetaAsset['kind'], string> = {
   template: 'meta/build/template.md',
 }
 
-export function parseStreamJsonLine(line: string): { type: string; text: string | null } | null {
+export function parseStreamJsonLine(
+  line: string,
+): { type: string; text: string | null; raw: unknown } | null {
   const trimmed = line.trim()
   if (trimmed === '') return null
   let raw: unknown
@@ -33,12 +35,12 @@ export function parseStreamJsonLine(line: string): { type: string; text: string 
       )
       .map((b) => b.text)
       .join('')
-    return { type: 'assistant', text: text === '' ? null : text }
+    return { type: 'assistant', text: text === '' ? null : text, raw }
   }
   if (event.type === 'result') {
-    return { type: 'result', text: typeof event.result === 'string' ? event.result : null }
+    return { type: 'result', text: typeof event.result === 'string' ? event.result : null, raw }
   }
-  return { type: event.type, text: null }
+  return { type: event.type, text: null, raw }
 }
 
 export function buildPromptFor(asset: MetaAsset): string {
@@ -78,6 +80,7 @@ export function runClaude(opts: {
   allowedTools: string
   timeoutMs?: number
   onText?: (t: string) => void
+  onEvent?: (raw: unknown) => void
 }): Promise<RunResult> {
   return new Promise((resolve) => {
     const child = spawn(
@@ -107,7 +110,10 @@ export function runClaude(opts: {
       buffer = lines.pop() ?? ''
       for (const line of lines) {
         const event = parseStreamJsonLine(line)
-        if (event?.text) opts.onText?.(event.text)
+        if (event) {
+          opts.onEvent?.(event.raw)
+          if (event.text) opts.onText?.(event.text)
+        }
       }
     })
     child.stderr.on('data', (d: Buffer) => {
@@ -117,7 +123,10 @@ export function runClaude(opts: {
       clearTimeout(timer)
       if (buffer !== '') {
         const event = parseStreamJsonLine(buffer)
-        if (event?.text) opts.onText?.(event.text)
+        if (event) {
+          opts.onEvent?.(event.raw)
+          if (event.text) opts.onText?.(event.text)
+        }
       }
       resolve({ code: code ?? -1, timedOut, stderr })
     })
