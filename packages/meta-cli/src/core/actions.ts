@@ -329,6 +329,10 @@ export async function runAction(
   const runLog = createRunLog(ctx.repoRoot, id, params, ctx.now())
   runLog.event('start', { params })
   const wrappedHooks: ActionHooks = {
+    onText: (t) => {
+      runLog.event('text', { text: t })
+      hooks?.onText?.(t)
+    },
     onStep: (step, data) => {
       runLog.event(step, data)
       hooks?.onStep?.(step, data)
@@ -337,14 +341,7 @@ export async function runAction(
   const claude: ActionContext['claude'] = (opts) => {
     runLog.event('claude:spawn', { prompt: opts.prompt, allowedTools: opts.allowedTools })
     return ctx
-      .claude({
-        ...opts,
-        onEvent: (raw) => runLog.event('claude:event', { event: raw }),
-        onText: (t) => {
-          runLog.event('text', { text: t })
-          opts.onText?.(t)
-        },
-      })
+      .claude({ ...opts, onEvent: (raw) => runLog.event('claude:event', { event: raw }) })
       .then((res) => {
         runLog.event('claude:exit', {
           code: res.code,

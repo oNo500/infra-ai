@@ -348,9 +348,13 @@ describe('runAction', () => {
         .split('\n')
         .map((l) => JSON.parse(l) as Record<string, unknown>)
       const steps = lines.map((l) => l.step)
-      expect(steps).toEqual(['start', 'claude:spawn', 'claude:event', 'text', 'claude:exit', 'verify', 'record', 'result'])
+      // first 'text' is buildAction's '--- foo ---' separator (hooks.onText fires before claude spawns);
+      // second 'text' is claude streaming output forwarded through the same wrapped hook
+      expect(steps).toEqual(['start', 'text', 'claude:spawn', 'claude:event', 'text', 'claude:exit', 'verify', 'record', 'result'])
+      expect(lines[1]?.text).toBe('--- foo ---')
+      expect(lines[4]?.text).toBe('hi')
       expect(lines.every((l) => l.action === 'build')).toBe(true)
-      const spawn = lines[1]
+      const spawn = lines[2]
       expect(String(spawn?.prompt)).toContain('meta/rules/foo.md')
       expect(String(spawn?.allowedTools)).toContain('Write(rules/**)')
     } finally {
@@ -385,6 +389,34 @@ describe('runAction', () => {
       expect(result.ok).toBe(true)
       expect(result.logPath).toBeUndefined()
       expect(existsSync(join(root, '.imeta'))).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('caller onText receives text and the log records text steps', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async (opts) => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        opts.onText?.('streamed line')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const texts: string[] = []
+      const result = await runAction(
+        testContext(root, { claude }),
+        'build',
+        { positionals: ['foo'], flags: {} },
+        { onText: (t) => texts.push(t) },
+      )
+      expect(result.ok).toBe(true)
+      expect(texts).toEqual(['--- foo ---', 'streamed line'])
+      const lines = readFileSync(result.logPath ?? '', 'utf8')
+        .trim()
+        .split('\n')
+        .map((l) => JSON.parse(l) as Record<string, unknown>)
+      const textSteps = lines.filter((l) => l.step === 'text').map((l) => l.text)
+      expect(textSteps).toEqual(['--- foo ---', 'streamed line'])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
