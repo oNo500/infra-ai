@@ -186,6 +186,12 @@ const adoptAction: ActionDef = {
   },
 }
 
+async function statusSnapshot(ctx: ActionContext): Promise<Set<string> | string> {
+  const res = await ctx.run('git', ['status', '--porcelain'], { cwd: ctx.repoRoot })
+  if (res.code !== 0) return `changeset guard: git status failed: ${res.stderr}`
+  return new Set(res.stdout.split('\n').filter((line) => line !== ''))
+}
+
 async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHooks): Promise<string | null> {
   const pre = KINDS[asset.kind].preBuildCheck
   if (pre) {
@@ -197,6 +203,8 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
     }
     if (preErr) return preErr
   }
+  const before = await statusSnapshot(ctx)
+  if (typeof before === 'string') return before
   const res = await ctx.claude({
     repoRoot: ctx.repoRoot,
     prompt: buildPromptFor(asset),
@@ -205,6 +213,19 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
   })
   if (res.timedOut) return 'claude timed out'
   if (res.code !== 0) return `claude exited ${res.code}: ${res.stderr.slice(-500)}`
+  const after = await statusSnapshot(ctx)
+  if (typeof after === 'string') return after
+  const prefix = KINDS[asset.kind].writableGlob(asset.name).replace(/\*.*$/u, '')
+  // Limitation: a claude edit to a file that was already dirty before the build produces
+  // no new porcelain line and goes undetected; this guard is a second line of defense
+  // outside the allowedTools sandbox, not the sole safeguard.
+  const escaped = [...after]
+    .filter((line) => !before.has(line))
+    .map((line) => line.slice(3))
+    .filter((path) => !path.startsWith(prefix))
+  if (escaped.length > 0) {
+    return `changeset guard: files changed outside the build sandbox: ${escaped.join(', ')}`
+  }
   const err = verifyBuild(ctx.repoRoot, asset)
   if (err === null) {
     hooks?.onStep?.('verify', { ok: true })

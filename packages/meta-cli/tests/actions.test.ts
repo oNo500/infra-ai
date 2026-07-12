@@ -284,6 +284,66 @@ describe('build preBuildCheck gate', () => {
   })
 })
 
+describe('build changeset guard', () => {
+  function seqRunner(outputs: string[]): ActionContext['run'] {
+    let call = 0
+    return async () => ({ code: 0, stdout: outputs[Math.min(call++, outputs.length - 1)] ?? '', stderr: '' })
+  }
+  test('out-of-scope changes fail the build', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const run = seqRunner(['', ' M rules/global/foo.md\n?? evil.txt\n'])
+      const result = await getAction('build').execute(testContext(root, { claude, run }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/outside the build sandbox/u)
+      expect(result.message).toMatch(/evil\.txt/u)
+      expect(existsSync(join(root, 'artifacts.lock.json'))).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('in-scope changes pass; pre-existing dirt is ignored', async () => {
+    const root = fixtureRepo()
+    try {
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const run = seqRunner([' M unrelated.md\n', ' M unrelated.md\n?? rules/global/foo.md\n'])
+      const result = await getAction('build').execute(testContext(root, { claude, run }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(true)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('git failure fails closed', async () => {
+    const root = fixtureRepo()
+    try {
+      const run: ActionContext['run'] = async () => ({ code: 128, stdout: '', stderr: 'not a repo' })
+      const result = await getAction('build').execute(testContext(root, { run }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/changeset guard/u)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('writeback action', () => {
   test('requires dirty status', async () => {
     const root = fixtureRepo()
