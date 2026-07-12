@@ -46,7 +46,7 @@ infra-ai/
 
 ## 对账
 
-- `meta` 打开 TUI（开发期 `pnpm link --global` 提供全局命令，或 `pnpm meta`）：
+- `meta` 打开 TUI（全局命令：`packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta`）：
   资产状态（stub/unbuilt/untracked/dirty/stale/synced）、下游漂移、
   skills ledger 与 mirror 上游，均在界面内收敛
 - 非交互：`meta status [--json]` 等子命令，退出码语义化
