@@ -9,6 +9,8 @@ import {
 } from './claude'
 import { runCommand } from './io'
 import type { CommandRunner } from './io'
+import { KINDS } from './kinds'
+import type { FetchJson } from './kinds'
 import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
@@ -33,6 +35,7 @@ export interface ActionContext {
   now: () => string
   claude: typeof runClaude
   download: DownloadFn
+  fetchJson: FetchJson
 }
 
 export function defaultContext(repoRoot: string): ActionContext {
@@ -42,6 +45,11 @@ export function defaultContext(repoRoot: string): ActionContext {
     now: () => new Date().toISOString(),
     claude: runClaude,
     download: downloadTemplate,
+    fetchJson: async (url) => {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`)
+      return res.json()
+    },
   }
 }
 
@@ -177,6 +185,16 @@ const adoptAction: ActionDef = {
 }
 
 async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHooks): Promise<string | null> {
+  const pre = KINDS[asset.kind].preBuildCheck
+  if (pre) {
+    let preErr: string | null
+    try {
+      preErr = await pre(ctx.fetchJson, asset)
+    } catch (error) {
+      preErr = `pre-build check failed: ${String(error)}`
+    }
+    if (preErr) return preErr
+  }
   const res = await ctx.claude({
     repoRoot: ctx.repoRoot,
     prompt: buildPromptFor(asset),

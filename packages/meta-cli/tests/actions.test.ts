@@ -23,6 +23,7 @@ export function testContext(root: string, overrides: Partial<ActionContext> = {}
     now: () => '2026-07-11T00:00:00.000Z',
     claude: async () => ({ code: 0, timedOut: false, stderr: '' }),
     download: async () => ({}),
+    fetchJson: async () => ({ files: [] }),
     ...overrides,
   }
 }
@@ -234,6 +235,49 @@ describe('build action', () => {
       expect(steps[0]?.[1]?.ok).toBe(true)
       expect(steps[1]?.[0]).toBe('record')
       expect(steps[1]?.[1]?.key).toBe('rule:foo')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('build preBuildCheck gate', () => {
+  test('skill build aborts before claude when upstream has the name', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'meta/skills'), { recursive: true })
+      writeFileSync(join(root, 'meta/skills/dup.md'), '---\nname: dup\nstatus: ready\n---\nbody\n')
+      let claudeCalled = false
+      const claude: ActionContext['claude'] = async () => {
+        claudeCalled = true
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const fetchJson = async () => ({ files: [{ path: 'plugins/p/skills/dup/SKILL.md' }] })
+      const result = await getAction('build').execute(
+        testContext(root, { claude, fetchJson }),
+        { positionals: ['dup'], flags: {} },
+      )
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/official/u)
+      expect(claudeCalled).toBe(false)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('fetch failure fails the build rather than skipping the check', async () => {
+    const root = fixtureRepo()
+    try {
+      mkdirSync(join(root, 'meta/skills'), { recursive: true })
+      writeFileSync(join(root, 'meta/skills/dup.md'), '---\nname: dup\nstatus: ready\n---\nbody\n')
+      const fetchJson = async () => {
+        throw new Error('network down')
+      }
+      const result = await getAction('build').execute(
+        testContext(root, { fetchJson }),
+        { positionals: ['dup'], flags: {} },
+      )
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/pre-build check failed/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

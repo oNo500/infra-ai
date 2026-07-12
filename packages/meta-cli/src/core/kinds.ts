@@ -4,6 +4,11 @@ import { readTextIfExists } from './io'
 
 export type AssetKind = 'rule' | 'skill' | 'template'
 
+export type FetchJson = (url: string) => Promise<unknown>
+
+const UNGH_OFFICIAL_FILES =
+  'https://ungh.cc/repos/anthropics/claude-plugins-official/files/main'
+
 export interface KindDef {
   metaDir: string
   artifactPath: (name: string, scope: string | null) => string
@@ -12,6 +17,7 @@ export interface KindDef {
   writableGlob: (name: string) => string
   extraAllowedTools: readonly string[]
   verifyArtifact: (repoRoot: string, asset: { name: string; artifactPath: string; scope: string | null }) => string | null
+  preBuildCheck?: (fetchJson: FetchJson, asset: { name: string }) => Promise<string | null>
 }
 
 export const KIND_ORDER: readonly AssetKind[] = ['rule', 'skill', 'template']
@@ -54,7 +60,7 @@ export const KINDS: Record<AssetKind, KindDef> = {
     buildPrompt: 'meta/prompts/skill-build.md',
     writebackPrompt: 'meta/prompts/skill-writeback.md',
     writableGlob: (name) => `skills/${name}/**`,
-    extraAllowedTools: ['WebFetch(domain:ungh.cc)'],
+    extraAllowedTools: [],
     verifyArtifact: (repoRoot, asset) => {
       const content = readTextIfExists(join(repoRoot, asset.artifactPath))
       if (content === null) return null // 存在性由通用校验负责
@@ -67,6 +73,20 @@ export const KINDS: Record<AssetKind, KindDef> = {
         return `SKILL.md frontmatter unparseable: ${String(error)}`
       }
       return null
+    },
+    preBuildCheck: async (fetchJson, asset) => {
+      const tree = (await fetchJson(UNGH_OFFICIAL_FILES)) as { files?: { path?: unknown }[] }
+      const files = Array.isArray(tree.files) ? tree.files : []
+      const hit = files.find((f) => {
+        const parts = (typeof f.path === 'string' ? f.path : '').split('/')
+        return (
+          (parts[0] === 'plugins' && parts[2] === 'skills' && parts[3] === asset.name) ||
+          (parts[0] === 'external_plugins' && parts[1] === asset.name)
+        )
+      })
+      return hit
+        ? `official catalog already has '${asset.name}': record it as official in skills.json instead of building`
+        : null
     },
   },
   template: {

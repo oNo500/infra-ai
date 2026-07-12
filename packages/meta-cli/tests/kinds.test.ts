@@ -26,9 +26,32 @@ describe('kind registry', () => {
     expect(KINDS.rule.writableGlob('constitution')).toBe('rules/**')
     expect(KINDS.skill.writableGlob('commit-lite')).toBe('skills/commit-lite/**')
     expect(KINDS.template.writableGlob('architecture')).toBe('templates/**')
-    expect(KINDS.skill.extraAllowedTools).toEqual(['WebFetch(domain:ungh.cc)'])
+    expect(KINDS.skill.extraAllowedTools).toEqual([])
     expect(KINDS.rule.extraAllowedTools).toEqual([])
     expect(KINDS.template.extraAllowedTools).toEqual([])
+  })
+})
+
+describe('skill preBuildCheck', () => {
+  const asset = { name: 'commit-lite' }
+  test('fails when official catalog has a same-named skill', async () => {
+    const fetchJson = async () => ({
+      files: [{ path: 'plugins/git-tools/skills/commit-lite/SKILL.md' }, { path: 'plugins/x/README.md' }],
+    })
+    const err = await KINDS.skill.preBuildCheck?.(fetchJson, asset)
+    expect(err).toMatch(/official/u)
+  })
+  test('fails on external_plugins hit', async () => {
+    const fetchJson = async () => ({ files: [{ path: 'external_plugins/commit-lite/manifest.json' }] })
+    expect(await KINDS.skill.preBuildCheck?.(fetchJson, asset)).toMatch(/official/u)
+  })
+  test('passes when no hit', async () => {
+    const fetchJson = async () => ({ files: [{ path: 'plugins/other/skills/else/SKILL.md' }] })
+    expect(await KINDS.skill.preBuildCheck?.(fetchJson, asset)).toBeNull()
+  })
+  test('rule and template have no preBuildCheck', () => {
+    expect(KINDS.rule.preBuildCheck).toBeUndefined()
+    expect(KINDS.template.preBuildCheck).toBeUndefined()
   })
 })
 
