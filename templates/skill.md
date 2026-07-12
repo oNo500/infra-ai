@@ -9,12 +9,14 @@
 [新增 skill 前先查：Anthropic 官方插件目录（`anthropics/claude-plugins-official`）里，
 skill 是内嵌在某个插件目录下的 `skills/` 子目录中，不是独立顶层条目，需要两层查询：]
 
-```bash
-# 第一步：列出所有官方插件（自维护 + 第三方）
-gh api repos/anthropics/claude-plugins-official/contents/plugins --jq '.[].name'
-gh api repos/anthropics/claude-plugins-official/contents/external_plugins --jq '.[].name'
+优先经 ungh（免认证只读，headless 构建沙箱放行了 `WebFetch(domain:ungh.cc)`）：
+WebFetch `https://ungh.cc/repos/anthropics/claude-plugins-official/files/main`
+返回全量文件树，一次调用即可筛出 `plugins/*/skills/*` 与 `external_plugins/*` 下的同类 skill。
 
-# 第二步：对疑似匹配的插件，查看其内含的 skills
+对话式构建且本机已登录 gh 时，等价命令：
+
+```bash
+gh api repos/anthropics/claude-plugins-official/contents/plugins --jq '.[].name'
 gh api repos/anthropics/claude-plugins-official/contents/plugins/[plugin-name]/skills --jq '.[].name'
 ```
 

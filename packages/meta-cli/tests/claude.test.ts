@@ -70,7 +70,12 @@ describe('allowedToolsFor', () => {
       'Read,Glob,Grep,Write(rules/**),Edit(rules/**)',
     )
     expect(allowedToolsFor(skillAsset, 'build')).toBe(
-      'Read,Glob,Grep,Write(skills/commit-lite/**),Edit(skills/commit-lite/**)',
+      'Read,Glob,Grep,Write(skills/commit-lite/**),Edit(skills/commit-lite/**),WebFetch(domain:ungh.cc)',
+    )
+  })
+  test('writeback grants no upstream access even for skills', () => {
+    expect(allowedToolsFor(skillAsset, 'writeback')).toBe(
+      'Read,Glob,Grep,Write(meta/skills/commit-lite.md),Edit(meta/skills/commit-lite.md)',
     )
   })
   test('writeback allows writing the meta file only', () => {

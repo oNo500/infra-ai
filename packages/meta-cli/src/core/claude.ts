@@ -65,7 +65,10 @@ export function allowedToolsFor(asset: MetaAsset, mode: 'build' | 'writeback'): 
       : asset.kind === 'skill'
         ? `${dirname(asset.artifactPath)}/**`
         : `${asset.artifactPath.split('/')[0]}/**`
-  return `Read,Glob,Grep,Write(${writable}),Edit(${writable})`
+  // skill 构建规则要求核实上游是否已有同类（meta/build/skill.md 第 2 步）；
+  // ungh 只读免认证，比放行 Bash(gh api:*) 面窄
+  const upstream = mode === 'build' && asset.kind === 'skill' ? ',WebFetch(domain:ungh.cc)' : ''
+  return `Read,Glob,Grep,Write(${writable}),Edit(${writable})${upstream}`
 }
 
 export interface RunResult {
