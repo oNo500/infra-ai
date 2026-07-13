@@ -1,5 +1,6 @@
 import matter from 'gray-matter'
 import { downloadTemplate } from 'giget'
+import { connect } from 'node:net'
 import { join } from 'node:path'
 import {
   allowedToolsFor,
@@ -41,6 +42,55 @@ export interface ActionContext {
   spawnDetached: typeof spawnDetached
 }
 
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '127.0.0.1', '::1', '[::1]'])
+
+// Bun's fetch honors http_proxy/all_proxy for every request, including loopback ones.
+// Bun also snapshots those env vars once at startup, so neither a per-request `proxy`
+// fetch option nor mutating process.env at runtime changes that later. A raw socket
+// via node:net sidesteps fetch entirely and never consults the proxy env.
+export function isLoopback(url: string): boolean {
+  try {
+    return LOOPBACK_HOSTS.has(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function fetchJsonLoopback(url: string): Promise<unknown> {
+  const { hostname, port, pathname, search } = new URL(url)
+  const path = `${pathname}${search}`
+  const portNum = port === '' ? 80 : Number(port)
+  return new Promise((resolve, reject) => {
+    const socket = connect({ host: hostname, port: portNum }, () => {
+      socket.write(`GET ${path} HTTP/1.1\r\nHost: ${hostname}:${portNum}\r\nConnection: close\r\n\r\n`)
+    })
+    let raw = ''
+    socket.on('data', (chunk: Buffer) => {
+      raw += chunk.toString('utf8')
+    })
+    socket.on('error', reject)
+    socket.on('end', () => {
+      const separator = raw.indexOf('\r\n\r\n')
+      if (separator === -1) {
+        reject(new Error(`fetch ${url} failed: malformed HTTP response`))
+        return
+      }
+      const statusLine = raw.slice(0, separator).split('\r\n')[0] ?? ''
+      const status = Number(statusLine.split(' ')[1])
+      const body = raw.slice(separator + 4)
+      if (status < 200 || status >= 300) {
+        reject(new Error(`fetch ${url} failed: ${status}`))
+        return
+      }
+      try {
+        resolve(JSON.parse(body))
+      } catch (error) {
+        reject(new Error(`fetch ${url} failed: invalid JSON body: ${String(error)}`))
+      }
+    })
+  })
+}
+
 export function defaultContext(repoRoot: string): ActionContext {
   return {
     repoRoot,
@@ -49,6 +99,7 @@ export function defaultContext(repoRoot: string): ActionContext {
     claude: runClaude,
     download: downloadTemplate,
     fetchJson: async (url) => {
+      if (isLoopback(url)) return fetchJsonLoopback(url)
       const res = await fetch(url)
       if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`)
       return res.json()

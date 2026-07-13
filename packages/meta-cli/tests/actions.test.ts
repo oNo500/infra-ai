@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getAction, runAction, type ActionContext, type StatusRowData } from '../src/core/actions'
+import { getAction, isLoopback, runAction, type ActionContext, type StatusRowData } from '../src/core/actions'
 import { sha256 } from '../src/core/io'
 
 export function fixtureRepo(): string {
@@ -552,6 +552,21 @@ describe('skills mutations', () => {
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  })
+})
+
+describe('isLoopback', () => {
+  test('classifies localhost, IPv4 and IPv6 loopback as loopback', () => {
+    expect(isLoopback('http://localhost:4412/api/assets')).toBe(true)
+    expect(isLoopback('http://127.0.0.1:4412/api/assets')).toBe(true)
+    expect(isLoopback('http://[::1]:4412/api/assets')).toBe(true)
+  })
+  test('classifies external hosts as non-loopback', () => {
+    expect(isLoopback('https://ungh.cc/repos/anthropics/claude-plugins-official/files/main')).toBe(false)
+    expect(isLoopback('https://example.com')).toBe(false)
+  })
+  test('classifies malformed URLs as non-loopback rather than throwing', () => {
+    expect(isLoopback('not-a-url')).toBe(false)
   })
 })
 
