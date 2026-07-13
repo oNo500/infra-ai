@@ -1,15 +1,21 @@
+import { join } from 'node:path'
 import index from './index.html'
+import { assetPayload, assetsPayload } from './src/api'
+
+const REPO_ROOT = join(import.meta.dir, '..', '..')
+const PORT = Number(Bun.env.PORT ?? 4412)
 
 const server = Bun.serve({
-  port: Number(Bun.env.PORT ?? 4412),
+  port: PORT,
   development: true,
   routes: {
-    '/': index,
-    '/api/hello': () => Response.json({ message: 'Hello from Bun.serve' }),
-  },
-  fetch() {
-    return new Response('Not found', { status: 404 })
+    '/*': index,
+    '/api/assets': () => Response.json(assetsPayload(REPO_ROOT)),
+    '/api/asset/:name': (req) => {
+      const payload = assetPayload(REPO_ROOT, req.params.name)
+      return payload ? Response.json(payload) : new Response('not found', { status: 404 })
+    },
   },
 })
 
-console.log(`Dev server: http://localhost:${server.port}`)
+console.log(`preview at http://localhost:${server.port}`)
