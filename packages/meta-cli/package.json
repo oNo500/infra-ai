@@ -4,6 +4,9 @@
   "private": true,
   "description": "TUI for meta asset reconcile/build/dist/writeback",
   "type": "module",
+  "exports": {
+    "./core": "./src/core/index.ts"
+  },
   "bin": {
     "imeta": "./src/index.tsx"
   },
