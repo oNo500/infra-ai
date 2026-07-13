@@ -24,6 +24,7 @@ export function testContext(root: string, overrides: Partial<ActionContext> = {}
     claude: async () => ({ code: 0, timedOut: false, stderr: '' }),
     download: async () => ({}),
     fetchJson: async () => ({ files: [] }),
+    spawnDetached: () => {},
     ...overrides,
   }
 }
@@ -548,6 +549,79 @@ describe('skills mutations', () => {
       const ledger = JSON.parse(readFileSync(join(root, 'skills.json'), 'utf8')) as { commit: string }[]
       expect(ledger[0]?.commit).toBe('new')
       expect(ledger[1]?.commit).toBe('old')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('preview action', () => {
+  test('opens directly when server already answers', async () => {
+    const root = fixtureRepo()
+    try {
+      const opened: string[][] = []
+      const run: ActionContext['run'] = async (cmd, args) => {
+        opened.push([cmd, ...args])
+        return { code: 0, stdout: '', stderr: '' }
+      }
+      const spawned: string[] = []
+      const result = await getAction('preview').execute(
+        testContext(root, {
+          run,
+          fetchJson: async () => [],
+          spawnDetached: (cmd) => {
+            spawned.push(cmd)
+          },
+        }),
+        { positionals: ['foo'], flags: {} },
+      )
+      expect(result.ok).toBe(true)
+      expect(spawned).toHaveLength(0)
+      expect(opened[0]).toEqual(['open', 'http://localhost:4412/#foo'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('spawns server when probe fails, then opens after it comes up', async () => {
+    const root = fixtureRepo()
+    try {
+      let up = false
+      const fetchJson: ActionContext['fetchJson'] = async () => {
+        if (!up) throw new Error('down')
+        return []
+      }
+      const spawned: string[][] = []
+      const spawnDetached: ActionContext['spawnDetached'] = (cmd, args) => {
+        spawned.push([cmd, ...args])
+        up = true
+      }
+      const run: ActionContext['run'] = async () => ({ code: 0, stdout: '', stderr: '' })
+      const result = await getAction('preview').execute(
+        testContext(root, { fetchJson, spawnDetached, run }),
+        { positionals: [], flags: {} },
+      )
+      expect(result.ok).toBe(true)
+      expect(spawned).toHaveLength(1)
+      expect(spawned[0]?.[0]).toBe('bun')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('unknown asset name fails before any spawn', async () => {
+    const root = fixtureRepo()
+    try {
+      const spawned: string[] = []
+      const result = await getAction('preview').execute(
+        testContext(root, {
+          spawnDetached: (cmd) => {
+            spawned.push(cmd)
+          },
+        }),
+        { positionals: ['nope'], flags: {} },
+      )
+      expect(result.ok).toBe(false)
+      expect(result.message).toMatch(/unknown asset/u)
+      expect(spawned).toHaveLength(0)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -11,6 +11,7 @@ export const KEYMAP: KeymapEntry[] = [
   { actionId: 'adopt', view: 'assets', key: 'a' },
   { actionId: 'build', view: 'assets', key: 'b' },
   { actionId: 'writeback', view: 'assets', key: 'w' },
+  { actionId: 'preview', view: 'assets', key: 'v' },
   { actionId: 'skills:status', view: 'skills' },
   { actionId: 'skills:fix', view: 'skills', key: 'f' },
   { actionId: 'skills:update', view: 'skills', key: 'u' },

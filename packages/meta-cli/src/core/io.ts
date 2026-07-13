@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, openSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
 export function sha256(content: string): string {
@@ -44,3 +44,18 @@ export const runCommand: CommandRunner = (cmd, args, opts = {}) =>
     child.on('close', (code) => resolve({ code: code ?? -1, stdout, stderr }))
     child.on('error', (err) => resolve({ code: -1, stdout, stderr: String(err) }))
   })
+
+export function spawnDetached(
+  cmd: string,
+  args: string[],
+  opts: { cwd: string; logPath: string },
+): void {
+  mkdirSync(dirname(opts.logPath), { recursive: true })
+  const fd = openSync(opts.logPath, 'a')
+  const child = spawn(cmd, args, {
+    cwd: opts.cwd,
+    detached: true,
+    stdio: ['ignore', fd, fd],
+  })
+  child.unref()
+}

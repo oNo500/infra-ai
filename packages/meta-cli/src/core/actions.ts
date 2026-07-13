@@ -9,7 +9,7 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from './claude'
-import { readTextIfExists, runCommand, sha256 } from './io'
+import { readTextIfExists, runCommand, sha256, spawnDetached } from './io'
 import type { CommandRunner } from './io'
 import { KINDS } from './kinds'
 import type { FetchJson } from './kinds'
@@ -38,6 +38,7 @@ export interface ActionContext {
   claude: typeof runClaude
   download: DownloadFn
   fetchJson: FetchJson
+  spawnDetached: typeof spawnDetached
 }
 
 export function defaultContext(repoRoot: string): ActionContext {
@@ -52,6 +53,7 @@ export function defaultContext(repoRoot: string): ActionContext {
       if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`)
       return res.json()
     },
+    spawnDetached,
   }
 }
 
@@ -329,6 +331,50 @@ const writebackAction: ActionDef = {
   },
 }
 
+const PREVIEW_URL = 'http://localhost:4412'
+
+const previewAction: ActionDef = {
+  id: 'preview',
+  summary: 'Open the web preview (meta vs artifact side by side), starting the server if needed',
+  kind: 'mutation',
+  args: [{ name: 'name', kind: 'positional', description: 'asset name (optional)' }],
+  async execute(ctx, params, hooks) {
+    const name = params.positionals[0]
+    if (name !== undefined && findAsset(ctx.repoRoot, name) === null) {
+      return fail(`unknown asset: ${name}`)
+    }
+    const probe = async (): Promise<boolean> => {
+      try {
+        await ctx.fetchJson(`${PREVIEW_URL}/api/assets`)
+        return true
+      } catch {
+        return false
+      }
+    }
+    if (!(await probe())) {
+      hooks?.onText?.('starting preview server...')
+      ctx.spawnDetached('bun', ['run', 'dev'], {
+        cwd: join(ctx.repoRoot, 'packages/preview'),
+        logPath: join(ctx.repoRoot, '.imeta', 'preview-server.log'),
+      })
+      let ready = false
+      for (let i = 0; i < 20 && !ready; i++) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 250)
+        })
+        ready = await probe()
+      }
+      if (!ready) {
+        return fail('preview server failed to start (log: .imeta/preview-server.log)')
+      }
+    }
+    const url = `${PREVIEW_URL}/${name === undefined ? '' : `#${encodeURIComponent(name)}`}`
+    const res = await ctx.run('open', [url])
+    if (res.code !== 0) return fail(`open failed: ${res.stderr}`)
+    return { ok: true, message: `preview at ${url}` }
+  },
+}
+
 const skillsFixAction: ActionDef = {
   id: 'skills:fix',
   summary: 'Add unledgered skill directories to skills.json as custom entries',
@@ -371,6 +417,7 @@ export const ACTIONS: ActionDef[] = [
   adoptAction,
   buildAction,
   writebackAction,
+  previewAction,
   skillsStatusAction,
   skillsFixAction,
   skillsUpdateAction,
