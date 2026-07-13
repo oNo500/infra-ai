@@ -28,7 +28,8 @@
 imeta                     # TUI
 imeta status [--json]     # 对账查询；有待收敛项时退出码为 1
 imeta build <name>        # claude headless 构建；完整命令面 imeta --help
-imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server）
+imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server，常驻 4412）
+                          # 停止：pkill -f 'preview.*server.ts'（日志 .imeta/preview-server.log）
 ```
 
 全局 `imeta` 命令来自 `packages/meta-cli` 内执行一次 `pnpm link --global`；

@@ -13,7 +13,8 @@
 ```bash
 imeta                     # TUI：对账、构建、回写
 imeta status              # 命令式（面向 AI/脚本）：完整命令面见 imeta --help
-imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server）
+imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server，常驻 4412）
+                          # 停止：pkill -f 'preview.*server.ts'（日志 .imeta/preview-server.log）
 ```
 
 全局命令来自 `packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta <...>`。
