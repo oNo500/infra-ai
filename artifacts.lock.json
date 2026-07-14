@@ -43,5 +43,10 @@
     "metaHash": "55ad21b5f0b8e70552aa5ff743cb5bc9fa1913393eff08db6492f037b94d3082",
     "artifactHash": "c5fe2d02d9c8272c322c6cd7bd40baacdeaba44c4a92db71751efa7dec6808ce",
     "builtAt": "2026-07-14T01:06:18.571Z"
+  },
+  "rule:python": {
+    "metaHash": "8ac7067a13b8653702d8f43dfe0eb1caf3165880624b7dca2e2395bedf96df12",
+    "artifactHash": "16930e933ae09d03315f4f96562692e0a8a669ec57a94ba65ebdc4827562c235",
+    "builtAt": "2026-07-14T04:49:17.807Z"
   }
 }
