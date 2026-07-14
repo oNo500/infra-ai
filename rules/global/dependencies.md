@@ -7,3 +7,4 @@
 - 只用 Pure ESM 包，规避 dual package hazard；唯一豁免是必须对接的 CJS-only legacy 包
 - untrusted 边界（env、HTTP 请求、表单、第三方 API 响应）一律 zod parse 后再用
 - AI 应用生产落地默认 Vercel AI SDK（多 provider 切换、streaming UI）
+- TS 项目 dev 工具链：lint/format 用 oxlint + oxfmt（替代 ESLint + Prettier），type check 用 `tsc --noEmit`，架构边界（feature 隔离、依赖单向、循环依赖检测）用 dependency-cruiser

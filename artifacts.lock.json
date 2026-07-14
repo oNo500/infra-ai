@@ -25,14 +25,14 @@
     "builtAt": "2026-07-14T01:08:33.657Z"
   },
   "rule:markdown": {
-    "metaHash": "651972700641604e4a9d588fa90158c7fb68fbc171f56025ed99d28e0829dd21",
-    "artifactHash": "32b0539eba1f7f4d9c6a152515388285d49b31b2a0c7c767ca72860b101a1088",
-    "builtAt": "2026-07-14T01:00:27.717Z"
+    "metaHash": "be6efbc4638302129161cdb6ab1aa5bbc3417d8deb795794ab5af829f671ae40",
+    "artifactHash": "e04214d7c49bd4071066a5d0ce5bfea47a575aa434e55d910639bbd0a1be929b",
+    "builtAt": "2026-07-14T05:11:10.413Z"
   },
   "rule:dependencies": {
-    "metaHash": "d15f27914416155d0adafa1ddfa5a27752fde4bbb319aed29d3ac17c8c0e11e6",
-    "artifactHash": "f64858fdfe6e41e302333e19eff1725e9d6810f399030fd9182cee5ff428bfa6",
-    "builtAt": "2026-07-14T01:01:33.851Z"
+    "metaHash": "f646adf0a1b3a94cbf96d93434b65273fb3c7fb500866dd9c71494431e34ef1c",
+    "artifactHash": "54f530b2c429c74422739347aab9e573f72dd330df4ca47ff55b81f0c1990543",
+    "builtAt": "2026-07-14T05:12:16.846Z"
   },
   "rule:nestjs": {
     "metaHash": "2fb637efb196d64932637c928aa3fa264fab8a375da5122ad7028581a37fa243",
@@ -48,5 +48,15 @@
     "metaHash": "8ac7067a13b8653702d8f43dfe0eb1caf3165880624b7dca2e2395bedf96df12",
     "artifactHash": "16930e933ae09d03315f4f96562692e0a8a669ec57a94ba65ebdc4827562c235",
     "builtAt": "2026-07-14T04:49:17.807Z"
+  },
+  "rule:context-management": {
+    "metaHash": "bb2ffb3a7908eb100a26d79c3141aaa19aa623f7141cdd7943ef50d372b8577c",
+    "artifactHash": "2ddc99b38e1a98183730c6cdf026f60d2585a95d5e827f64a5c3ae34c5d89fbf",
+    "builtAt": "2026-07-14T05:09:40.791Z"
+  },
+  "template:hooks": {
+    "metaHash": "db4d626c099bacb6bbc486a4448e6919a3fb70fe3d83ad1005dd990bf0bdc9c3",
+    "artifactHash": "a92fa3c5dd5465105856e2b805d9efcec4dbade289a044953c7516eb3d3208ee",
+    "builtAt": "2026-07-14T05:14:11.303Z"
   }
 }

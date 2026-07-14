@@ -23,6 +23,9 @@ global 落点，必须极简，只写选型方向，不写用法。
 - 运行时数据校验默认 zod：env、HTTP 请求、表单、第三方 API 响应等
   untrusted 边界一律 parse 后再用
 - AI 应用生产落地默认 Vercel AI SDK（多 provider 切换、streaming UI）
+- TS 项目 dev 工具链：oxlint + oxfmt（不用 ESLint + Prettier 组合）、
+  type check 用 `tsc --noEmit`、架构边界（feature 隔离、依赖单向、
+  循环依赖检测）用 dependency-cruiser
 
 ## 产物要求
 
