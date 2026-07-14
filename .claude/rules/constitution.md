@@ -19,6 +19,8 @@
 ## 不可违反规则
 
 - **TypeScript 类型**：禁止双重断言（`value as X as Y`）；禁止 `@ts-ignore`
+- **文件命名**：文件与目录一律 kebab-case，React 组件文件同样适用，
+  不为 PascalCase 惯例开豁免
 - **禁止 emoji**：源代码中禁止使用 emoji（注释、日志输出除外，需明确标注原因）
 - **Commit language**：commit message 使用英文，遵循 Conventional Commits 格式
 - **不修改生成文件**：`AGENTS.md` 是构建产物，禁止手动编辑；只修改其对应的 rules 源文件

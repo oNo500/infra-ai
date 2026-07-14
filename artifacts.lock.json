@@ -5,9 +5,9 @@
     "builtAt": "2026-07-12T12:37:42.450Z"
   },
   "rule:constitution": {
-    "metaHash": "0afe64f11dc7078320d33bee5798810c9a6f67f2af14e38791b87bb4aa5d84eb",
-    "artifactHash": "73b67df57246e61b20cdad5ac0bbbb75499c284df21cab62b177b0a126642632",
-    "builtAt": "2026-07-12T15:30:44.033Z"
+    "metaHash": "6416de0d832313066b6947b85d27ef1e3b4ade991355f94c097f09e2f3d41e9e",
+    "artifactHash": "771633d2fa4127f1bb8016b36a0af38a4b69893378daaa09eb2aa4fb01add343",
+    "builtAt": "2026-07-14T08:05:40.957Z"
   },
   "template:architecture": {
     "metaHash": "e6e0764b8503b644c133adccaa07e079d7dfdd3cb4950bc6bbb893762c2a891d",
@@ -25,9 +25,9 @@
     "builtAt": "2026-07-14T01:08:33.657Z"
   },
   "rule:markdown": {
-    "metaHash": "be6efbc4638302129161cdb6ab1aa5bbc3417d8deb795794ab5af829f671ae40",
-    "artifactHash": "e04214d7c49bd4071066a5d0ce5bfea47a575aa434e55d910639bbd0a1be929b",
-    "builtAt": "2026-07-14T05:11:10.413Z"
+    "metaHash": "af334caa4b3017e894e535f22a1a9c5d6df13953432fd047b3d4f9d1a2b1e45e",
+    "artifactHash": "72f7da4e261ff67ca133998e8dc7adf1fc594c42a90456b5ea340a7cabd90bde",
+    "builtAt": "2026-07-14T08:06:55.161Z"
   },
   "rule:dependencies": {
     "metaHash": "f646adf0a1b3a94cbf96d93434b65273fb3c7fb500866dd9c71494431e34ef1c",
