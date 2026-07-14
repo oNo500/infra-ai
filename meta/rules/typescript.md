@@ -25,6 +25,12 @@ TypeScript 项目的类型纪律，作用于 `**/*.{ts,tsx}`。
   用 `String(error)` 或 instanceof 收窄后再用
 - 集合操作优先不可变形式（`toSorted`/`toReversed` 而非 `sort`/`reverse`）
 - 正则统一带 `u` flag
+- 禁用 `enum`：用 `as const` 对象 + 派生联合类型
+  （`type X = typeof Obj[keyof typeof Obj]`）——字面量联合零运行时开销、
+  无 IIFE 编译产物、类型更安全
+- 类的私有字段用 `#` 语法，不用 `_` 前缀约定
+- 路径导入 SHOULD 用 `@/*` 别名而非相对父级路径（`../`）；视项目而定，
+  少数项目禁用别名时从其配置
 - lint 说明：以上多数可由 oxlint 强制（catch-error-name、no-array-sort、
   require-unicode-regexp 等）；目标项目配了 lint 时以 lint 为准，
   本 rule 覆盖未配 lint 的项目与 lint 管不到的判断（断言边界、收窄方式）
