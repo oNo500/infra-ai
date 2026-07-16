@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { artifactPathFor, discoverAssets, parseMetaFile } from '../src/core/meta'
+import { artifactPathFor, discoverAssets, metaContentHash, parseMetaFile } from '../src/core/meta'
 
 describe('artifactPathFor', () => {
   test('rule global', () => {
@@ -105,6 +105,24 @@ describe('discoverAssets', () => {
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  })
+})
+
+describe('metaContentHash', () => {
+  test('ignores tags and requires', () => {
+    const base = `---\nname: a\nstatus: ready\nscope: global\n---\nbody`
+    const tagged = `---\nname: a\nstatus: ready\nscope: global\ntags: [ts]\nrequires: [b]\n---\nbody`
+    expect(metaContentHash(tagged)).toBe(metaContentHash(base))
+  })
+
+  test('changes with body and with scope', () => {
+    const a = `---\nname: a\nstatus: ready\nscope: global\n---\nbody`
+    expect(metaContentHash(`---\nname: a\nstatus: ready\nscope: global\n---\nother`)).not.toBe(
+      metaContentHash(a),
+    )
+    expect(metaContentHash(`---\nname: a\nstatus: ready\nscope: "**/*.ts"\n---\nbody`)).not.toBe(
+      metaContentHash(a),
+    )
   })
 })
 

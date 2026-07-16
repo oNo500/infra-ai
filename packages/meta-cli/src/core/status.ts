@@ -1,5 +1,6 @@
 import { join } from 'node:path'
 import { readTextIfExists, sha256 } from './io'
+import { metaContentHash } from './meta'
 import type { MetaAsset, MetaStatus } from './meta'
 import type { Lock, LockEntry } from './registry'
 
@@ -30,7 +31,7 @@ export function gatherFacts(repoRoot: string, asset: MetaAsset, lock: Lock): Ass
   const artifactContent = readTextIfExists(join(repoRoot, asset.artifactPath))
   return {
     metaStatus: asset.status,
-    metaHash: sha256(metaContent),
+    metaHash: metaContentHash(metaContent),
     artifactHash: artifactContent === null ? null : sha256(artifactContent),
     lock: lock[lockKey(asset)] ?? null,
   }

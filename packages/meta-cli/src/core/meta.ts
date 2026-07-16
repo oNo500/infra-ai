@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import matter from 'gray-matter'
 import { KINDS, KIND_ORDER } from './kinds'
 import type { AssetKind } from './kinds'
+import { sha256 } from './io'
 
 export type { AssetKind } from './kinds'
 export type MetaStatus = 'stub' | 'ready'
@@ -48,6 +49,16 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
     metaPath: `${KINDS[kind].metaDir}/${filename}`,
     artifactPath: artifactPathFor(kind, name, scope),
   }
+}
+
+export function metaContentHash(content: string): string {
+  const { data, content: body } = matter(content)
+  const kept = {
+    name: typeof data.name === 'string' ? data.name : null,
+    status: data.status === 'ready' ? 'ready' : 'stub',
+    scope: typeof data.scope === 'string' ? data.scope : null,
+  }
+  return sha256(`${JSON.stringify(kept)}\n${body}`)
 }
 
 export function discoverAssets(repoRoot: string): MetaAsset[] {

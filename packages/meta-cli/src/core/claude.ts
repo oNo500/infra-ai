@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import { join } from 'node:path'
 import { KINDS } from './kinds'
 import { readTextIfExists, sha256 } from './io'
+import { metaContentHash } from './meta'
 import type { MetaAsset } from './meta'
 import { loadLock, saveLock } from './registry'
 import { lockKey } from './status'
@@ -144,7 +145,7 @@ export function recordBuild(repoRoot: string, asset: MetaAsset, builtAt: string)
   saveLock(repoRoot, {
     ...lock,
     [lockKey(asset)]: {
-      metaHash: sha256(metaContent),
+      metaHash: metaContentHash(metaContent),
       artifactHash: sha256(artifactContent),
       builtAt,
     },

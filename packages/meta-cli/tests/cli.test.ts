@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { renderSkills, renderStatus } from '../src/cli/render'
 import { runCommand } from '../src/core/io'
 import { sha256 } from '../src/core/io'
+import { metaContentHash } from '../src/core/meta'
 
 const INDEX = join(import.meta.dir, '..', 'src', 'index.tsx')
 
@@ -69,7 +70,7 @@ describe('cli end-to-end', () => {
       writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
       writeFileSync(
         join(root, 'artifacts.lock.json'),
-        `${JSON.stringify({ 'rule:foo': { metaHash: sha256(meta), artifactHash: sha256('# foo\n'), builtAt: 't' } })}\n`,
+        `${JSON.stringify({ 'rule:foo': { metaHash: metaContentHash(meta), artifactHash: sha256('# foo\n'), builtAt: 't' } })}\n`,
       )
       const res = await runCommand('bun', ['run', INDEX, 'status'], { cwd: root })
       expect(res.code).toBe(0)

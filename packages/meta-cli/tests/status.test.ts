@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { sha256 } from '../src/core/io'
+import { metaContentHash } from '../src/core/meta'
 import type { MetaAsset } from '../src/core/meta'
 import { adoptEntry, computeStatus, gatherFacts, lockKey } from '../src/core/status'
 
@@ -64,12 +65,12 @@ describe('gatherFacts', () => {
       writeFileSync(join(root, 'rules/global/constitution.md'), artifactContent)
 
       const noLockFacts = gatherFacts(root, ruleAsset, {})
-      expect(noLockFacts.metaHash).toBe(sha256(metaContent))
+      expect(noLockFacts.metaHash).toBe(metaContentHash(metaContent))
       expect(noLockFacts.artifactHash).toBe(sha256(artifactContent))
       expect(noLockFacts.lock).toBeNull()
 
       const entry = {
-        metaHash: sha256(metaContent),
+        metaHash: metaContentHash(metaContent),
         artifactHash: sha256(artifactContent),
         builtAt: '2026-07-11T00:00:00Z',
       }

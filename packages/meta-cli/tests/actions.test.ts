@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getAction, isLoopback, runAction, type ActionContext, type StatusRowData } from '../src/core/actions'
 import { sha256 } from '../src/core/io'
+import { metaContentHash } from '../src/core/meta'
 
 export function fixtureRepo(): string {
   const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
@@ -36,7 +37,7 @@ export function syncLock(root: string): void {
   writeFileSync(join(root, 'rules/global/foo.md'), artifact)
   writeFileSync(
     join(root, 'artifacts.lock.json'),
-    `${JSON.stringify({ 'rule:foo': { metaHash: sha256(meta), artifactHash: sha256(artifact), builtAt: '2026-07-11T00:00:00.000Z' } })}\n`,
+    `${JSON.stringify({ 'rule:foo': { metaHash: metaContentHash(meta), artifactHash: sha256(artifact), builtAt: '2026-07-11T00:00:00.000Z' } })}\n`,
   )
 }
 
