@@ -5,10 +5,18 @@ paths:
 
 # TypeScript
 
-补充 constitution 的 TS 红线（双重断言、`@ts-ignore` 已在 constitution，此处不重复），
-只覆盖日常写 TS 时无法从代码推断的项目偏好。本文多数条目可由 oxlint 强制
-（catch-error-name、no-array-sort、require-unicode-regexp 等）：目标项目配了 lint 时
-以 lint 配置为准，本 rule 覆盖未配 lint 的项目与 lint 管不到的判断（断言边界、收窄方式）。
+TS 的类型红线与日常纪律，只覆盖写 TS 时无法从代码推断的项目偏好。
+本文多数条目可由 oxlint 强制（catch-error-name、no-array-sort、
+require-unicode-regexp 等）：目标项目配了 lint 时以 lint 配置为准，
+本 rule 覆盖未配 lint 的项目与 lint 管不到的判断（断言边界、收窄方式）。
+
+## 红线
+
+- MUST NOT 双重断言——`as X as Y` 经 `unknown`/`any` 中转绕过全部类型检查
+  - 反：`value as unknown as Config`；正：修类型建模，或在边界单次 `as`（见「类型断言」）
+- MUST NOT 用 `@ts-ignore`/`@ts-expect-error` 或 lint 抑制注释
+  （`eslint-disable`/`oxlint-disable`）——被压掉的错误不会消失，只会失去追踪
+  - 反：`// @ts-expect-error` 压掉报错；正：修掉报错本身
 
 ## 空安全
 

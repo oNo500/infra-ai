@@ -5,13 +5,13 @@ paths:
 
 # React
 
-React / Next.js 前端的架构与组件约定。TS 类型纪律见 typescript rule，此处不重复。
+React 前端的架构与组件约定：feature-based 结构、目录语义、组件类型习惯与
+状态管理阶梯。TS 类型纪律见 typescript rule，此处不重复。
 
 ## 架构（feature-based）
 
 ```
 src/
-├── app/              # Next.js App Router：只做路由编排（metadata、dynamic 配置、组合 feature 组件）
 ├── features/
 │   └── <name>/       # 业务逻辑按功能内聚；子目录按需创建，不预建空目录
 │       ├── components/
@@ -28,7 +28,7 @@ src/
     └── app-paths.ts  # 路由路径集中于此
 ```
 
-- 业务逻辑与复杂 JSX 一律下沉到 `features/<name>/`；`app/` 里的页面文件保持薄
+- 业务逻辑归属其 feature；`lib/` 与 `utils/` 的分界是有无第三方库依赖
 - 路由路径从 `config/app-paths.ts` 导入，组件内不硬编码路径字符串
   - 正：`href={appPaths.userDetail(id)}`；反：`` href={`/users/${id}`} ``
 - `features/` 内不建 barrel `index.ts`，直接从源文件导入——barrel 掩盖真实依赖并放大打包体积

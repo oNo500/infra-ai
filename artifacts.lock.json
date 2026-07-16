@@ -5,9 +5,9 @@
     "builtAt": "2026-07-12T12:37:42.450Z"
   },
   "rule:constitution": {
-    "metaHash": "4e90e8d648ef2f3d7c83ed8d80443cc6b6d5e5a458b0829cedf8db0cd90c2cf0",
-    "artifactHash": "771633d2fa4127f1bb8016b36a0af38a4b69893378daaa09eb2aa4fb01add343",
-    "builtAt": "2026-07-14T08:05:40.957Z"
+    "metaHash": "5e5ef2d99e75c0e0d12b43dd337980b8d50b1e975e7109ce88255c4ea0c601c2",
+    "artifactHash": "6994a7254e90587eec46f82642b0f1b750680e421c89d6a217c1f63981a26b08",
+    "builtAt": "2026-07-16T01:24:36.705Z"
   },
   "template:architecture": {
     "metaHash": "24ead7a62a59a1365b3d4c1f521f9bbb09500f0f1c9844f0882b4774be0302e6",
@@ -15,24 +15,19 @@
     "builtAt": "2026-07-12T15:30:44.118Z"
   },
   "rule:typescript": {
-    "metaHash": "048e1c0e4224cee4573f6989a4af76fbab841f957a981fbb4f5d357d866c7421",
-    "artifactHash": "fb8c7e51a25baee6655868504d36b3e1dd8a31ab67de91a7071fa437481ce448",
-    "builtAt": "2026-07-14T01:05:00.439Z"
+    "metaHash": "938a34f8fbc1d95af5e18dde25c4e784dabb90a87d12c1fce28e5957595e2052",
+    "artifactHash": "170e1172a946edeb75f5ab57047d35a3629aac5a5d05e1ccbef97acc4703635b",
+    "builtAt": "2026-07-16T01:25:58.531Z"
   },
   "rule:react": {
-    "metaHash": "6d54cb1cdec3f2adb8f31e072c2e7c8cea8923188368cb1946fce673835954bc",
-    "artifactHash": "3d0ffa936c5a537707bd2fd0503a11a15d5dcf52e5ddb3f5f83e0d9e4172b96e",
-    "builtAt": "2026-07-14T01:08:33.657Z"
+    "metaHash": "cbc73577f6b350f5a8c123d7f07d6507586bde83d7398ed066b151e2dcfc5889",
+    "artifactHash": "a63380f15e944fac061cb6bf83340aee8a7e029b3737cb8643d5ba7fa8b7ea94",
+    "builtAt": "2026-07-16T01:27:47.352Z"
   },
   "rule:markdown": {
-    "metaHash": "4e5bff5bb9b45ea3b8154d172b3f9f5a757f26343f3dcf89bd280ad74716b39a",
-    "artifactHash": "72f7da4e261ff67ca133998e8dc7adf1fc594c42a90456b5ea340a7cabd90bde",
-    "builtAt": "2026-07-14T08:06:55.161Z"
-  },
-  "rule:dependencies": {
-    "metaHash": "784a79a0d8d5b204dd7796df83a9ce04229c9aa91862c4f3e5800f4876031fb0",
-    "artifactHash": "54f530b2c429c74422739347aab9e573f72dd330df4ca47ff55b81f0c1990543",
-    "builtAt": "2026-07-14T05:12:16.846Z"
+    "metaHash": "afa4c99a16c4f76a6a3836cffd6e72e9ac0cb2e045e27800cc986eaa51ef236d",
+    "artifactHash": "eabdc22c26898809977c91add8deda2f58be1e505bff1805236dc9f7c25e7968",
+    "builtAt": "2026-07-16T01:31:20.601Z"
   },
   "rule:nestjs": {
     "metaHash": "d296c9d4af0383c73548a4b5e933c2d12666d406337d26d91d2dc4c4b5964a7b",
@@ -58,5 +53,25 @@
     "metaHash": "9092a45cd5df86006d90fe77c5846b1ea9b28ad7885c845ea8d95b588bafc5ca",
     "artifactHash": "a92fa3c5dd5465105856e2b805d9efcec4dbade289a044953c7516eb3d3208ee",
     "builtAt": "2026-07-14T05:14:11.303Z"
+  },
+  "rule:nextjs": {
+    "metaHash": "b85f5e6169e70c7d84ab3a64b429feaf6f5b989f10ff30abd89a90a9ba209cb1",
+    "artifactHash": "6f81440a82e5816a6cd1784777815e9d098087858e2cd60d679e16489459fd77",
+    "builtAt": "2026-07-16T01:28:44.593Z"
+  },
+  "rule:docs-retrieval": {
+    "metaHash": "d15202d25d7973f2f83ea8a5ff849e6b7b818ff2bfdc0483118121b0990c50c7",
+    "artifactHash": "ecf223abda72669e261ead3ae28e2d60902bd0565e70a858597cef59b18c8c37",
+    "builtAt": "2026-07-16T01:32:34.527Z"
+  },
+  "rule:dependencies-ts": {
+    "metaHash": "c9ceab3707cfcdf99593043a816622e77bbc362c788e61d70de91f958734a1fa",
+    "artifactHash": "054c29172a361bdce1fa5a90924eeabbd06d2b997b1351814122b4674bb374d4",
+    "builtAt": "2026-07-16T01:34:14.526Z"
+  },
+  "rule:ai-sdk": {
+    "metaHash": "65268412e998964020308bd671b52b5380c9a41c0acfd978787575fe6bd143b5",
+    "artifactHash": "f44cfa80ea23ffae7c55cff8abda62643c47c08c7830da999b855dc437bea54a",
+    "builtAt": "2026-07-16T01:36:00.157Z"
   }
 }
