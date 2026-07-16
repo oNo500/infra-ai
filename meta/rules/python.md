@@ -2,6 +2,7 @@
 name: python
 status: ready
 scope: "**/*.py"
+tags: [python]
 ---
 
 # 元指令：python rule

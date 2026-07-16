@@ -2,6 +2,7 @@
 name: context-management
 status: ready
 scope: global
+tags: [core, workflow]
 ---
 
 # 元指令：context-management rule

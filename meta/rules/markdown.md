@@ -2,6 +2,7 @@
 name: markdown
 status: ready
 scope: "**/*.md"
+tags: [docs]
 ---
 
 # 元指令：markdown rule

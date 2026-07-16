@@ -2,6 +2,8 @@
 name: react
 status: ready
 scope: "**/*.tsx"
+tags: [ts, frontend, react]
+requires: [typescript]
 ---
 
 # 元指令：react rule

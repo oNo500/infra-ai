@@ -2,6 +2,7 @@
 name: constitution
 status: ready
 scope: global
+tags: [core]
 ---
 
 # constitution

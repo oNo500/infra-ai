@@ -2,6 +2,7 @@
 name: dependencies
 status: ready
 scope: global
+tags: [ts]
 ---
 
 # 元指令：dependencies rule

@@ -2,6 +2,8 @@
 name: nestjs
 status: ready
 scope: "src/**/*.ts"
+tags: [ts, backend, nestjs]
+requires: [typescript]
 ---
 
 # 元指令：nestjs rule

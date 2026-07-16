@@ -2,6 +2,7 @@
 name: typescript
 status: ready
 scope: "**/*.{ts,tsx}"
+tags: [ts]
 ---
 
 # 元指令：typescript rule

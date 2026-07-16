@@ -2,6 +2,7 @@
 name: testing
 status: ready
 scope: "**/*.{test,spec,e2e-spec}.{ts,tsx,js,jsx}"
+tags: [ts, testing]
 ---
 
 # 元指令：testing rule
