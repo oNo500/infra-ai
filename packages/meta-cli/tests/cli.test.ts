@@ -22,18 +22,27 @@ function cliFixture(): string {
 
 describe('renderers', () => {
   test('renderStatus aligns rows', () => {
-    const out = renderStatus([
-      {
-        name: 'foo',
-        kind: 'rule',
-        status: 'synced',
-        scope: 'global',
-        metaPath: 'meta/rules/foo.md',
-        artifactPath: 'rules/global/foo.md',
-      },
-    ])
+    const out = renderStatus({
+      rows: [
+        {
+          name: 'foo',
+          kind: 'rule',
+          status: 'synced',
+          scope: 'global',
+          tags: [],
+          requires: [],
+          metaPath: 'meta/rules/foo.md',
+          artifactPath: 'rules/global/foo.md',
+        },
+      ],
+      violations: [],
+    })
     expect(out).toContain('foo')
     expect(out).toContain('synced')
+  })
+  test('renderStatus lists violations', () => {
+    const out = renderStatus({ rows: [], violations: ["a: unknown tag 'nope' (not in meta/tags.json)"] })
+    expect(out).toContain("violation: a: unknown tag 'nope' (not in meta/tags.json)")
   })
   test('renderSkills produces deterministic text', () => {
     const out = renderSkills({
@@ -55,9 +64,9 @@ describe('cli end-to-end', () => {
     try {
       const res = await runCommand('bun', ['run', INDEX, 'status', '--json'], { cwd: root })
       expect(res.code).toBe(1)
-      const rows = JSON.parse(res.stdout) as { name: string; status: string }[]
-      expect(rows[0]?.name).toBe('foo')
-      expect(rows[0]?.status).toBe('unbuilt')
+      const data = JSON.parse(res.stdout) as { rows: { name: string; status: string }[]; violations: string[] }
+      expect(data.rows[0]?.name).toBe('foo')
+      expect(data.rows[0]?.status).toBe('unbuilt')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -65,6 +74,11 @@ describe('cli end-to-end', () => {
   test('status exits 0 when synced', async () => {
     const root = cliFixture()
     try {
+      writeFileSync(
+        join(root, 'meta/rules/foo.md'),
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ntags: [ts]\n---\nbody\n',
+      )
+      writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
       const meta = readFileSync(join(root, 'meta/rules/foo.md'), 'utf8')
       mkdirSync(join(root, 'rules/global'), { recursive: true })
       writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')

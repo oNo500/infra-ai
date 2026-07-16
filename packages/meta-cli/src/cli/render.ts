@@ -1,8 +1,12 @@
-import type { SkillsStatusData, StatusRowData } from '../core/actions'
+import type { SkillsStatusData, StatusData } from '../core/actions'
 
-export function renderStatus(rows: StatusRowData[]): string {
-  if (rows.length === 0) return 'no assets'
-  return rows.map((r) => `${r.name.padEnd(20)} ${r.kind.padEnd(8)} ${r.status.padEnd(10)}`.trimEnd()).join('\n')
+export function renderStatus(data: StatusData): string {
+  const lines =
+    data.rows.length === 0
+      ? ['no assets']
+      : data.rows.map((r) => `${r.name.padEnd(20)} ${r.kind.padEnd(8)} ${r.status.padEnd(10)}`.trimEnd())
+  for (const v of data.violations) lines.push(`violation: ${v}`)
+  return lines.join('\n')
 }
 
 export function renderSkills(data: SkillsStatusData): string {

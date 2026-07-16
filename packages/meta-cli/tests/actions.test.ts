@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { getAction, isLoopback, runAction, type ActionContext, type StatusRowData } from '../src/core/actions'
+import { getAction, isLoopback, runAction, type ActionContext, type StatusData } from '../src/core/actions'
 import { sha256 } from '../src/core/io'
 import { metaContentHash } from '../src/core/meta'
 
@@ -48,9 +48,9 @@ describe('status action', () => {
       const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
       expect(result.ok).toBe(true)
       expect(result.exitCode).toBe(1)
-      const rows = result.data as StatusRowData[]
-      expect(rows[0]?.name).toBe('foo')
-      expect(rows[0]?.status).toBe('unbuilt')
+      const data = result.data as StatusData
+      expect(data.rows[0]?.name).toBe('foo')
+      expect(data.rows[0]?.status).toBe('unbuilt')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -62,8 +62,8 @@ describe('status action', () => {
       writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
       const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
       expect(result.exitCode).toBe(1)
-      const rows = result.data as StatusRowData[]
-      expect(rows[0]?.status).toBe('untracked')
+      const data = result.data as StatusData
+      expect(data.rows[0]?.status).toBe('untracked')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -72,13 +72,69 @@ describe('status action', () => {
     const root = fixtureRepo()
     try {
       syncLock(root)
+      writeFileSync(
+        join(root, 'meta/rules/foo.md'),
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ntags: [ts]\n---\nbody\n',
+      )
+      writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
       const all = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
       expect(all.exitCode).toBe(0)
       const one = await getAction('status').execute(testContext(root), { positionals: ['foo'], flags: {} })
-      expect((one.data as StatusRowData[]).length).toBe(1)
+      expect((one.data as StatusData).rows.length).toBe(1)
       const missing = await getAction('status').execute(testContext(root), { positionals: ['nope'], flags: {} })
       expect(missing.ok).toBe(false)
       expect(missing.exitCode).toBe(1)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('status reports composition violations with exit 1', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
+      writeFileSync(
+        join(root, 'meta/rules/a.md'),
+        '---\nname: a\ntarget: rule\nstatus: ready\nscope: global\ntags: [nope]\n---\nbody\n',
+      )
+      const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
+      const data = result.data as StatusData
+      expect(data.violations).toContain("a: unknown tag 'nope' (not in meta/tags.json)")
+      expect(result.exitCode).toBe(1)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('status --tag filters rows', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'meta/rules/bar.md'),
+        '---\nname: bar\ntarget: rule\nstatus: ready\nscope: global\ntags: [ts]\n---\nbody\n',
+      )
+      const tagged = await getAction('status').execute(testContext(root), {
+        positionals: [],
+        flags: {},
+        options: { tag: 'ts' },
+      })
+      const taggedData = tagged.data as StatusData
+      expect(taggedData.rows.map((r) => r.name)).toEqual(['bar'])
+      const empty = await getAction('status').execute(testContext(root), {
+        positionals: [],
+        flags: {},
+        options: { tag: 'nope-tag' },
+      })
+      expect((empty.data as StatusData).rows.length).toBe(0)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('malformed profiles.json fails status with the registry message', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(join(root, 'profiles.json'), '{"app":{"rules":"x"}}')
+      const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
+      expect(result.ok).toBe(false)
+      expect(result.message).toContain("profiles.json: profile 'app'")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

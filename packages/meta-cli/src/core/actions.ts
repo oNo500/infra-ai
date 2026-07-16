@@ -31,6 +31,8 @@ import {
 import type { DownloadFn, LedgerIssue, MirrorStatus, Recommendation } from './skills-sync'
 import { adoptEntry, computeStatus, gatherFacts, lockKey } from './status'
 import type { ReconcileStatus } from './status'
+import { loadProfiles, loadTagVocabulary, validateComposition } from './composition'
+import type { Profiles, TagVocabulary } from './composition'
 
 export interface ActionContext {
   repoRoot: string
@@ -115,7 +117,7 @@ export interface ActionHooks {
 
 export interface ArgSpec {
   name: string
-  kind: 'positional' | 'flag'
+  kind: 'positional' | 'flag' | 'option'
   required?: boolean
   variadic?: boolean
   description: string
@@ -124,6 +126,7 @@ export interface ArgSpec {
 export interface ActionParams {
   positionals: string[]
   flags: Record<string, boolean>
+  options?: Record<string, string>
 }
 
 export interface ActionResult {
@@ -146,8 +149,15 @@ export interface StatusRowData {
   kind: string
   status: string
   scope: string | null
+  tags: string[]
+  requires: string[]
   metaPath: string
   artifactPath: string
+}
+
+export interface StatusData {
+  rows: StatusRowData[]
+  violations: string[]
 }
 
 export interface SkillsStatusData {
@@ -174,22 +184,43 @@ const statusAction: ActionDef = {
   id: 'status',
   summary: 'Show reconcile status for all assets or one asset',
   kind: 'query',
-  args: [{ name: 'name', kind: 'positional', description: 'asset name (optional)' }],
+  args: [
+    { name: 'name', kind: 'positional', description: 'asset name (optional)' },
+    { name: 'tag', kind: 'option', description: 'filter rules by tag' },
+  ],
   async execute(ctx, params) {
+    let vocab: TagVocabulary
+    let profiles: Profiles
+    try {
+      vocab = loadTagVocabulary(ctx.repoRoot)
+      profiles = loadProfiles(ctx.repoRoot)
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : String(error))
+    }
     const rows = loadOverview(ctx.repoRoot)
     const name = params.positionals[0]
-    const selected = name ? rows.filter((r) => r.asset.name === name) : rows
+    let selected = name ? rows.filter((r) => r.asset.name === name) : rows
     if (name && selected.length === 0) return fail(`unknown asset: ${name}`)
-    const data: StatusRowData[] = selected.map((r) => ({
+    const tag = params.options?.tag
+    if (tag !== undefined) selected = selected.filter((r) => r.asset.tags.includes(tag))
+    const dataRows: StatusRowData[] = selected.map((r) => ({
       name: r.asset.name,
       kind: r.asset.kind,
       status: r.status,
       scope: r.asset.scope,
+      tags: r.asset.tags,
+      requires: r.asset.requires,
       metaPath: r.asset.metaPath,
       artifactPath: r.asset.artifactPath,
     }))
-    const pending = data.some((d) => PENDING_STATUSES.has(d.status))
-    return { ok: true, data, exitCode: pending ? 1 : 0 }
+    const violations = validateComposition(
+      rows.map((r) => r.asset),
+      vocab,
+      profiles,
+    )
+    const pending = dataRows.some((d) => PENDING_STATUSES.has(d.status))
+    const data: StatusData = { rows: dataRows, violations }
+    return { ok: true, data, exitCode: pending || violations.length > 0 ? 1 : 0 }
   },
 }
 

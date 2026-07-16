@@ -1,11 +1,11 @@
 import { defineCommand, runMain } from 'citty'
 import type { ArgsDef, CommandDef } from 'citty'
 import { ACTIONS, defaultContext, runAction } from '../core/actions'
-import type { ActionDef, ActionParams, SkillsStatusData, StatusRowData } from '../core/actions'
+import type { ActionDef, ActionParams, SkillsStatusData, StatusData } from '../core/actions'
 import { renderSkills, renderStatus } from './render'
 
 const QUERY_RENDERERS: Record<string, (data: unknown) => string> = {
-  status: (d) => renderStatus(d as StatusRowData[]),
+  status: (d) => renderStatus(d as StatusData),
   'skills:status': (d) => renderSkills(d as SkillsStatusData),
 }
 
@@ -24,16 +24,20 @@ function paramsFrom(args: Record<string, unknown>): ActionParams {
   const raw = args._
   const positionals = Array.isArray(raw) ? raw.map(String) : []
   const flags: Record<string, boolean> = {}
+  const options: Record<string, string> = {}
   for (const [key, value] of Object.entries(args)) {
-    if (key !== '_' && typeof value === 'boolean') flags[key] = value
+    if (key === '_') continue
+    if (typeof value === 'boolean') flags[key] = value
+    if (typeof value === 'string') options[key] = value
   }
-  return { positionals, flags }
+  return { positionals, flags, options }
 }
 
 function commandFor(action: ActionDef): CommandDef {
   const args: ArgsDef = {}
   for (const spec of action.args) {
     if (spec.kind === 'flag') args[spec.name] = { type: 'boolean', description: spec.description }
+    if (spec.kind === 'option') args[spec.name] = { type: 'string', description: spec.description }
   }
   if (action.kind === 'query') args.json = { type: 'boolean', description: 'output JSON' }
   const leaf = action.id.includes(':') ? action.id.slice(action.id.indexOf(':') + 1) : action.id
