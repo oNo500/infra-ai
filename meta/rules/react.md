@@ -8,7 +8,8 @@ requires: [typescript]
 
 # 元指令：react rule
 
-React / Next.js 前端的架构与组件约定，作用于 `**/*.tsx`。
+React 前端的架构与组件约定，作用于 `**/*.tsx`。
+Next.js 专属约定归 nextjs rule（requires 本 rule）。
 
 ## 目标
 
@@ -22,8 +23,6 @@ React / Next.js 前端的架构与组件约定，作用于 `**/*.tsx`。
 
 - 业务逻辑按功能内聚在 `features/<name>/`（components/hooks/utils/api/
   types.ts 均可选，按需创建，不预建空目录）
-- `app/`（Next.js App Router）只做路由编排：metadata、dynamic 配置、
-  组合 feature 组件；业务逻辑与复杂 JSX 一律下沉到 `features/`
 - 跨 feature 共享才提升到顶层 `components/`、`hooks/`
 - `lib/` 放第三方库封装（axios 实例、dayjs 配置）；`utils/` 放与第三方库
   无关的纯函数

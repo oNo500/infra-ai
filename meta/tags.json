@@ -17,6 +17,7 @@
     "exclusive": true,
     "values": {
       "react": "React",
+      "nextjs": "Next.js",
       "nestjs": "NestJS"
     }
   },
@@ -26,7 +27,8 @@
       "core": "跨语言核心原则",
       "workflow": "AI 协作与会话工作流",
       "testing": "测试",
-      "docs": "文档写作"
+      "docs": "文档写作",
+      "ai": "AI 应用与 AI 消费"
     }
   }
 }

@@ -11,11 +11,14 @@ TypeScript 项目的类型纪律，作用于 `**/*.{ts,tsx}`。
 
 ## 目标
 
-补充 constitution 的 TS 红线（双重断言、`@ts-ignore` 已在 constitution，
-本 rule 不重复），覆盖日常写 TS 时 Claude 无法从代码推断的项目偏好。
+TS 的类型红线与日常纪律，覆盖写 TS 时 Claude 无法从代码推断的项目偏好。
+红线原在 constitution，2026-07-16 迁入本 rule——红线跟语言走，
+Python 项目不再背 TS 禁令。
 
 ## 约束（素材，构建时组织成产物）
 
+- 红线（MUST NOT）：双重断言（`value as X as Y`）；`@ts-ignore`/
+  `@ts-expect-error` 及 lint 抑制注释（`eslint-disable`/`oxlint-disable`）
 - 空安全：禁用 `!` 非空断言；用可选链、类型收窄或显式判空。
   索引访问在 strict 模式下按 `T | undefined` 对待（noUncheckedIndexedAccess 心智），
   测试代码同样适用
