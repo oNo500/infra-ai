@@ -28,10 +28,14 @@ TS/JS 生态的依赖与工具链选型，global 落点（是否装入项目由 
 - dev 工具链：lint/format 用 oxlint + oxfmt（不用 ESLint + Prettier 组合）、
   type check 用 `tsc --noEmit`、架构边界（feature 隔离、依赖单向、
   循环依赖检测）用 dependency-cruiser
+- 包管理用 pnpm（硬链接、无幻影依赖、workspace 原生）+ corepack
+  锁定 `packageManager` 字段；依赖健康三件套：syncpack 查版本一致性、
+  taze 更新、knip 查未使用依赖
+- SemVer 范围策略：应用用 `^`、发布的库用 `~`、关键基础设施精确锁定
 
 ## 产物要求
 
-- global 落点：不超过 12 行正文，一条一行，姿态化
+- global 落点：不超过 15 行正文，一条一行，姿态化
 - 素材源：notes 仓 `20-areas/20-05-rc/rc-stack.md`、`rc-rules.md`、
   `10-projects/10-06-boilerplate/CodeStyle-约定.md`；前身是本仓
   dependencies rule（2026-07-16 拆分，AI SDK 条拆往 ai-sdk）

@@ -1,18 +1,18 @@
 {
   "nextjs-app": {
     "description": "Next.js App Router 应用",
-    "rules": ["constitution", "context-management", "dependencies-ts", "typescript", "react", "nextjs", "testing", "markdown"]
+    "rules": ["constitution", "context-management", "agent-behavior", "tooling", "dependencies-ts", "typescript", "react", "nextjs", "css", "testing", "markdown"]
   },
   "react-spa": {
     "description": "React SPA（Vite 等）",
-    "rules": ["constitution", "context-management", "dependencies-ts", "typescript", "react", "testing", "markdown"]
+    "rules": ["constitution", "context-management", "agent-behavior", "tooling", "dependencies-ts", "typescript", "react", "css", "testing", "markdown"]
   },
   "nestjs-api": {
     "description": "NestJS 后端服务",
-    "rules": ["constitution", "context-management", "dependencies-ts", "typescript", "nestjs", "testing", "markdown"]
+    "rules": ["constitution", "context-management", "agent-behavior", "tooling", "dependencies-ts", "typescript", "nestjs", "database", "testing", "markdown"]
   },
   "python-cli": {
     "description": "Python 项目",
-    "rules": ["constitution", "context-management", "python", "markdown"]
+    "rules": ["constitution", "context-management", "agent-behavior", "tooling", "python", "markdown"]
   }
 }
