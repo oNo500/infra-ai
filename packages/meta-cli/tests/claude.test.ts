@@ -17,6 +17,8 @@ const ruleAsset: MetaAsset = {
   kind: 'rule',
   status: 'ready',
   scope: 'global',
+  tags: [],
+  requires: [],
   metaPath: 'meta/rules/constitution.md',
   artifactPath: 'rules/global/constitution.md',
 }
@@ -26,6 +28,8 @@ const skillAsset: MetaAsset = {
   kind: 'skill',
   status: 'ready',
   scope: null,
+  tags: [],
+  requires: [],
   metaPath: 'meta/skills/commit-lite.md',
   artifactPath: 'skills/commit-lite/SKILL.md',
 }

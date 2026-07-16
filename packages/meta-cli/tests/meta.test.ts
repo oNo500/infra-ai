@@ -31,6 +31,8 @@ describe('parseMetaFile', () => {
       kind: 'rule',
       status: 'ready',
       scope: 'global',
+      tags: [],
+      requires: [],
       metaPath: 'meta/rules/constitution.md',
       artifactPath: 'rules/global/constitution.md',
     })
@@ -103,5 +105,28 @@ describe('discoverAssets', () => {
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
+  })
+})
+
+describe('parseMetaFile tags and requires', () => {
+  test('parses tags and requires arrays from frontmatter', () => {
+    const content = `---\nname: react\nstatus: ready\nscope: "**/*.tsx"\ntags: [ts, frontend]\nrequires: [typescript]\n---\nbody`
+    const asset = parseMetaFile(content, 'react.md', 'rule')
+    expect(asset.tags).toEqual(['ts', 'frontend'])
+    expect(asset.requires).toEqual(['typescript'])
+  })
+
+  test('defaults tags and requires to empty arrays', () => {
+    const content = `---\nname: python\nstatus: stub\n---\n`
+    const asset = parseMetaFile(content, 'python.md', 'rule')
+    expect(asset.tags).toEqual([])
+    expect(asset.requires).toEqual([])
+  })
+
+  test('drops non-string entries in tags and requires', () => {
+    const content = `---\nname: x\nstatus: ready\ntags: [ok, 3]\nrequires: 5\n---\n`
+    const asset = parseMetaFile(content, 'x.md', 'rule')
+    expect(asset.tags).toEqual(['ok'])
+    expect(asset.requires).toEqual([])
   })
 })

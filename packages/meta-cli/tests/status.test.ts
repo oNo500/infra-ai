@@ -46,6 +46,8 @@ const ruleAsset: MetaAsset = {
   kind: 'rule',
   status: 'ready',
   scope: 'global',
+  tags: [],
+  requires: [],
   metaPath: 'meta/rules/constitution.md',
   artifactPath: 'rules/global/constitution.md',
 }

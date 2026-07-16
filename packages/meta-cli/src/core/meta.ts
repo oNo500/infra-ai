@@ -12,6 +12,8 @@ export interface MetaAsset {
   kind: AssetKind
   status: MetaStatus
   scope: string | null
+  tags: string[]
+  requires: string[]
   metaPath: string
   artifactPath: string
 }
@@ -21,6 +23,10 @@ export function artifactPathFor(kind: AssetKind, name: string, scope: string | n
 }
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/u
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+}
 
 export function parseMetaFile(content: string, filename: string, kind: AssetKind): MetaAsset {
   const { data } = matter(content)
@@ -37,6 +43,8 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
     kind,
     status,
     scope,
+    tags: stringArray(data.tags),
+    requires: stringArray(data.requires),
     metaPath: `${KINDS[kind].metaDir}/${filename}`,
     artifactPath: artifactPathFor(kind, name, scope),
   }
