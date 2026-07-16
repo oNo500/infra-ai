@@ -744,7 +744,7 @@ bun -e 'const p="artifacts.lock.json";const l=JSON.parse(await Bun.file(p).text(
 - [ ] **Step 5: 终态验证**
 
 Run: `imeta status && cd packages/meta-cli && bun test`
-Expected: 13 rule 资产全 synced、violations 空、退出码 0；测试全绿。
+Expected: 12 rule 资产全 synced、violations 空、退出码 0；测试全绿。
 产物抽查：constitution 无 TS 红线；typescript 含双重断言/`@ts-ignore` 红线；react 无 `app/` 内容；nextjs/docs-retrieval/dependencies-ts/ai-sdk 与元指令对齐。
 
 - [ ] **Step 6: Commit**

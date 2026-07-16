@@ -11,12 +11,14 @@ infra-ai/
 │       ├── constitution.md    # rules/global/constitution.md 的分发副本
 │       └── architecture.md    # this file
 ├── skills.json                # skill 账：存在与来源的 SSoT
+├── profiles.json              # rule 组合账：项目 profile 显式清单（imeta status 校验）
 ├── SKILLS.md                  # skills 专题（SSoT、创建、维护、使用）
 ├── skills/                    # skill 产物（custom + mirror；official 留上游）
 ├── meta/                      # 元指令源，永久保留
 │   ├── prompts/               # AI 行为契约，每类两份（<类>-build.md、<类>-writeback.md）
 │   ├── README.md              # 元指令格式与新增资产说明
-│   ├── rules/                 # rule 元指令
+│   ├── tags.json              # rule tag 受控词表（分面化，互斥面 + 孤儿校验）
+│   ├── rules/                 # rule 元指令（frontmatter 含 tags/requires 管理元数据）
 │   ├── skills/                # skill 元指令
 │   └── templates/             # template 元指令
 ├── rules/                     # 可分发 rule 产物
