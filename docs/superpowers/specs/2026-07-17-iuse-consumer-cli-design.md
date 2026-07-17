@@ -31,12 +31,12 @@ iuse 对中心源只读，不做构建/回写。
      拷 `templates/settings.json` 到 `.claude/settings.json` → AI 实例化
      `templates/architecture.md` → `.claude/rules/architecture.md`、
      `templates/claude-md.md` → 根 `CLAUDE.md`（最后生成）→ 落下游账。
-     目标已有下游账时报错并指向 update；`--force` 允许重跑（幂等：
-     同内容跳过，实例化产物已存在时不覆盖）
+     目标已有下游账时报错并指向 update；`--force` 允许重跑（rule 同内容
+     跳过，模板一律重新实例化并重过校验）
    - `iuse status`——逐 rule 三态对账：`synced`（副本 = 基线 = 源）、
      `modified`（副本 ≠ 基线：下游被改，按「下游不回改」红线提示带回
-     中心或接受覆盖）、`outdated`（基线 ≠ 源当前产物）；模板只报
-     instantiated 事实不对账。语义化退出码：有 modified/outdated 退 1
+     中心或接受覆盖）、`outdated`（基线 ≠ 源当前产物）；模板不对账
+     （账内只记 instantiated 清单）。语义化退出码：有 modified/outdated 退 1
    - `iuse update`——outdated 且未 modified 的拷新版并更新账；
      modified 的跳过并警告，`--force` 才覆盖；模板不参与 update
      （实例化产物已项目化）
@@ -56,7 +56,9 @@ iuse 对中心源只读，不做构建/回写。
    一次 claude 调用。落位分工：CLAUDE.md 与 `.claude/**` 是 Claude Code
    权限系统的敏感文件，headless 的 allowedTools 无法放行直写——claude
    只写目标项目内非敏感的 staging 文件（`.iuse-staging/<name>.md`，
-   allowedTools `Read,Glob,Grep,Write(<staging 相对路径>)`），校验通过后
+   allowedTools `Read,Glob,Grep,Edit(<staging 相对路径>)`——注意
+   `Write(path)` 规则不被文件权限检查匹配，`Edit(path)` 才覆盖全部
+   文件编辑工具），校验通过后
    由 iuse 进程落位到最终路径并清理 staging。校验：无 `[ALL_CAPS]` 残留、
    CLAUDE.md <50 行。
 
