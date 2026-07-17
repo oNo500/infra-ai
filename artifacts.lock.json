@@ -140,13 +140,18 @@
     "builtAt": "2026-07-17T00:00:30.508Z"
   },
   "skill:ctx-init": {
-    "metaHash": "335d2b1782fefe2f0fa79be6e377a7c640a87e14df10d7c69a9b44c3b8ce5898",
-    "artifactHash": "2825fc48307f2747736cf1691b1b984ef50f8a1fb69d92cdbddd5ec6068415bf",
-    "builtAt": "2026-07-17T00:01:55.704Z"
+    "metaHash": "82d1a234c8e686cd3dff9b5716b2c25e788d0ec370ced9f7248968779818c970",
+    "artifactHash": "dcf411afd78f43952284daf15e44aa5f42905b1e8503fd3e483200845e484e8d",
+    "builtAt": "2026-07-17T00:17:21.313Z"
   },
   "skill:explaining-code": {
     "metaHash": "4b107e2d2c35d9ff65e31b6fbc03f460dde8ad2706da0d0d74b65a7a56bc8613",
     "artifactHash": "e8f72ab58fb959cffdc4c903eafb772f0bad3e55582d3af30a05da95d855afe6",
     "builtAt": "2026-07-17T00:02:46.626Z"
+  },
+  "template:claude-md": {
+    "metaHash": "9bdb95f62052d89cf9d84a4f0bf8b5a7e536d7c0e8ce0f209f7ade2dbec9577c",
+    "artifactHash": "acfdd7007d5927374d477ad581a23f2c0a6596a54fec16eae4b9fe3df499a3ba",
+    "builtAt": "2026-07-17T00:14:27.766Z"
   }
 }
