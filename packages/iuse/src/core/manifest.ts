@@ -1,7 +1,16 @@
 import { join } from 'node:path'
-import { readTextIfExists, writeFileAtomic } from '@infra-ai/meta-cli/core'
+import { readTextIfExists, sha256, writeFileAtomic } from '@infra-ai/meta-cli/core'
 
 export const LOCK_PATH = '.claude/infra-ai.lock.json'
+
+export function ruleTargetRelPath(rule: string): string {
+  return `.claude/rules/${rule}.md`
+}
+
+export function localHashFor(target: string, rule: string): string | null {
+  const content = readTextIfExists(join(target, ruleTargetRelPath(rule)))
+  return content === null ? null : sha256(content)
+}
 
 export interface DownstreamLock {
   source: { type: 'local' | 'remote'; id: string; locator: string }

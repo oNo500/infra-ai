@@ -80,6 +80,35 @@ describe('statusReport', () => {
     expect(result.exitCode).toBe(1)
   })
 
+  test('source resolution failure returns ok:false with the error message instead of throwing', async () => {
+    const badSource = mkdtempSync(join(tmpdir(), 'iuse-report-badsrc-'))
+    const target = await initTarget(fixtureSource())
+
+    const result = await statusReport(ctxWith(), { source: badSource, target })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('profiles.json not found')
+    expect(result.rows).toEqual([])
+    expect(result.exitCode).toBe(1)
+  })
+
+  test('rejecting download for a gh: source returns ok:false with the rejection message', async () => {
+    const target = await initTarget(fixtureSource())
+    const ctx: IuseContext = {
+      ...ctxWith(),
+      download: async () => {
+        throw new Error('network unreachable')
+      },
+    }
+
+    const result = await statusReport(ctx, { source: 'gh:someorg/somerepo', target })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('network unreachable')
+    expect(result.rows).toEqual([])
+    expect(result.exitCode).toBe(1)
+  })
+
   test('freshly initialized target is fully synced, exit 0', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)

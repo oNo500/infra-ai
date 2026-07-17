@@ -1,8 +1,7 @@
 import { join } from 'node:path'
-import { readTextIfExists, sha256 } from '@infra-ai/meta-cli/core'
 import { planAssembly } from './assemble'
 import type { IuseContext } from './init'
-import { computeDrift, loadDownstreamLock } from './manifest'
+import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DriftState } from './manifest'
 import { resolveSource } from './source'
 
@@ -16,11 +15,6 @@ export interface StatusResult {
   message?: string
   rows: StatusRow[]
   exitCode: number
-}
-
-function localHashFor(target: string, rule: string): string | null {
-  const content = readTextIfExists(join(target, `.claude/rules/${rule}.md`))
-  return content === null ? null : sha256(content)
 }
 
 export async function statusReport(
@@ -37,14 +31,19 @@ export async function statusReport(
     }
   }
 
-  const source = await resolveSource({
-    explicit: opts.source,
-    envRoot: ctx.env.INFRA_AI_ROOT,
-    homeDefault: join(ctx.home, 'code/infra-ai'),
-    cacheDir: ctx.cacheDir,
-    download: ctx.download,
-    run: ctx.run,
-  })
+  let source: Awaited<ReturnType<typeof resolveSource>>
+  try {
+    source = await resolveSource({
+      explicit: opts.source,
+      envRoot: ctx.env.INFRA_AI_ROOT,
+      homeDefault: join(ctx.home, 'code/infra-ai'),
+      cacheDir: ctx.cacheDir,
+      download: ctx.download,
+      run: ctx.run,
+    })
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error), rows: [], exitCode: 1 }
+  }
 
   let items: ReturnType<typeof planAssembly>['items']
   let violations: ReturnType<typeof planAssembly>['violations']
@@ -65,7 +64,7 @@ export async function statusReport(
   const sourceHashByRule = new Map(items.map((i) => [i.rule, i.hash]))
 
   const rows: StatusRow[] = []
-  for (const [rule, baselineHash] of Object.entries(lock.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
+  for (const [rule, baselineHash] of Object.entries(lock.rules)) {
     const localHash = localHashFor(opts.target, rule)
     const sourceHash = sourceHashByRule.get(rule) ?? null
     rows.push({ rule, state: computeDrift(localHash, baselineHash, sourceHash) })
@@ -75,7 +74,7 @@ export async function statusReport(
   // have no baseline to diff against yet -- they need to be pulled in, so we
   // surface them as 'outdated' (the same state 'iuse update' will resolve by
   // copying them in and registering them in the lock).
-  for (const rule of [...sourceHashByRule.keys()].toSorted()) {
+  for (const rule of sourceHashByRule.keys()) {
     if (rule in lock.rules) continue
     rows.push({ rule, state: 'outdated' })
   }

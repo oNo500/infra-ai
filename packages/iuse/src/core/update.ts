@@ -1,17 +1,12 @@
 import { join } from 'node:path'
-import { readTextIfExists, sha256, writeFileAtomic } from '@infra-ai/meta-cli/core'
+import { writeFileAtomic } from '@infra-ai/meta-cli/core'
 import { planAssembly } from './assemble'
 import type { IuseContext } from './init'
-import { computeDrift, loadDownstreamLock, saveDownstreamLock } from './manifest'
+import { computeDrift, loadDownstreamLock, localHashFor, ruleTargetRelPath, saveDownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message }
-}
-
-function localHashFor(target: string, rule: string): string | null {
-  const content = readTextIfExists(join(target, `.claude/rules/${rule}.md`))
-  return content === null ? null : sha256(content)
 }
 
 export async function runUpdate(
@@ -23,14 +18,19 @@ export async function runUpdate(
     return fail(`${opts.target}: not initialized, run 'iuse init' first`)
   }
 
-  const source = await resolveSource({
-    explicit: opts.source,
-    envRoot: ctx.env.INFRA_AI_ROOT,
-    homeDefault: join(ctx.home, 'code/infra-ai'),
-    cacheDir: ctx.cacheDir,
-    download: ctx.download,
-    run: ctx.run,
-  })
+  let source: Awaited<ReturnType<typeof resolveSource>>
+  try {
+    source = await resolveSource({
+      explicit: opts.source,
+      envRoot: ctx.env.INFRA_AI_ROOT,
+      homeDefault: join(ctx.home, 'code/infra-ai'),
+      cacheDir: ctx.cacheDir,
+      download: ctx.download,
+      run: ctx.run,
+    })
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
 
   let items: ReturnType<typeof planAssembly>['items']
   let violations: ReturnType<typeof planAssembly>['violations']
@@ -50,9 +50,12 @@ export async function runUpdate(
   for (const [rule, baselineHash] of Object.entries(lock.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
     const item = sourceByRule.get(rule)
     if (item === undefined) {
-      // Removed from the profile/source: leave the local copy alone (manual
-      // cleanup) and keep the stale lock entry so status keeps flagging it.
-      notes.push(`${rule}: removed from source profile, local copy kept (remove manually if no longer needed)`)
+      // Removed from the profile/source: the lock entry is dropped so `status`
+      // stops flagging a rule that will never sync again, but the local file
+      // is left alone -- manual cleanup, per spec ("报告但不删除本地副本" protects
+      // the file, not the lock bookkeeping).
+      delete nextRules[rule]
+      notes.push(`${rule}: removed from source profile, local copy kept at ${ruleTargetRelPath(rule)} (manual cleanup)`)
       continue
     }
 

@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import {
   discoverAssets, loadProfiles, loadTagVocabulary, readTextIfExists, sha256, validateComposition,
 } from '@infra-ai/meta-cli/core'
+import { ruleTargetRelPath } from './manifest'
 
 export interface AssemblyItem {
   rule: string
@@ -33,7 +34,7 @@ export function planAssembly(
       violations.push(`${rule}: built artifact missing at ${asset.artifactPath} (run imeta build in the source)`)
       continue
     }
-    items.push({ rule, sourcePath, targetRelPath: `.claude/rules/${rule}.md`, content, hash: sha256(content) })
+    items.push({ rule, sourcePath, targetRelPath: ruleTargetRelPath(rule), content, hash: sha256(content) })
   }
   return { items, violations }
 }

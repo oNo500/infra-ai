@@ -239,4 +239,30 @@ describe('runInit', () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain("unknown profile 'nope'")
   })
+
+  test('source resolution failure returns a clean ok:false instead of throwing', async () => {
+    const badSource = mkdtempSync(join(tmpdir(), 'iuse-init-badsrc-'))
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source: badSource, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('profiles.json not found')
+  })
+
+  test('rejecting download for a gh: source returns a clean ok:false instead of throwing', async () => {
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx: IuseContext = {
+      ...ctxWith(fakeClaudeWriting(() => '# demo\n')),
+      download: async () => {
+        throw new Error('network unreachable')
+      },
+    }
+
+    const result = await runInit(ctx, { source: 'gh:someorg/somerepo', profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('network unreachable')
+  })
 })

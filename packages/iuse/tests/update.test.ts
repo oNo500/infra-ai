@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
 import { loadDownstreamLock } from '../src/core/manifest'
+import { statusReport } from '../src/core/report'
 import { runUpdate } from '../src/core/update'
 
 function fixtureSource(): string {
@@ -77,6 +78,31 @@ describe('runUpdate', () => {
 
     expect(result.ok).toBe(false)
     expect(result.message).toContain('iuse init')
+  })
+
+  test('source resolution failure returns ok:false with the error message instead of throwing', async () => {
+    const source = mkdtempSync(join(tmpdir(), 'iuse-update-badsrc-'))
+    const target = await initTarget(fixtureSource())
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('profiles.json not found')
+  })
+
+  test('rejecting download for a gh: source returns ok:false with the rejection message', async () => {
+    const target = await initTarget(fixtureSource())
+    const ctx: IuseContext = {
+      ...ctxWith(),
+      download: async () => {
+        throw new Error('network unreachable')
+      },
+    }
+
+    const result = await runUpdate(ctx, { source: 'gh:someorg/somerepo', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('network unreachable')
   })
 
   test('outdated + clean local -> writes new content and refreshes the lock hash', async () => {
@@ -162,7 +188,7 @@ describe('runUpdate', () => {
     expect(Object.keys(lock?.rules ?? {}).toSorted()).toEqual(['constitution', 'extra'])
   })
 
-  test('rule removed from source profile is reported but the local copy is kept', async () => {
+  test('rule removed from source profile drops the lock entry but keeps the local copy', async () => {
     const source = fixtureSource()
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
@@ -174,8 +200,16 @@ describe('runUpdate', () => {
 
     expect(result.ok).toBe(true)
     expect(result.message).toContain('extra: removed from source profile')
+    expect(result.message).toContain('manual cleanup')
     expect(existsSync(join(target, '.claude/rules/extra.md'))).toBe(true)
-    expect(loadDownstreamLock(target)?.rules.extra).not.toBe(undefined)
+    expect(loadDownstreamLock(target)?.rules.extra).toBe(undefined)
+
+    // Follow-through: status no longer flags the removed rule at all, and the
+    // rest of the target is in sync, so the overall report is a clean exit 0.
+    const statusAfter = await statusReport(ctxWith(), { source, target })
+    expect(statusAfter.ok).toBe(true)
+    expect(statusAfter.rows.some((r) => r.rule === 'extra')).toBe(false)
+    expect(statusAfter.exitCode).toBe(0)
   })
 
   test('lock source id/locator and appliedAt are refreshed; templates list untouched', async () => {

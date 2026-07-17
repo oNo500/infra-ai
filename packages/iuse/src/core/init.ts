@@ -98,14 +98,19 @@ export async function runInit(
     )
   }
 
-  const source = await resolveSource({
-    explicit: opts.source,
-    envRoot: ctx.env.INFRA_AI_ROOT,
-    homeDefault: join(ctx.home, 'code/infra-ai'),
-    cacheDir: ctx.cacheDir,
-    download: ctx.download,
-    run: ctx.run,
-  })
+  let source: Awaited<ReturnType<typeof resolveSource>>
+  try {
+    source = await resolveSource({
+      explicit: opts.source,
+      envRoot: ctx.env.INFRA_AI_ROOT,
+      homeDefault: join(ctx.home, 'code/infra-ai'),
+      cacheDir: ctx.cacheDir,
+      download: ctx.download,
+      run: ctx.run,
+    })
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
 
   let items: ReturnType<typeof planAssembly>['items']
   let violations: ReturnType<typeof planAssembly>['violations']
