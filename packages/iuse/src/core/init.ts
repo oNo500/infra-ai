@@ -69,7 +69,12 @@ async function instantiateTemplate(
     return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude instantiation timed out (rerun with --force to complete instantiation)` }
   }
   if (result.code !== 0) {
-    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude exited with code ${result.code} (rerun with --force to complete instantiation)` }
+    const stderrTail = result.stderr.trim().split('\n').slice(-3).join(' | ')
+    return {
+      ok: false,
+      skipped: false,
+      message: `${spec.targetRelPath}: claude exited with code ${result.code}${stderrTail === '' ? '' : ` (stderr: ${stderrTail})`} (rerun with --force to complete instantiation)`,
+    }
   }
 
   const content = readTextIfExists(targetFile)
