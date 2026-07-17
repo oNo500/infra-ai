@@ -29,8 +29,8 @@ infra-ai/
 │   ├── mcp/                   # MCP server 知识文档
 │   └── superpowers/           # 设计文档（specs + plans）
 ├── packages/meta-cli/         # 维护端 CLI/TUI（对账/构建/回写；bin: imeta）
+├── packages/iuse/             # 使用端 CLI（init/status/update，向目标项目拼装 profile；bin: iuse）
 ├── packages/preview/          # 产物 web 预览（Bun.serve + React，imeta preview 拉起）
-├── scripts/                   # init-project.sh（使用端脚手架，待迁往使用端 CLI）
 ├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线（键 <kind>:<name>）
 └── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```

@@ -45,11 +45,10 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则：手动复制（分发能力属使用端 CLI，待立项；不用 symlink，跨设备路径不可靠）
-cp ~/code/infra-ai/rules/<类>/<topic>.md <project>/.claude/rules/<topic>.md
-
-# 新项目脚手架
-scripts/init-project.sh <target-dir> [--type ts-node|python|generic]
+# 规则与模板：使用端 CLI 按 profile 拼装（packages/iuse 内 pnpm link --global）
+iuse init --profile <name> <project>   # 新项目初始化（rules + settings + CLAUDE.md/architecture 实例化）
+iuse status <project>                  # 下游对账：synced / modified / outdated
+iuse update <project>                  # 拉中心源新版（本地被改的默认跳过，--force 覆盖）
 ```
 
-本仓 push 后，其他设备 `git pull` 再重新 copy 规则，skill 用 `pnpx skills update` 更新。
+本仓 push 后，其他设备 `git pull` 再 `iuse update` 各项目，skill 用 `pnpx skills update` 更新。
