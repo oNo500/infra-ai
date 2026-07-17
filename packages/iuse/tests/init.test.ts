@@ -268,4 +268,116 @@ describe('runInit', () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain('network unreachable')
   })
+
+  test('init --dry-run writes nothing and lists the full plan', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const { claude, calls } = countingFakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(target, '.claude'))).toBe(false)
+    expect(existsSync(join(target, 'CLAUDE.md'))).toBe(false)
+    expect(loadDownstreamLock(target)).toBeNull()
+    expect(calls()).toBe(0) // instantiate steps are listed, never pre-run
+
+    const steps = result.steps ?? []
+    const ops = steps.map((s) => s.op)
+    expect(ops).toContain('copy-rule')
+    expect(ops).toContain('copy-settings')
+    expect(ops).toContain('instantiate')
+    expect(ops[ops.length - 1]).toBe('write-lock')
+
+    const ruleTargets = steps.filter((s) => s.op === 'copy-rule').map((s) => s.target)
+    expect(ruleTargets.toSorted()).toEqual(['.claude/rules/constitution.md', '.claude/rules/markdown.md'])
+
+    const instantiateTargets = steps.filter((s) => s.op === 'instantiate').map((s) => s.target)
+    expect(instantiateTargets.toSorted()).toEqual(['.claude/rules/architecture.md', 'CLAUDE.md'])
+
+    // message is a plain <op> <target> (+ note) listing, matching the planned steps
+    const lines = result.message.split('\n')
+    expect(lines).toContain('write-lock .claude/infra-ai.lock.json')
+    expect(lines.some((l) => l.startsWith('copy-rule .claude/rules/constitution.md'))).toBe(true)
+  })
+
+  test('init --dry-run still fails on composition violations', async () => {
+    const source = fixtureSource()
+    writeFileSync(
+      join(source, 'profiles.json'),
+      JSON.stringify({ demo: { rules: ['constitution', 'markdown', 'ghost'] } }),
+    )
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('ghost')
+    expect(existsSync(join(target, '.claude'))).toBe(false)
+    expect(loadDownstreamLock(target)).toBeNull()
+  })
+
+  test('init --dry-run still fails when already initialized without --force', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    mkdirSync(join(target, '.claude'), { recursive: true })
+    writeFileSync(
+      join(target, '.claude/infra-ai.lock.json'),
+      JSON.stringify({
+        source: { type: 'local', id: 'x', locator: source },
+        profile: 'demo',
+        appliedAt: '2026-01-01T00:00:00Z',
+        rules: {},
+        templates: [],
+      }),
+    )
+
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('iuse update')
+  })
+
+  test('real init still returns steps describing what happened', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(true)
+    const steps = result.steps ?? []
+    const ops = steps.map((s) => s.op)
+    expect(ops).toContain('copy-rule')
+    expect(ops).toContain('copy-settings')
+    expect(ops).toContain('instantiate')
+    expect(ops[ops.length - 1]).toBe('write-lock')
+    expect(steps.find((s) => s.op === 'write-lock')?.target).toBe('.claude/infra-ai.lock.json')
+  })
+
+  test('real init steps note skipped settings when pre-existing without --force', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    mkdirSync(join(target, '.claude'), { recursive: true })
+    writeFileSync(join(target, '.claude/settings.json'), JSON.stringify({ model: 'custom-preexisting' }))
+
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(true)
+    const settingsStep = (result.steps ?? []).find((s) => s.op === 'copy-settings')
+    expect(settingsStep?.note).toContain('skipped')
+  })
 })

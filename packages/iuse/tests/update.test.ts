@@ -250,4 +250,79 @@ describe('runUpdate', () => {
     expect(result.message).toBe('already up to date')
     expect(loadDownstreamLock(target)?.rules).toEqual(lockBefore?.rules ?? {})
   })
+
+  test('update --dry-run reports per-rule decisions without applying', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    // outdated: change the source content for constitution
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    // modified: also add another rule locally-edited to prove skip-modified
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+    const preUpdateResult = await runUpdate(ctxWith(), { source, target, force: false })
+    expect(preUpdateResult.ok).toBe(true) // extra gets added, constitution gets updated to v2
+
+    // now make local edits + a new source change to create modified + outdated together
+    writeFileSync(join(target, '.claude/rules/extra.md'), '# Extra\n\nlocally edited\n')
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv3\n')
+
+    const lockBefore = loadDownstreamLock(target)
+    const constitutionBefore = readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')
+    const extraBefore = readFileSync(join(target, '.claude/rules/extra.md'), 'utf8')
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(true)
+    const steps = result.steps ?? []
+    expect(steps).toContainEqual(expect.objectContaining({ op: 'apply', target: '.claude/rules/constitution.md' }))
+    expect(steps).toContainEqual(expect.objectContaining({ op: 'skip-modified', target: '.claude/rules/extra.md' }))
+
+    // nothing actually applied
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe(constitutionBefore)
+    expect(readFileSync(join(target, '.claude/rules/extra.md'), 'utf8')).toBe(extraBefore)
+    expect(loadDownstreamLock(target)).toEqual(lockBefore)
+
+    const lines = result.message.split('\n')
+    expect(lines.some((l) => l.startsWith('apply .claude/rules/constitution.md'))).toBe(true)
+    expect(lines.some((l) => l.startsWith('skip-modified .claude/rules/extra.md'))).toBe(true)
+  })
+
+  test('update --dry-run still fails on composition violations', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    writeFileSync(join(source, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'ghost'] } }))
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('ghost')
+  })
+
+  test('update --dry-run reports synced when already up to date', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const lockBefore = loadDownstreamLock(target)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true })
+
+    expect(result.ok).toBe(true)
+    const steps = result.steps ?? []
+    expect(steps).toContainEqual(expect.objectContaining({ op: 'synced', target: '.claude/rules/constitution.md' }))
+    expect(loadDownstreamLock(target)).toEqual(lockBefore)
+  })
+
+  test('real update still returns steps describing what happened', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false })
+
+    expect(result.ok).toBe(true)
+    const steps = result.steps ?? []
+    expect(steps).toContainEqual(expect.objectContaining({ op: 'apply', target: '.claude/rules/constitution.md' }))
+    expect(steps).toContainEqual(expect.objectContaining({ op: 'add', target: '.claude/rules/extra.md' }))
+  })
 })

@@ -26,6 +26,7 @@ const initCommand = defineCommand({
     profile: { type: 'string', required: true, description: 'profile name to assemble' },
     source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
     force: { type: 'boolean', description: 'reinitialize, overwrite, and re-instantiate even if already applied' },
+    'dry-run': { type: 'boolean', description: 'print the planned steps without writing anything' },
     target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
   },
   async run({ args }) {
@@ -33,6 +34,7 @@ const initCommand = defineCommand({
       profile: args.profile,
       source: args.source,
       force: args.force ?? false,
+      dryRun: args['dry-run'] ?? false,
       target: args.target ?? process.cwd(),
     })
     console.log(result.message)
@@ -62,12 +64,14 @@ const updateCommand = defineCommand({
   args: {
     source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
     force: { type: 'boolean', description: 'overwrite locally modified or missing rule files' },
+    'dry-run': { type: 'boolean', description: 'print the planned steps without applying anything' },
     target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
   },
   async run({ args }) {
     const result = await runUpdate(defaultContext(), {
       source: args.source,
       force: args.force ?? false,
+      dryRun: args['dry-run'] ?? false,
       target: args.target ?? process.cwd(),
     })
     console.log(result.message)

@@ -1,18 +1,31 @@
 import { join } from 'node:path'
 import { writeFileAtomic } from '@infra-ai/meta-cli/core'
 import { planAssembly } from './assemble'
-import type { IuseContext } from './init'
+import type { ActionStep, IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor, ruleTargetRelPath, saveDownstreamLock } from './manifest'
+import type { DownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message }
 }
 
-export async function runUpdate(
+function formatSteps(steps: ActionStep[]): string {
+  return steps.map((s) => (s.note === undefined ? `${s.op} ${s.target}` : `${s.op} ${s.target} (${s.note})`)).join('\n')
+}
+
+interface UpdatePlan {
+  source: Awaited<ReturnType<typeof resolveSource>>
+  lock: DownstreamLock
+  items: ReturnType<typeof planAssembly>['items']
+  steps: ActionStep[]
+  nextRules: Record<string, string>
+}
+
+async function planUpdate(
   ctx: IuseContext,
   opts: { source?: string; target: string; force: boolean },
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: true; plan: UpdatePlan } | { ok: false; message: string }> {
   const lock = loadDownstreamLock(opts.target)
   if (lock === null) {
     return fail(`${opts.target}: not initialized, run 'iuse init' first`)
@@ -44,51 +57,104 @@ export async function runUpdate(
   }
 
   const sourceByRule = new Map(items.map((i) => [i.rule, i]))
-  const notes: string[] = []
+  const steps: ActionStep[] = []
   const nextRules: Record<string, string> = { ...lock.rules }
 
   for (const [rule, baselineHash] of Object.entries(lock.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
     const item = sourceByRule.get(rule)
+    const targetRelPath = ruleTargetRelPath(rule)
     if (item === undefined) {
       // Removed from the profile/source: the lock entry is dropped so `status`
       // stops flagging a rule that will never sync again, but the local file
       // is left alone -- manual cleanup, per spec ("报告但不删除本地副本" protects
       // the file, not the lock bookkeeping).
       delete nextRules[rule]
-      notes.push(`${rule}: removed from source profile, local copy kept at ${ruleTargetRelPath(rule)} (manual cleanup)`)
+      steps.push({ op: 'drop', target: targetRelPath, note: 'removed from source profile, local copy kept (manual cleanup)' })
       continue
     }
 
     const localHash = localHashFor(opts.target, rule)
     const state = computeDrift(localHash, baselineHash, item.hash)
-    const targetPath = join(opts.target, item.targetRelPath)
 
-    if (state === 'synced') continue
+    if (state === 'synced') {
+      steps.push({ op: 'synced', target: targetRelPath })
+      continue
+    }
 
     if (state === 'outdated') {
-      writeFileAtomic(targetPath, item.content)
-      nextRules[rule] = item.hash
-      notes.push(`${rule}: updated`)
+      steps.push({ op: 'apply', target: targetRelPath, note: 'updated' })
       continue
     }
 
     // state is 'modified' or 'missing'
     if (!opts.force) {
-      notes.push(`${rule}: ${state} locally, skipped (use --force to overwrite)`)
+      steps.push({ op: state === 'modified' ? 'skip-modified' : 'skip-missing', target: targetRelPath, note: `${state} locally, skipped (use --force to overwrite)` })
       continue
     }
-    writeFileAtomic(targetPath, item.content)
-    nextRules[rule] = item.hash
-    notes.push(`${rule}: ${state} locally, overwritten (--force)`)
+    steps.push({ op: 'apply', target: targetRelPath, note: `${state} locally, overwritten (--force)` })
   }
 
   for (const rule of [...sourceByRule.keys()].toSorted()) {
     if (rule in lock.rules) continue
     const item = sourceByRule.get(rule)
     if (item === undefined) continue
-    writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
-    nextRules[rule] = item.hash
-    notes.push(`${rule}: added`)
+    steps.push({ op: 'add', target: item.targetRelPath })
+  }
+
+  return { ok: true, plan: { source, lock, items, steps, nextRules } }
+}
+
+export async function runUpdate(
+  ctx: IuseContext,
+  opts: { source?: string; target: string; force: boolean; dryRun?: boolean },
+): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
+  const planned = await planUpdate(ctx, opts)
+  if (!planned.ok) return planned
+
+  const { plan } = planned
+
+  if (opts.dryRun === true) {
+    const message = plan.steps.length > 0 ? formatSteps(plan.steps) : 'already up to date'
+    return { ok: true, message, steps: plan.steps }
+  }
+
+  const { source, lock, items, steps, nextRules } = plan
+  const sourceByRule = new Map(items.map((i) => [i.rule, i]))
+  const notes: string[] = []
+
+  for (const step of steps) {
+    if (step.op === 'synced') continue
+
+    if (step.op === 'drop') {
+      const rule = ruleFromTargetRelPath(step.target)
+      delete nextRules[rule]
+      notes.push(`${rule}: ${step.note}`)
+      continue
+    }
+
+    if (step.op === 'apply') {
+      const rule = ruleFromTargetRelPath(step.target)
+      const item = sourceByRule.get(rule)
+      if (item === undefined) continue
+      writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
+      nextRules[rule] = item.hash
+      notes.push(`${rule}: ${step.note}`)
+      continue
+    }
+
+    if (step.op === 'add') {
+      const rule = ruleFromTargetRelPath(step.target)
+      const item = sourceByRule.get(rule)
+      if (item === undefined) continue
+      writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
+      nextRules[rule] = item.hash
+      notes.push(`${rule}: added`)
+      continue
+    }
+
+    // skip-modified / skip-missing
+    const rule = ruleFromTargetRelPath(step.target)
+    notes.push(`${rule}: ${step.note}`)
   }
 
   saveDownstreamLock(opts.target, {
@@ -100,5 +166,9 @@ export async function runUpdate(
   })
 
   const message = notes.length > 0 ? notes.join('\n') : 'already up to date'
-  return { ok: true, message }
+  return { ok: true, message, steps }
+}
+
+function ruleFromTargetRelPath(targetRelPath: string): string {
+  return targetRelPath.replace(/^\.claude\/rules\//u, '').replace(/\.md$/u, '')
 }

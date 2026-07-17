@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { readTextIfExists, runClaude, writeFileAtomic } from '@infra-ai/meta-cli/core'
 import type { CommandRunner } from '@infra-ai/meta-cli/core'
 import { planAssembly } from './assemble'
-import { loadDownstreamLock, saveDownstreamLock } from './manifest'
+import { LOCK_PATH, loadDownstreamLock, saveDownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
 type DownloadFn = (input: string, opts: { dir: string; forceClean?: boolean }) => Promise<unknown>
@@ -31,8 +31,18 @@ const TEMPLATE_SPECS: TemplateSpec[] = [
 
 const PLACEHOLDER_PATTERN = /\[[A-Z][A-Z0-9_]*\]/u
 
+export interface ActionStep {
+  op: string
+  target: string
+  note?: string
+}
+
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message }
+}
+
+function formatSteps(steps: ActionStep[]): string {
+  return steps.map((s) => (s.note === undefined ? `${s.op} ${s.target}` : `${s.op} ${s.target} (${s.note})`)).join('\n')
 }
 
 async function instantiateTemplate(
@@ -101,10 +111,16 @@ async function instantiateTemplate(
   return { ok: true, skipped: false, message: `${spec.targetRelPath}: instantiated` }
 }
 
-export async function runInit(
+interface InitPlan {
+  source: Awaited<ReturnType<typeof resolveSource>>
+  items: ReturnType<typeof planAssembly>['items']
+  steps: ActionStep[]
+}
+
+async function planInit(
   ctx: IuseContext,
   opts: { source?: string; profile: string; target: string; force: boolean },
-): Promise<{ ok: boolean; message: string }> {
+): Promise<{ ok: true; plan: InitPlan } | { ok: false; message: string }> {
   const existingLock = loadDownstreamLock(opts.target)
   if (existingLock !== null && !opts.force) {
     return fail(
@@ -137,21 +153,72 @@ export async function runInit(
     return fail(`composition violations for profile '${opts.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
   }
 
+  const steps: ActionStep[] = []
+
   for (const item of items) {
     const targetPath = join(opts.target, item.targetRelPath)
-    if (opts.force && existsSync(targetPath) && readFileSync(targetPath, 'utf8') === item.content) continue
-    writeFileAtomic(targetPath, item.content)
+    if (opts.force && existsSync(targetPath) && readFileSync(targetPath, 'utf8') === item.content) {
+      steps.push({ op: 'copy-rule', target: item.targetRelPath, note: 'skipped: unchanged' })
+      continue
+    }
+    steps.push({ op: 'copy-rule', target: item.targetRelPath })
   }
 
-  const notes: string[] = []
   const settingsSource = join(source.root, 'templates/settings.json')
   const settingsTarget = join(opts.target, '.claude/settings.json')
+  const settingsRelPath = '.claude/settings.json'
   const settingsContent = readTextIfExists(settingsSource)
   if (settingsContent !== null) {
     if (existsSync(settingsTarget) && !opts.force) {
-      notes.push('.claude/settings.json: already present, skipped (use --force to overwrite)')
+      steps.push({ op: 'copy-settings', target: settingsRelPath, note: 'skipped: already present' })
     } else {
-      writeFileAtomic(settingsTarget, settingsContent)
+      steps.push({ op: 'copy-settings', target: settingsRelPath })
+    }
+  }
+
+  for (const spec of TEMPLATE_SPECS) {
+    steps.push({ op: 'instantiate', target: spec.targetRelPath })
+  }
+
+  steps.push({ op: 'write-lock', target: LOCK_PATH })
+
+  return { ok: true, plan: { source, items, steps } }
+}
+
+export async function runInit(
+  ctx: IuseContext,
+  opts: { source?: string; profile: string; target: string; force: boolean; dryRun?: boolean },
+): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
+  const planned = await planInit(ctx, opts)
+  if (!planned.ok) return planned
+
+  const { plan } = planned
+
+  if (opts.dryRun === true) {
+    return { ok: true, message: formatSteps(plan.steps), steps: plan.steps }
+  }
+
+  const { source, items, steps } = plan
+
+  for (const step of steps) {
+    if (step.op === 'copy-rule') {
+      if (step.note !== undefined) continue
+      const item = items.find((i) => i.targetRelPath === step.target)
+      if (item === undefined) continue
+      writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
+    }
+  }
+
+  const notes: string[] = []
+  const settingsStep = steps.find((s) => s.op === 'copy-settings')
+  if (settingsStep !== undefined) {
+    if (settingsStep.note !== undefined) {
+      notes.push(`${settingsStep.target}: already present, skipped (use --force to overwrite)`)
+    } else {
+      const settingsContent = readTextIfExists(join(source.root, 'templates/settings.json'))
+      if (settingsContent !== null) {
+        writeFileAtomic(join(opts.target, settingsStep.target), settingsContent)
+      }
     }
   }
 
@@ -173,5 +240,15 @@ export async function runInit(
     templates: ['architecture', 'claude-md'],
   })
 
-  return { ok: true, message: [`initialized profile '${opts.profile}' from ${source.locator}`, ...notes].join('\n') }
+  const finalSteps: ActionStep[] = steps.map((s) => {
+    if (s.op !== 'instantiate') return s
+    const note = notes.find((n) => n.startsWith(`${s.target}:`))
+    return note === undefined ? s : { ...s, note: note.slice(s.target.length + 2) }
+  })
+
+  return {
+    ok: true,
+    message: [`initialized profile '${opts.profile}' from ${source.locator}`, ...notes].join('\n'),
+    steps: finalSteps,
+  }
 }
