@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { readTextIfExists, runClaude, writeFileAtomic } from '@infra-ai/meta-cli/core'
 import type { CommandRunner } from '@infra-ai/meta-cli/core'
@@ -50,19 +50,22 @@ async function instantiateTemplate(
 
   const contractPath = join(sourceRoot, 'meta/prompts/template-instantiate.md')
   const templatePath = join(sourceRoot, spec.sourceRelPath)
+  // CLAUDE.md 与 .claude/** 是权限系统的敏感文件，headless 下 allowedTools
+  // 无法放行直写——claude 只写非敏感的 staging 文件，落位由本进程完成
+  const stagingRel = `.iuse-staging/${spec.name}.md`
+  const stagingFile = join(target, stagingRel)
+  mkdirSync(join(target, '.iuse-staging'), { recursive: true })
   const prompt = [
     `遵循 ${contractPath} 的实例化规则。`,
     `模板文件：${templatePath}`,
     `目标项目根：${target}`,
-    `目标文件：${spec.targetRelPath}（相对目标项目根）`,
+    `目标文件：${stagingRel}（相对目标项目根；这是暂存位置，实例化语义上的最终归宿是 ${spec.targetRelPath}）`,
   ].join('\n')
 
-  // 权限模式的单斜杠按项目根解析，绝对路径永不匹配；cwd 即目标项目，
-  // 用相对路径模式才能放行 Write
   const result = await ctx.claude({
     repoRoot: target,
     prompt,
-    allowedTools: `Read,Glob,Grep,Write(${spec.targetRelPath})`,
+    allowedTools: `Read,Glob,Grep,Write(${stagingRel})`,
   })
 
   if (result.timedOut) {
@@ -77,7 +80,7 @@ async function instantiateTemplate(
     }
   }
 
-  const content = readTextIfExists(targetFile)
+  const content = readTextIfExists(stagingFile)
   if (content === null) {
     return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude did not produce the file (rerun with --force to complete instantiation)` }
   }
@@ -91,6 +94,8 @@ async function instantiateTemplate(
     }
   }
 
+  writeFileAtomic(targetFile, content)
+  rmSync(stagingFile, { force: true })
   return { ok: true, skipped: false, message: `${spec.targetRelPath}: instantiated` }
 }
 
@@ -148,10 +153,14 @@ export async function runInit(
     }
   }
 
-  for (const spec of TEMPLATE_SPECS) {
-    const result = await instantiateTemplate(ctx, source.root, opts.target, spec, opts.force)
-    if (!result.ok) return fail(result.message)
-    notes.push(result.message)
+  try {
+    for (const spec of TEMPLATE_SPECS) {
+      const result = await instantiateTemplate(ctx, source.root, opts.target, spec, opts.force)
+      if (!result.ok) return fail(result.message)
+      notes.push(result.message)
+    }
+  } finally {
+    rmSync(join(opts.target, '.iuse-staging'), { recursive: true, force: true })
   }
 
   saveDownstreamLock(opts.target, {
