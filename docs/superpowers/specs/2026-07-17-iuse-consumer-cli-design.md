@@ -52,9 +52,10 @@ iuse 对中心源只读，不做构建/回写。
 
 5. **AI 模板实例化**——与 imeta 同模式 spawn `claude -p` headless。
    契约文档 `meta/prompts/template-instantiate.md` 住中心源，iuse 从源
-   读取；prompt 指针引用契约 + 模板文件 + 目标项目路径。allowedTools：
-   `Read,Glob,Grep,Write(<target>/CLAUDE.md),Write(<target>/.claude/rules/architecture.md)`
-   按目标文件收窄。实例化后校验：无 `[ALL_CAPS]` 残留、CLAUDE.md <50 行。
+   读取；prompt 指针引用契约 + 模板文件 + 目标项目路径。每个模板独立
+   一次 claude 调用，allowedTools 收窄到单个目标文件：
+   `Read,Glob,Grep,Write(<目标文件>)`。实例化后校验：无 `[ALL_CAPS]`
+   残留、CLAUDE.md <50 行。
 
 6. **组合语义顺序无关**（沿组合 spec 红线）：同一 profile 的任何拼装顺序
    产出逐字节相同的目标状态；拼装是整篇拷贝，无合并、无模板参数化
