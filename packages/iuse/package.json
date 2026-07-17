@@ -1,0 +1,28 @@
+{
+  "name": "@infra-ai/iuse",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Consumer CLI: assemble infra-ai profiles into target projects",
+  "type": "module",
+  "exports": {},
+  "bin": { "iuse": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@infra-ai/meta-cli": "workspace:*",
+    "citty": "^0.2.2",
+    "giget": "^3.3.0"
+  },
+  "devDependencies": {
+    "@infra-x/code-quality": "^0.6.2",
+    "@infra-x/typescript-config": "^2.0.0",
+    "@types/bun": "latest",
+    "oxfmt": "^0.55.0",
+    "oxlint": "^1.62.0",
+    "typescript": "^6.0.3"
+  }
+}
