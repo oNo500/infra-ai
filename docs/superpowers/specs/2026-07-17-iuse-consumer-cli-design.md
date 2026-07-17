@@ -42,9 +42,9 @@ iuse 对中心源只读，不做构建/回写。
      （实例化产物已项目化）
 
 4. **下游账 `<target>/.claude/infra-ai.lock.json`**（分发基线登记）：
-   `{ source: { type: "local"|"remote", path|repo, commit }, profile,
-   appliedAt, rules: { "<name>": "<sha256>" }, templates: ["architecture",
-   "claude-md"] }`。它是下游唯一事实入口，status/update 全部据此对账。
+   `{ source: { type: "local"|"remote", id: "<版本标识>", locator: "<路径|gh:...>" },
+   profile, appliedAt, rules: { "<name>": "<sha256>" },
+   templates: ["architecture", "claude-md"] }`。它是下游唯一事实入口，status/update 全部据此对账。
    版本标识分通道：本地源记 git HEAD（脏工作区时记 `<hash>-dirty` 并
    警告）；远程源记 giget 请求的 ref（未指定则 `main`）——快照无 git，
    不追精确 commit，对账以 rules 内容 hash 为准（hash 才是基线本体，
