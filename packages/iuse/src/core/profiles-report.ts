@@ -1,12 +1,14 @@
 import { join } from 'node:path'
 import type { IuseContext } from './init'
 import { listProfiles } from './profiles'
+import type { ProfileInfo } from './profiles'
 import { resolveSource } from './source'
 
 export interface ProfilesResult {
   ok: boolean
   message?: string
   profilesText?: string
+  profiles?: ProfileInfo[]
   exitCode: number
 }
 
@@ -36,7 +38,7 @@ export async function profilesReport(
   }
 
   if (profiles.length === 0) {
-    return { ok: true, profilesText: '', exitCode: 0 }
+    return { ok: true, profilesText: '', profiles, exitCode: 0 }
   }
 
   const lines: string[] = []
@@ -49,5 +51,5 @@ export async function profilesReport(
     }
   }
 
-  return { ok: true, profilesText: lines.join('\n'), exitCode: 0 }
+  return { ok: true, profilesText: lines.join('\n'), profiles, exitCode: 0 }
 }
