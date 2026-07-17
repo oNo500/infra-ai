@@ -5,6 +5,7 @@ import { downloadTemplate } from 'giget'
 import { runClaude, runCommand } from '@infra-ai/meta-cli/core'
 import type { IuseContext } from '../core/init'
 import { runInit } from '../core/init'
+import { profilesReport } from '../core/profiles-report'
 import { statusReport } from '../core/report'
 import { runUpdate } from '../core/update'
 
@@ -39,6 +40,21 @@ const initCommand = defineCommand({
     })
     console.log(result.message)
     if (!result.ok) process.exitCode = 1
+  },
+})
+
+const profilesCommand = defineCommand({
+  meta: { name: 'profiles', description: 'list available profiles in a source' },
+  args: {
+    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
+  },
+  async run({ args }) {
+    const result = await profilesReport(defaultContext(), {
+      source: args.source,
+    })
+    if (result.message !== undefined) console.log(result.message)
+    if (result.profilesText !== undefined) console.log(result.profilesText)
+    process.exitCode = result.exitCode
   },
 })
 
@@ -82,7 +98,7 @@ const updateCommand = defineCommand({
 export function buildMainCommand() {
   return defineCommand({
     meta: { name: 'iuse', description: 'assemble infra-ai profiles into target projects' },
-    subCommands: { init: initCommand, status: statusCommand, update: updateCommand },
+    subCommands: { init: initCommand, profiles: profilesCommand, status: statusCommand, update: updateCommand },
   })
 }
 
