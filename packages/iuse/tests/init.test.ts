@@ -38,8 +38,10 @@ function fixtureSource(): string {
 function fakeClaudeWriting(fileContent: (targetFile: string) => string): IuseContext['claude'] {
   return async (opts) => {
     const match = /Write\((.+)\)/u.exec(opts.allowedTools)
-    const targetFile = match?.[1]
-    if (targetFile === undefined) throw new Error('no target file in allowedTools')
+    const rel = match?.[1]
+    if (rel === undefined) throw new Error('no target file in allowedTools')
+    // 权限模式是相对项目根的路径，真实 claude 也以 repoRoot 为 cwd 解析
+    const targetFile = join(opts.repoRoot, rel)
     writeFileSync(targetFile, fileContent(targetFile))
     return { code: 0, timedOut: false, stderr: '' }
   }
@@ -53,8 +55,9 @@ function countingFakeClaudeWriting(fileContent: (targetFile: string) => string):
   const claude: IuseContext['claude'] = async (opts) => {
     calls += 1
     const match = /Write\((.+)\)/u.exec(opts.allowedTools)
-    const targetFile = match?.[1]
-    if (targetFile === undefined) throw new Error('no target file in allowedTools')
+    const rel = match?.[1]
+    if (rel === undefined) throw new Error('no target file in allowedTools')
+    const targetFile = join(opts.repoRoot, rel)
     writeFileSync(targetFile, fileContent(targetFile))
     return { code: 0, timedOut: false, stderr: '' }
   }

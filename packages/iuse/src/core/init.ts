@@ -54,13 +54,15 @@ async function instantiateTemplate(
     `遵循 ${contractPath} 的实例化规则。`,
     `模板文件：${templatePath}`,
     `目标项目根：${target}`,
-    `目标文件：${targetFile}`,
+    `目标文件：${spec.targetRelPath}（相对目标项目根）`,
   ].join('\n')
 
+  // 权限模式的单斜杠按项目根解析，绝对路径永不匹配；cwd 即目标项目，
+  // 用相对路径模式才能放行 Write
   const result = await ctx.claude({
     repoRoot: target,
     prompt,
-    allowedTools: `Read,Glob,Grep,Write(${targetFile})`,
+    allowedTools: `Read,Glob,Grep,Write(${spec.targetRelPath})`,
   })
 
   if (result.timedOut) {

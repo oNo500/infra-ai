@@ -41,8 +41,10 @@ function setProfileRules(source: string, rules: string[]): void {
 function fakeClaudeWriting(): IuseContext['claude'] {
   return async (opts) => {
     const match = /Write\((.+)\)/u.exec(opts.allowedTools)
-    const targetFile = match?.[1]
-    if (targetFile === undefined) throw new Error('no target file in allowedTools')
+    const rel = match?.[1]
+    if (rel === undefined) throw new Error('no target file in allowedTools')
+    // 权限模式是相对项目根的路径，解析基准是 repoRoot（即目标项目）
+    const targetFile = join(opts.repoRoot, rel)
     writeFileSync(targetFile, targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n')
     return { code: 0, timedOut: false, stderr: '' }
   }
