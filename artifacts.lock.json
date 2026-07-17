@@ -65,13 +65,88 @@
     "builtAt": "2026-07-16T01:32:34.527Z"
   },
   "rule:dependencies-ts": {
-    "metaHash": "c9ceab3707cfcdf99593043a816622e77bbc362c788e61d70de91f958734a1fa",
-    "artifactHash": "054c29172a361bdce1fa5a90924eeabbd06d2b997b1351814122b4674bb374d4",
-    "builtAt": "2026-07-16T01:34:14.526Z"
+    "metaHash": "b3fcb02dd588e55139e13d7c33642722e940e1efc10c5e9e0e98c76744da13ba",
+    "artifactHash": "659b07f57dce4885051ceea5099d7f85cb0ae6924c8a7244c4d55b7f29cea4de",
+    "builtAt": "2026-07-16T23:36:39.994Z"
   },
   "rule:ai-sdk": {
     "metaHash": "65268412e998964020308bd671b52b5380c9a41c0acfd978787575fe6bd143b5",
     "artifactHash": "f44cfa80ea23ffae7c55cff8abda62643c47c08c7830da999b855dc437bea54a",
     "builtAt": "2026-07-16T01:36:00.157Z"
+  },
+  "rule:tooling": {
+    "metaHash": "648ae57a34bc606c99ac350e7cdd62a121d31cc966dcedd79fe845229cc43e93",
+    "artifactHash": "e016f99d2d6b600c2aea5ee1498a29ce2df9cf187a88296eb0d64de71d43f99f",
+    "builtAt": "2026-07-16T23:30:52.736Z"
+  },
+  "rule:agent-behavior": {
+    "metaHash": "7ca46cde588ac78f1d10130baaae1de43ed0bb97bb742d902ac91168ccadb571",
+    "artifactHash": "eb53671ce087b4624f8910748c2cbf3f1ab86df54aca04ca08463647544a34f7",
+    "builtAt": "2026-07-16T23:32:04.316Z"
+  },
+  "rule:css": {
+    "metaHash": "5d02fc900a3542531e842471db7970db33c708c3a82c76563efc6d666f0d894d",
+    "artifactHash": "941a40bc08190b52a5f33e95d3c75bfb8f16e227025c4b72239d856de70bb7c8",
+    "builtAt": "2026-07-16T23:34:00.940Z"
+  },
+  "rule:database": {
+    "metaHash": "28eea55bfedb36eed563645250b272c4ae8f8d60c6b109f1801ccc8f44b7745d",
+    "artifactHash": "53a3ed23dac54c04fcf66503d7eee64cf67c10f25a67fc2e08b6571110bbea6e",
+    "builtAt": "2026-07-16T23:35:01.578Z"
+  },
+  "skill:obsidian-markdown": {
+    "metaHash": "0c1219f8a97f3189463a3312a91274305ae661ec52a9800fb51b867f1b9e22c3",
+    "artifactHash": "040a204537733830eccc26c9626a3da852afb6c25de24387e8fa0701b2afcdfb",
+    "builtAt": "2026-07-16T23:38:16.097Z"
+  },
+  "skill:clarify": {
+    "metaHash": "3c4f31c0d96e046fef785c548ad7b08dcc66dc75ea451c2579361a899d6b60aa",
+    "artifactHash": "3cfbfdde3ef8f5239bf2b9509285f0eab56717fab9e027fd394f4e85e0068c7b",
+    "builtAt": "2026-07-16T23:48:04.794Z"
+  },
+  "skill:visualize": {
+    "metaHash": "90195f9e0eefd79405da71c8dd8cf14fc4065988ca6713456903f4abd5b5d004",
+    "artifactHash": "0df7c984a8413905b2602cdc695a98d8c2d63d0708a746eaf421347b3ef6c781",
+    "builtAt": "2026-07-16T23:49:35.481Z"
+  },
+  "skill:gitflow-commit": {
+    "metaHash": "0e9eb98041ab000068882c43b1e8244af60194ec7d4e3cbaf101c324eff7053e",
+    "artifactHash": "aa8e75a0c673360e7509ec3149c4f010a4fb73f5171f669bbea2eadb7da9a23b",
+    "builtAt": "2026-07-16T23:50:16.371Z"
+  },
+  "skill:edit-markdown": {
+    "metaHash": "f29672655604b171a710cdddb67fa12f427ea0526de33367bff83ed8da27840a",
+    "artifactHash": "328aae273d363bdcef7f530ac818c01fcd83b2aff9b2e52b3e9d74fe47921098",
+    "builtAt": "2026-07-16T23:51:42.364Z"
+  },
+  "skill:note": {
+    "metaHash": "2d84b1c1829918e878bfadb53d3e7db8b13093186d70917e58922a58086e92e5",
+    "artifactHash": "ed5266427c5324fc0696ede73d2a8557a810f3dcca8ade7c18937fef8f609bed",
+    "builtAt": "2026-07-16T23:53:22.278Z"
+  },
+  "skill:obsidian-cli": {
+    "metaHash": "84d67e4312068c5c22f97a4f7c2eef9c9b7829d126e3d858a84db2d74a9bbf79",
+    "artifactHash": "6c8517dab581bc81b9df15281e3cf8e99112f2c0e1f7cdbcdb0a902441019b16",
+    "builtAt": "2026-07-16T23:55:15.289Z"
+  },
+  "skill:obsidian-bases": {
+    "metaHash": "4f47dcb508274679e54d2d444898622737592e74f2c013e582ebde93fa8b92a8",
+    "artifactHash": "bcf75bcaa561b9209a10706696e97e8dc41f432e16c897b8ece209f981210371",
+    "builtAt": "2026-07-16T23:58:08.462Z"
+  },
+  "skill:anki-connect": {
+    "metaHash": "ad163aab9ef88fdcec7becd298c01861f748eee53eed23adcb3fbea83b5c89fa",
+    "artifactHash": "71a8d01968bca2db40b91b73978f49a4778913ff09486211c23b78056b07d8fc",
+    "builtAt": "2026-07-17T00:00:30.508Z"
+  },
+  "skill:ctx-init": {
+    "metaHash": "335d2b1782fefe2f0fa79be6e377a7c640a87e14df10d7c69a9b44c3b8ce5898",
+    "artifactHash": "2825fc48307f2747736cf1691b1b984ef50f8a1fb69d92cdbddd5ec6068415bf",
+    "builtAt": "2026-07-17T00:01:55.704Z"
+  },
+  "skill:explaining-code": {
+    "metaHash": "4b107e2d2c35d9ff65e31b6fbc03f460dde8ad2706da0d0d74b65a7a56bc8613",
+    "artifactHash": "e8f72ab58fb959cffdc4c903eafb772f0bad3e55582d3af30a05da95d855afe6",
+    "builtAt": "2026-07-17T00:02:46.626Z"
   }
 }
