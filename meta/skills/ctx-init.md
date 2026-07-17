@@ -37,7 +37,8 @@ description: >-
    `iuse update`（本地改过的副本默认跳过，提示带回中心仓）
 
 退出码语义：status 有任何非 synced 退 1；init/update 成功退 0。
-全命令支持 `--json`（单行对象，含 ok/message/steps）。
+全命令支持 `--json`（单行对象，均含 ok；各命令数据字段不同：
+init/update 带 message/steps、status 带 rows/exitCode、profiles 带 profiles）。
 
 降级流程（无 iuse 时）：
 

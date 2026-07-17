@@ -33,9 +33,8 @@ Progress:
 
 ### Step 2 选型
 
-`iuse profiles --json` 列出可选组合，每个 profile 含 `description` 与
-`rules` 清单。对照项目事实（package.json 依赖、语言、框架）选最接近的
-profile；拿不准时问用户，MUST NOT 自造组合。
+`iuse profiles --json` 列出可选组合。对照项目事实（package.json 依赖、
+语言、框架）选最接近的 profile；拿不准时问用户，MUST NOT 自造组合。
 
 ### Step 3 预演
 
@@ -58,8 +57,9 @@ profile；拿不准时问用户，MUST NOT 自造组合。
 ## 命令语义
 
 - 退出码：`status` 有任何非 synced 退 1；`init`/`update` 成功退 0
-- 全命令支持 `--json`，输出单行 JSON 对象，均含 `ok`；`init`/`update`
-  附 `message`/`steps`，`profiles` 附 `profiles`，`status` 附 `rows`
+- 全命令支持 `--json`，输出单行 JSON 对象，均含 `ok`；数据字段各命令
+  不同：`init`/`update` 带 `message`/`steps`，`status` 带
+  `rows`/`exitCode`，`profiles` 带 `profiles`
 
 ## 降级流程（无 iuse 时）
 
