@@ -46,9 +46,12 @@ pnpx skills add oNo500/infra-ai --all
 pnpx skills add <owner>/<repo> -s <name>
 
 # 规则与模板：使用端 CLI 按 profile 拼装（packages/iuse 内 pnpm link --global）
+iuse profiles                          # 列出可选 profile 及其 rules
+iuse init --profile <name> --dry-run <project>   # 预演拼装计划，零写入（远程源拉快照到缓存属读侧）
 iuse init --profile <name> <project>   # 新项目初始化（rules + settings + CLAUDE.md/architecture 实例化）
 iuse status <project>                  # 下游对账：synced / modified / outdated
 iuse update <project>                  # 拉中心源新版（本地被改的默认跳过，--force 覆盖）
+# 全命令支持 --json（AI/脚本消费）
 ```
 
 本仓 push 后，其他设备 `git pull` 再 `iuse update` 各项目，skill 用 `pnpx skills update` 更新。
