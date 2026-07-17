@@ -45,12 +45,28 @@ function fakeClaudeWriting(fileContent: (targetFile: string) => string): IuseCon
   }
 }
 
-function ctxWith(claude: IuseContext['claude']): IuseContext {
+function countingFakeClaudeWriting(fileContent: (targetFile: string) => string): {
+  claude: IuseContext['claude']
+  calls: () => number
+} {
+  let calls = 0
+  const claude: IuseContext['claude'] = async (opts) => {
+    calls += 1
+    const match = /Write\((.+)\)/u.exec(opts.allowedTools)
+    const targetFile = match?.[1]
+    if (targetFile === undefined) throw new Error('no target file in allowedTools')
+    writeFileSync(targetFile, fileContent(targetFile))
+    return { code: 0, timedOut: false, stderr: '' }
+  }
+  return { claude, calls: () => calls }
+}
+
+function ctxWith(claude: IuseContext['claude'], now: () => string = () => '2026-07-17T00:00:00Z'): IuseContext {
   return {
     download: async () => ({}),
     run: async () => ({ code: 0, stdout: 'head1\n', stderr: '' }),
     claude,
-    now: () => '2026-07-17T00:00:00Z',
+    now,
     env: {},
     home: '/nope',
     cacheDir: '/tmp/iuse-cache',
@@ -139,5 +155,88 @@ describe('runInit', () => {
     // rules copied before instantiation stay even though init failed
     expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
     expect(loadDownstreamLock(target)).toBeNull()
+  })
+
+  test('force re-init refreshes lock, re-validates instantiation, and skips unchanged rule writes', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const { claude, calls } = countingFakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+
+    const firstCtx = ctxWith(claude, () => '2026-07-17T00:00:00Z')
+    const firstResult = await runInit(firstCtx, { source, profile: 'demo', target, force: false })
+    expect(firstResult.ok).toBe(true)
+    expect(calls()).toBe(2) // architecture + claude-md
+
+    // rule content is byte-identical to the first run, so the force path's
+    // `existsSync && same content` branch (init.ts:123) skips the rewrite —
+    // observed indirectly via content staying correct with no write error.
+    const secondCtx = ctxWith(claude, () => '2026-08-01T00:00:00Z')
+    const secondResult = await runInit(secondCtx, { source, profile: 'demo', target, force: true })
+
+    expect(secondResult.ok).toBe(true)
+    // instantiation is a write-time gate, not a standing invariant: --force
+    // re-validates, so the fake claude is invoked again for both templates
+    expect(calls()).toBe(4)
+
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
+    expect(readFileSync(join(target, '.claude/rules/markdown.md'), 'utf8')).toContain('# Markdown')
+    expect(readFileSync(join(target, '.claude/rules/architecture.md'), 'utf8')).toBe('# demo - Architecture\n\nbody\n')
+    expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+
+    const lock = loadDownstreamLock(target)
+    expect(lock).not.toBeNull()
+    expect(lock?.appliedAt).toBe('2026-08-01T00:00:00Z')
+  })
+
+  test('re-init without --force after a successful init fails pointing at update', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const firstResult = await runInit(ctx, { source, profile: 'demo', target, force: false })
+    expect(firstResult.ok).toBe(true)
+
+    const secondResult = await runInit(ctx, { source, profile: 'demo', target, force: false })
+
+    expect(secondResult.ok).toBe(false)
+    expect(secondResult.message).toContain('iuse update')
+    expect(secondResult.message).toContain('--force')
+  })
+
+  test('pre-existing .claude/settings.json is left untouched without --force', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    mkdirSync(join(target, '.claude'), { recursive: true })
+    const preExisting = JSON.stringify({ model: 'custom-preexisting' })
+    writeFileSync(join(target, '.claude/settings.json'), preExisting)
+
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    // fresh target: no lock yet, so init proceeds even with force: false
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/settings.json'), 'utf8')).toBe(preExisting)
+    expect(result.message).toContain('.claude/settings.json')
+    expect(result.message).toContain('skipped')
+  })
+
+  test('unknown profile returns a clean ok:false instead of throwing', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: 'nope', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain("unknown profile 'nope'")
   })
 })

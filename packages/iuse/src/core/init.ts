@@ -43,6 +43,7 @@ async function instantiateTemplate(
   force: boolean,
 ): Promise<{ ok: boolean; message: string; skipped: boolean }> {
   const targetFile = join(target, spec.targetRelPath)
+  // 校验是写入时门禁，不是常驻不变量——跳过的既有产物不重新校验（--force 重建才再次过校验）。
   if (existsSync(targetFile) && !force) {
     return { ok: true, skipped: true, message: `${spec.targetRelPath}: already present, skipped (use --force to re-instantiate)` }
   }
@@ -106,7 +107,13 @@ export async function runInit(
     run: ctx.run,
   })
 
-  const { items, violations } = planAssembly(source.root, opts.profile)
+  let items: ReturnType<typeof planAssembly>['items']
+  let violations: ReturnType<typeof planAssembly>['violations']
+  try {
+    ;({ items, violations } = planAssembly(source.root, opts.profile))
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error))
+  }
   if (violations.length > 0) {
     return fail(`composition violations for profile '${opts.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
   }
