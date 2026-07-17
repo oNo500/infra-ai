@@ -42,7 +42,7 @@ function setProfileRules(source: string, rules: string[]): void {
 
 function fakeClaudeWriting(): IuseContext['claude'] {
   return async (opts) => {
-    const match = /Write\((.+)\)/u.exec(opts.allowedTools)
+    const match = /(?:Write|Edit)\((.+)\)/u.exec(opts.allowedTools)
     const rel = match?.[1]
     if (rel === undefined) throw new Error('no target file in allowedTools')
     // 权限模式是相对项目根的路径，解析基准是 repoRoot（即目标项目）

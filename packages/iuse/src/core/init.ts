@@ -62,10 +62,12 @@ async function instantiateTemplate(
     `目标文件：${stagingRel}（相对目标项目根；这是暂存位置，实例化语义上的最终归宿是 ${spec.targetRelPath}）`,
   ].join('\n')
 
+  // Write(path) 规则不被文件权限检查匹配（官方文档明示，2.1.210 起告警）；
+  // Edit(path) 才覆盖全部文件编辑工具（含 Write）
   const result = await ctx.claude({
     repoRoot: target,
     prompt,
-    allowedTools: `Read,Glob,Grep,Write(${stagingRel})`,
+    allowedTools: `Read,Glob,Grep,Edit(${stagingRel})`,
   })
 
   if (result.timedOut) {
