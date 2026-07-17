@@ -5,6 +5,8 @@ import { downloadTemplate } from 'giget'
 import { runClaude, runCommand } from '@infra-ai/meta-cli/core'
 import type { IuseContext } from '../core/init'
 import { runInit } from '../core/init'
+import { statusReport } from '../core/report'
+import { runUpdate } from '../core/update'
 
 export function defaultContext(): IuseContext {
   return {
@@ -38,10 +40,45 @@ const initCommand = defineCommand({
   },
 })
 
+const statusCommand = defineCommand({
+  meta: { name: 'status', description: 'report drift between the target and the source profile' },
+  args: {
+    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
+    target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
+  },
+  async run({ args }) {
+    const result = await statusReport(defaultContext(), {
+      source: args.source,
+      target: args.target ?? process.cwd(),
+    })
+    if (result.message !== undefined) console.log(result.message)
+    for (const row of result.rows) console.log(`${row.rule} ${row.state}`)
+    process.exitCode = result.exitCode
+  },
+})
+
+const updateCommand = defineCommand({
+  meta: { name: 'update', description: 'apply source changes to an initialized target' },
+  args: {
+    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
+    force: { type: 'boolean', description: 'overwrite locally modified or missing rule files' },
+    target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
+  },
+  async run({ args }) {
+    const result = await runUpdate(defaultContext(), {
+      source: args.source,
+      force: args.force ?? false,
+      target: args.target ?? process.cwd(),
+    })
+    console.log(result.message)
+    if (!result.ok) process.exitCode = 1
+  },
+})
+
 export function buildMainCommand() {
   return defineCommand({
     meta: { name: 'iuse', description: 'assemble infra-ai profiles into target projects' },
-    subCommands: { init: initCommand },
+    subCommands: { init: initCommand, status: statusCommand, update: updateCommand },
   })
 }
 
