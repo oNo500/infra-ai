@@ -15,7 +15,15 @@ function fixtureSource(): string {
   mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
-  writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'core concern' } } }))
+  // Two facets ('concern', 'layer') so the t-cycle test can exercise the full
+  // undefined -> concern -> layer -> undefined loop, not just a two-state toggle.
+  writeFileSync(
+    join(dir, 'meta', 'tags.json'),
+    JSON.stringify({
+      concern: { exclusive: false, values: { core: 'core concern' } },
+      layer: { exclusive: true, values: { backend: 'backend layer' } },
+    }),
+  )
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
@@ -23,7 +31,7 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'extra.md'),
-    '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [backend]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'extra.md'), '# Extra\n')
   writeFileSync(
@@ -43,7 +51,10 @@ function fixtureSource(): string {
   // brief instruction.
   const catalog: Catalog = {
     generatedAt: '2026-07-18T00:00:00Z',
-    tags: { concern: { exclusive: false, values: { core: 'core concern' } } },
+    tags: {
+      concern: { exclusive: false, values: { core: 'core concern' } },
+      layer: { exclusive: true, values: { backend: 'backend layer' } },
+    },
     rules: {
       constitution: {
         description: 'x',
@@ -54,7 +65,7 @@ function fixtureSource(): string {
       },
       extra: {
         description: 'x',
-        tags: ['core'],
+        tags: ['backend'],
         scope: 'global',
         path: 'rules/global/extra.md',
         profiles: ['python-cli'],
@@ -154,7 +165,7 @@ describe('TUI browse flow', () => {
     expect(lastFrame()).toContain('# Constitution')
   })
 
-  test('t cycles tag filter; space selects; enter opens init plan with selected rules', async () => {
+  test('space selects; enter opens init plan with selected rules', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
@@ -167,6 +178,38 @@ describe('TUI browse flow', () => {
     await press(stdin, '\r')
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     expect(lastFrame()).toContain('copy-rule')
+  })
+
+  test('t cycles the tag facet through undefined -> concern -> layer -> undefined, filtering rows and annotating the title', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = bootApp(deps)
+
+    // No filter: both rows visible.
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    expect(lastFrame()).toContain('extra')
+    expect(lastFrame()).not.toContain('tag:')
+
+    // First facet (alphabetical: 'concern') -- only constitution carries a
+    // 'concern' tag ('core'); extra (tagged 'backend', a 'layer' tag) drops out.
+    await press(stdin, 't')
+    await waitFor(() => (lastFrame() ?? '').includes('tag: concern'))
+    expect(lastFrame()).toContain('constitution')
+    expect(lastFrame()).not.toContain('extra')
+
+    // Second facet ('layer') -- only extra carries a 'layer' tag ('backend').
+    await press(stdin, 't')
+    await waitFor(() => (lastFrame() ?? '').includes('tag: layer'))
+    expect(lastFrame()).toContain('extra')
+    expect(lastFrame()).not.toContain('constitution')
+
+    // Cycles back to no filter.
+    await press(stdin, 't')
+    await waitFor(() => !(lastFrame() ?? '').includes('tag:'))
+    expect(lastFrame()).toContain('constitution')
+    expect(lastFrame()).toContain('extra')
   })
 
   test('initialized target: status b enters browse; a on available rule reaches update plan', async () => {

@@ -189,7 +189,7 @@ export function BrowseView({
         <Text dimColor>
           {initialized
             ? '↑↓ 移动  t 切换 tag 过滤  a 添加  x 移除  p 选 profile  esc/b 返回状态  q 退出'
-            : '↑↓ 移动  t 切换 tag 过滤  space 勾选  Enter 进入安装计划  p 选 profile  q 退出'}
+            : '↑↓ 移动  t 切换 tag 过滤  space 勾选  Enter 进入安装计划  p 选 profile  esc/b 退出  q 退出'}
         </Text>
       </Box>
     </Box>
