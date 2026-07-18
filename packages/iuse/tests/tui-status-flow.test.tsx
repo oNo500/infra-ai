@@ -195,7 +195,8 @@ describe('TUI status flow', () => {
     // so the TopBar backfills it during bootstrap via the same resolveSource
     // wiring the picker path uses -- locator@version.id, from the fixture's
     // `run` stub (git rev-parse HEAD -> 'head1', porcelain non-empty -> dirty).
-    await waitFor(() => (lastFrame() ?? '').includes(`source ${source}@head1-dirty`))
+    // TopBar 在窄终端会于 source 与 locator 之间折行，压缩全部空白后再比对
+    await waitFor(() => (lastFrame() ?? '').replace(/\s+/gu, '').includes(`source${source}@head1-dirty`))
   })
 
   test('excluded rule renders as a dimmed "<rule> excluded" row in status', async () => {
