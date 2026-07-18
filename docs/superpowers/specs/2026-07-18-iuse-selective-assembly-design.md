@@ -13,7 +13,8 @@
 
 1. **下游账增 `excluded?: string[]`**——目标级显式偏差的 SSoT。
    init：TUI 计划预览的 copy-rule 行变勾选列表（空格切换，取消即排除）；
-   CLI `iuse init --exclude <a,b>`（逗号分隔，可重复）。排除项不拷贝、
+   CLI `iuse init --exclude <a,b>`（逗号分隔；旗标重复时 citty 解析器
+   last-wins，不支持重复形式——help 只宣传逗号形式）。排除项不拷贝、
    不进 `rules` 基线、记入 `excluded`。
 
 2. **状态语义**——statusReport 为 excluded 的 rule 输出
