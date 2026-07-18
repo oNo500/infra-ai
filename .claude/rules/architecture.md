@@ -12,6 +12,7 @@ infra-ai/
 │       └── architecture.md    # this file
 ├── skills.json                # skill 账：存在与来源的 SSoT
 ├── profiles.json              # rule 组合账：项目 profile 显式清单（imeta status 校验）
+├── catalog.json               # 构建产物：资产查询视图（imeta catalog 生成）
 ├── SKILLS.md                  # skills 专题（SSoT、创建、维护、使用）
 ├── skills/                    # skill 产物（custom + mirror；official 留上游）
 ├── meta/                      # 元指令源，永久保留

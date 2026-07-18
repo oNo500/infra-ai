@@ -1,0 +1,247 @@
+{
+  "generatedAt": "2026-07-18T16:19:48.159Z",
+  "tags": {
+    "lang": {
+      "exclusive": true,
+      "values": {
+        "ts": "TypeScript/JavaScript 生态",
+        "python": "Python 生态"
+      }
+    },
+    "layer": {
+      "exclusive": true,
+      "values": {
+        "frontend": "前端",
+        "backend": "后端"
+      }
+    },
+    "framework": {
+      "exclusive": true,
+      "values": {
+        "react": "React",
+        "nextjs": "Next.js",
+        "nestjs": "NestJS"
+      }
+    },
+    "concern": {
+      "exclusive": false,
+      "values": {
+        "core": "跨语言核心原则",
+        "workflow": "AI 协作与会话工作流",
+        "testing": "测试",
+        "docs": "文档写作",
+        "ai": "AI 应用与 AI 消费"
+      }
+    }
+  },
+  "rules": {
+    "agent-behavior": {
+      "description": "AI 协作行为红线：不确定即问、忽略实时 LSP 诊断、研究子代理纪律",
+      "tags": [
+        "core",
+        "workflow"
+      ],
+      "scope": "global",
+      "path": "rules/global/agent-behavior.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "python-cli",
+        "react-spa"
+      ]
+    },
+    "ai-sdk": {
+      "description": "AI 应用选型：生产落地默认 Vercel AI SDK，Python 侧只做前沿实验",
+      "tags": [
+        "ai",
+        "ts"
+      ],
+      "scope": "global",
+      "path": "rules/global/ai-sdk.md",
+      "profiles": []
+    },
+    "constitution": {
+      "description": "跨项目核心工程原则与不可违反规则（Library/MVP/FP-First）",
+      "tags": [
+        "core"
+      ],
+      "scope": "global",
+      "path": "rules/global/constitution.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "python-cli",
+        "react-spa"
+      ]
+    },
+    "context-management": {
+      "description": "会话上下文管理：子代理分派判断与跨会话 memory 准入",
+      "tags": [
+        "core",
+        "workflow"
+      ],
+      "scope": "global",
+      "path": "rules/global/context-management.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "python-cli",
+        "react-spa"
+      ]
+    },
+    "css": {
+      "description": "CSS 设计 token 三处同改纪律与 shadcn 定制约束",
+      "tags": [
+        "frontend"
+      ],
+      "scope": "**/*.css",
+      "path": "rules/scoped/css.md",
+      "profiles": [
+        "nextjs-app",
+        "react-spa"
+      ]
+    },
+    "database": {
+      "description": "数据库 ORM 选型（Drizzle 优先）与迁移纪律",
+      "tags": [
+        "ts",
+        "backend"
+      ],
+      "scope": "global",
+      "path": "rules/global/database.md",
+      "profiles": [
+        "nestjs-api"
+      ]
+    },
+    "dependencies-ts": {
+      "description": "TS 依赖与工具链选型：pnpm、oxlint/oxfmt、zod、SemVer 策略",
+      "tags": [
+        "ts"
+      ],
+      "scope": "global",
+      "path": "rules/global/dependencies-ts.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "react-spa"
+      ]
+    },
+    "docs-retrieval": {
+      "description": "面向 AI/RAG 检索消费的文档写作约定（章节自包含、图文分离）",
+      "tags": [
+        "docs",
+        "ai"
+      ],
+      "scope": "**/*.md",
+      "path": "rules/scoped/docs-retrieval.md",
+      "profiles": []
+    },
+    "markdown": {
+      "description": "Markdown 文档写作规范：结构、格式、术语与来源纪律",
+      "tags": [
+        "docs"
+      ],
+      "scope": "**/*.md",
+      "path": "rules/scoped/markdown.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "python-cli",
+        "react-spa"
+      ]
+    },
+    "nestjs": {
+      "description": "NestJS 分层架构与 DIP 纪律（Repository 接口、模型选择、模块间通信）",
+      "tags": [
+        "ts",
+        "backend",
+        "nestjs"
+      ],
+      "scope": "src/**/*.ts",
+      "path": "rules/scoped/nestjs.md",
+      "profiles": [
+        "nestjs-api"
+      ]
+    },
+    "nextjs": {
+      "description": "Next.js App Router 约束：app/ 只做路由编排，页面文件保持薄",
+      "tags": [
+        "ts",
+        "frontend",
+        "nextjs"
+      ],
+      "scope": "**/*.tsx",
+      "path": "rules/scoped/nextjs.md",
+      "profiles": [
+        "nextjs-app"
+      ]
+    },
+    "python": {
+      "description": "Python 工具链选型：uv 单一入口、ruff、pyright、现代类型语法",
+      "tags": [
+        "python"
+      ],
+      "scope": "**/*.py",
+      "path": "rules/scoped/python.md",
+      "profiles": [
+        "python-cli"
+      ]
+    },
+    "react": {
+      "description": "React 组件与状态管理约束：feature-based 架构、组件类型习惯、状态阶梯",
+      "tags": [
+        "ts",
+        "frontend",
+        "react"
+      ],
+      "scope": "**/*.tsx",
+      "path": "rules/scoped/react.md",
+      "profiles": [
+        "nextjs-app",
+        "react-spa"
+      ]
+    },
+    "testing": {
+      "description": "测试组织与命名约定，mock 边界与不得为过测试改断言的纪律红线",
+      "tags": [
+        "ts",
+        "testing"
+      ],
+      "scope": "**/*.{test,spec,e2e-spec}.{ts,tsx,js,jsx}",
+      "path": "rules/scoped/testing.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "react-spa"
+      ]
+    },
+    "tooling": {
+      "description": "开发工具选用：LSP 优先、rg/fd 限文本、信息检索链、gh/sg、CLI-first",
+      "tags": [
+        "core",
+        "workflow"
+      ],
+      "scope": "global",
+      "path": "rules/global/tooling.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "python-cli",
+        "react-spa"
+      ]
+    },
+    "typescript": {
+      "description": "TypeScript 类型纪律：禁双重断言/@ts-ignore/非空断言，import type 风格",
+      "tags": [
+        "ts"
+      ],
+      "scope": "**/*.{ts,tsx}",
+      "path": "rules/scoped/typescript.md",
+      "profiles": [
+        "nestjs-api",
+        "nextjs-app",
+        "react-spa"
+      ]
+    }
+  }
+}

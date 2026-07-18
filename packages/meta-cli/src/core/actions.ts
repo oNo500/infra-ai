@@ -10,8 +10,9 @@ import {
   verifyBuild,
   writebackPromptFor,
 } from './claude'
-import { readTextIfExists, runCommand, sha256, spawnDetached } from './io'
+import { readTextIfExists, runCommand, sha256, spawnDetached, writeFileAtomic } from './io'
 import type { CommandRunner } from './io'
+import { buildCatalog, catalogStaleness, renderCatalog } from './catalog'
 import { KINDS } from './kinds'
 import type { FetchJson } from './kinds'
 import { discoverAssets } from './meta'
@@ -218,9 +219,27 @@ const statusAction: ActionDef = {
       vocab,
       profiles,
     )
+    const staleness = catalogStaleness(ctx.repoRoot)
+    if (staleness !== null) violations.push(staleness)
     const pending = dataRows.some((d) => PENDING_STATUSES.has(d.status))
     const data: StatusData = { rows: dataRows, violations }
     return { ok: true, data, exitCode: pending || violations.length > 0 ? 1 : 0 }
+  },
+}
+
+const catalogAction: ActionDef = {
+  id: 'catalog',
+  summary: 'Regenerate catalog.json from meta frontmatter, tags and profiles',
+  kind: 'mutation',
+  args: [],
+  async execute(ctx) {
+    try {
+      const catalog = buildCatalog(ctx.repoRoot, ctx.now)
+      writeFileAtomic(join(ctx.repoRoot, 'catalog.json'), renderCatalog(catalog))
+      return { ok: true, message: `catalog.json: ${Object.keys(catalog.rules).length} rules` }
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : String(error))
+    }
   },
 }
 
@@ -325,6 +344,8 @@ async function buildOne(ctx: ActionContext, asset: MetaAsset, hooks?: ActionHook
   }
   recordBuild(ctx.repoRoot, asset, ctx.now())
   hooks?.onStep?.('record', { key: lockKey(asset) })
+  const catalog = buildCatalog(ctx.repoRoot, ctx.now)
+  writeFileAtomic(join(ctx.repoRoot, 'catalog.json'), renderCatalog(catalog))
   return null
 }
 
@@ -500,6 +521,7 @@ export const ACTIONS: ActionDef[] = [
   buildAction,
   writebackAction,
   previewAction,
+  catalogAction,
   skillsStatusAction,
   skillsFixAction,
   skillsUpdateAction,

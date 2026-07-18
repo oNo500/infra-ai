@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getAction, isLoopback, runAction, type ActionContext, type StatusData } from '../src/core/actions'
+import { buildCatalog, renderCatalog } from '../src/core/catalog'
 import { sha256 } from '../src/core/io'
 import { metaContentHash } from '../src/core/meta'
 
@@ -77,6 +78,8 @@ describe('status action', () => {
         '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: demo rule\ntags: [ts]\n---\nbody\n',
       )
       writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
+      const now = () => '2026-07-11T00:00:00.000Z'
+      writeFileSync(join(root, 'catalog.json'), renderCatalog(buildCatalog(root, now)))
       const all = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
       expect(all.exitCode).toBe(0)
       const one = await getAction('status').execute(testContext(root), { positionals: ['foo'], flags: {} })

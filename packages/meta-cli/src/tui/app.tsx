@@ -110,6 +110,14 @@ export function App({ repoRoot }: { repoRoot: string }) {
         ),
       )
     }
+    if (input === 'g') {
+      runJob('重建 catalog.json', (onText) =>
+        runAction(ctx, 'catalog', { positionals: [], flags: {} }).then((r) => {
+          if (r.ok && r.message) onText(r.message)
+          return r.ok ? null : `${r.message ?? 'failed'}${r.logPath ? `\nlog: ${r.logPath}` : ''}`
+        }),
+      )
+    }
   })
 
   return (
@@ -134,7 +142,7 @@ export function App({ repoRoot }: { repoRoot: string }) {
           <Text dimColor>
             {confirmQuit
               ? '再按一次 q 退出'
-              : '上下 移动  Enter 详情  a 收编  b 构建  B 批量构建 stale  w 回写  v 预览  s skills 对账  r 刷新  q 退出'}
+              : '上下 移动  Enter 详情  a 收编  b 构建  B 批量构建 stale  w 回写  v 预览  g 重建 catalog  s skills 对账  r 刷新  q 退出'}
           </Text>
         </Box>
       )}

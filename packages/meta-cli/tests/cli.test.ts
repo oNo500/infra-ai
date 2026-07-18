@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { renderSkills, renderStatus } from '../src/cli/render'
+import { buildCatalog, renderCatalog } from '../src/core/catalog'
 import { runCommand } from '../src/core/io'
 import { sha256 } from '../src/core/io'
 import { metaContentHash } from '../src/core/meta'
@@ -86,6 +87,7 @@ describe('cli end-to-end', () => {
         join(root, 'artifacts.lock.json'),
         `${JSON.stringify({ 'rule:foo': { metaHash: metaContentHash(meta), artifactHash: sha256('# foo\n'), builtAt: 't' } })}\n`,
       )
+      writeFileSync(join(root, 'catalog.json'), renderCatalog(buildCatalog(root, () => 't')))
       const res = await runCommand('bun', ['run', INDEX, 'status'], { cwd: root })
       expect(res.code).toBe(0)
       expect(res.stdout).toContain('synced')
