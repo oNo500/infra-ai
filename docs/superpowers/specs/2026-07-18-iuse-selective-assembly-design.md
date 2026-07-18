@@ -40,7 +40,8 @@
      默认跳过并提示 diff 命令，`--force` 覆盖）；`--force` 批量覆盖语义
      不变
 
-5. **新查询命令 `iuse diff [rule] [--source] [--json]`**——本地副本 vs
+5. **新查询命令 `iuse diff [--rule <name>] [--source] [--json] [target]`**
+   （rule 用具名参数——与 target 双 positional 有歧义）——本地副本 vs
    源产物的 unified diff；无参数时列出全部有差异的 rule 及摘要
    （行增删计数），指定 rule 时输出完整 diff。无参数默认不含 excluded
    项（与「排除不唠叨」一致——否则源一演化就永远退 1）；指名 excluded
