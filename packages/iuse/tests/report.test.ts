@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
+import { loadDownstreamLock, saveDownstreamLock } from '../src/core/manifest'
 import { statusReport } from '../src/core/report'
 
 function fixtureSource(): string {
@@ -185,6 +186,62 @@ describe('statusReport', () => {
       { rule: 'extra', state: 'outdated' },
     ])
     expect(result.exitCode).toBe(1)
+  })
+
+  test('excluded rule reports state excluded, merged sorted with the rest, and never flips exitCode', async () => {
+    const source = fixtureSource()
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+    const target = await initTarget(source)
+    const lock = loadDownstreamLock(target)
+    if (lock === null) throw new Error('fixture lock missing')
+    const { extra: _extra, ...restRules } = lock.rules
+    saveDownstreamLock(target, { ...lock, rules: restRules, excluded: ['extra'] })
+
+    const result = await statusReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(true)
+    expect(result.rows).toEqual([
+      { rule: 'constitution', state: 'synced' },
+      { rule: 'extra', state: 'excluded' },
+    ])
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('source profile gains a rule that is neither in lock.rules nor excluded -> stays outdated', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+    const lock = loadDownstreamLock(target)
+    if (lock === null) throw new Error('fixture lock missing')
+    saveDownstreamLock(target, { ...lock, excluded: ['unrelated-excluded-name'] })
+
+    const result = await statusReport(ctxWith(), { source, target })
+
+    expect(result.rows).toEqual([
+      { rule: 'constitution', state: 'synced' },
+      { rule: 'extra', state: 'outdated' },
+      { rule: 'unrelated-excluded-name', state: 'excluded' },
+    ])
+    expect(result.exitCode).toBe(1) // 'extra' outdated still drives exit 1
+  })
+
+  test('all synced plus an excluded rule -> exitCode stays 0', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const lock = loadDownstreamLock(target)
+    if (lock === null) throw new Error('fixture lock missing')
+    saveDownstreamLock(target, { ...lock, excluded: ['ghost-rule'] })
+
+    const result = await statusReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(true)
+    expect(result.rows).toEqual([
+      { rule: 'constitution', state: 'synced' },
+      { rule: 'ghost-rule', state: 'excluded' },
+    ])
+    expect(result.exitCode).toBe(0)
   })
 
   test('composition violations fail the report', async () => {

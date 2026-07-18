@@ -115,11 +115,12 @@ interface InitPlan {
   source: Awaited<ReturnType<typeof resolveSource>>
   items: ReturnType<typeof planAssembly>['items']
   steps: ActionStep[]
+  excluded: string[]
 }
 
 async function planInit(
   ctx: IuseContext,
-  opts: { source?: string; profile: string; target: string; force: boolean },
+  opts: { source?: string; profile: string; target: string; force: boolean; exclude?: string[] },
 ): Promise<{ ok: true; plan: InitPlan } | { ok: false; message: string }> {
   const existingLock = loadDownstreamLock(opts.target)
   if (existingLock !== null && !opts.force) {
@@ -153,9 +154,23 @@ async function planInit(
     return fail(`composition violations for profile '${opts.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
   }
 
+  const excluded = [...new Set(opts.exclude ?? [])].toSorted()
+  if (excluded.length > 0) {
+    const profileRules = new Set(items.map((i) => i.rule))
+    const unknown = excluded.filter((rule) => !profileRules.has(rule))
+    if (unknown.length > 0) {
+      return fail(`unknown rules in --exclude: ${unknown.join(', ')} (profile rules: ${[...profileRules].toSorted().join(', ')})`)
+    }
+  }
+  const excludedSet = new Set(excluded)
+
   const steps: ActionStep[] = []
 
   for (const item of items) {
+    if (excludedSet.has(item.rule)) {
+      steps.push({ op: 'exclude-rule', target: item.rule, note: 'excluded' })
+      continue
+    }
     const targetPath = join(opts.target, item.targetRelPath)
     if (opts.force && existsSync(targetPath) && readFileSync(targetPath, 'utf8') === item.content) {
       steps.push({ op: 'copy-rule', target: item.targetRelPath, note: 'skipped: unchanged' })
@@ -182,12 +197,20 @@ async function planInit(
 
   steps.push({ op: 'write-lock', target: LOCK_PATH })
 
-  return { ok: true, plan: { source, items, steps } }
+  return { ok: true, plan: { source, items, steps, excluded } }
 }
 
 export async function runInit(
   ctx: IuseContext,
-  opts: { source?: string; profile: string; target: string; force: boolean; dryRun?: boolean; onProgress?: (step: ActionStep) => void },
+  opts: {
+    source?: string
+    profile: string
+    target: string
+    force: boolean
+    dryRun?: boolean
+    exclude?: string[]
+    onProgress?: (step: ActionStep) => void
+  },
 ): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
   const planned = await planInit(ctx, opts)
   if (!planned.ok) return planned
@@ -198,9 +221,13 @@ export async function runInit(
     return { ok: true, message: formatSteps(plan.steps), steps: plan.steps }
   }
 
-  const { source, items, steps } = plan
+  const { source, items, steps, excluded } = plan
 
   for (const step of steps) {
+    if (step.op === 'exclude-rule') {
+      opts.onProgress?.(step)
+      continue
+    }
     if (step.op === 'copy-rule') {
       opts.onProgress?.(step)
       if (step.note !== undefined) continue
@@ -243,12 +270,14 @@ export async function runInit(
     opts.onProgress?.(writeLockStep)
   }
 
+  const excludedSet = new Set(excluded)
   saveDownstreamLock(opts.target, {
     source: { type: source.version.type, id: source.version.id, locator: source.locator },
     profile: opts.profile,
     appliedAt: ctx.now(),
-    rules: Object.fromEntries(items.map((i) => [i.rule, i.hash])),
+    rules: Object.fromEntries(items.filter((i) => !excludedSet.has(i.rule)).map((i) => [i.rule, i.hash])),
     templates: ['architecture', 'claude-md'],
+    excluded,
   })
 
   const finalSteps: ActionStep[] = steps.map((s) => {

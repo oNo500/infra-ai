@@ -18,6 +18,7 @@ export interface DownstreamLock {
   appliedAt: string
   rules: Record<string, string>
   templates: string[]
+  excluded?: string[]
 }
 
 export function loadDownstreamLock(targetRoot: string): DownstreamLock | null {
@@ -31,10 +32,13 @@ export function loadDownstreamLock(targetRoot: string): DownstreamLock | null {
 }
 
 export function saveDownstreamLock(targetRoot: string, lock: DownstreamLock): void {
-  writeFileAtomic(join(targetRoot, LOCK_PATH), `${JSON.stringify(lock, null, 2)}\n`)
+  // excluded 账保持精简：字段仅在非空时写出（旧账/无排除目标不出现该 key）
+  const { excluded, ...rest } = lock
+  const serializable: DownstreamLock = excluded !== undefined && excluded.length > 0 ? { ...rest, excluded } : rest
+  writeFileAtomic(join(targetRoot, LOCK_PATH), `${JSON.stringify(serializable, null, 2)}\n`)
 }
 
-export type DriftState = 'synced' | 'modified' | 'outdated' | 'missing'
+export type DriftState = 'synced' | 'modified' | 'outdated' | 'missing' | 'excluded'
 
 export function computeDrift(
   localHash: string | null,

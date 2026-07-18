@@ -70,17 +70,27 @@ export async function statusReport(
     rows.push({ rule, state: computeDrift(localHash, baselineHash, sourceHash) })
   }
 
+  const excluded = lock.excluded ?? []
+  const excludedSet = new Set(excluded)
+
   // Rules that the profile gained in the source since the lock was last applied
   // have no baseline to diff against yet -- they need to be pulled in, so we
   // surface them as 'outdated' (the same state 'iuse update' will resolve by
-  // copying them in and registering them in the lock).
+  // copying them in and registering them in the lock). A rule the downstream
+  // explicitly excluded is a permanent gate, not a pending pull -- it reports
+  // 'excluded' instead and never reverts to 'outdated'.
   for (const rule of sourceHashByRule.keys()) {
     if (rule in lock.rules) continue
+    if (excludedSet.has(rule)) continue
     rows.push({ rule, state: 'outdated' })
+  }
+
+  for (const rule of excluded) {
+    rows.push({ rule, state: 'excluded' })
   }
 
   rows.sort((a, b) => a.rule.localeCompare(b.rule))
 
-  const exitCode = rows.some((r) => r.state !== 'synced') ? 1 : 0
+  const exitCode = rows.some((r) => r.state !== 'synced' && r.state !== 'excluded') ? 1 : 0
   return { ok: true, rows, exitCode }
 }

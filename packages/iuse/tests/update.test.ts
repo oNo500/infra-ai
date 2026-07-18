@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
-import { loadDownstreamLock } from '../src/core/manifest'
+import { loadDownstreamLock, saveDownstreamLock } from '../src/core/manifest'
 import { statusReport } from '../src/core/report'
 import { runUpdate } from '../src/core/update'
 
@@ -328,6 +328,185 @@ describe('runUpdate', () => {
     const steps = result.steps ?? []
     expect(steps).toContainEqual(expect.objectContaining({ op: 'apply', target: '.claude/rules/constitution.md' }))
     expect(steps).toContainEqual(expect.objectContaining({ op: 'add', target: '.claude/rules/extra.md' }))
+  })
+
+  test('include: clean re-include (local file absent) copies, joins the rules baseline, and drops from excluded', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    rmSync(join(target, '.claude/rules/constitution.md'))
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).not.toBeUndefined()
+    expect(lock?.excluded ?? []).not.toContain('constitution')
+    expect(result.steps).toContainEqual({ op: 'include', target: '.claude/rules/constitution.md' })
+  })
+
+  test('include: local content equal to source counts as clean and re-includes', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    // local file untouched, content identical to source -- still "clean"
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).not.toBeUndefined()
+    expect(lock?.excluded ?? []).toEqual([])
+    expect(result.steps).toContainEqual({ op: 'include', target: '.claude/rules/constitution.md' })
+  })
+
+  test('include: local content differs from source -> default skip-include with diff hint, excluded stays', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n\nlocal divergent\n')
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).toBeUndefined()
+    expect(lock?.excluded ?? []).toContain('constitution')
+    expect(result.steps).toContainEqual({
+      op: 'skip-include',
+      target: '.claude/rules/constitution.md',
+      note: "local differs, kept (see 'iuse diff <rule>', use --force to overwrite)",
+    })
+  })
+
+  test('include: --force overwrites differing local content, re-includes and updates baseline', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
+
+    const result = await runUpdate(ctxWith(), { source, target, force: true, include: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).not.toBeUndefined()
+    expect(lock?.excluded ?? []).not.toContain('constitution')
+    expect(result.steps).toContainEqual({ op: 'include', target: '.claude/rules/constitution.md', note: '(overwrite)' })
+  })
+
+  test('include: rule listed in --overwrite (not global --force) overwrites differing local content', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
+
+    const result = await runUpdate(ctxWith(), {
+      source,
+      target,
+      force: false,
+      include: ['constitution'],
+      overwrite: ['constitution'],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).not.toBeUndefined()
+    expect(lock?.excluded ?? []).not.toContain('constitution')
+    expect(result.steps).toContainEqual({ op: 'include', target: '.claude/rules/constitution.md', note: '(overwrite)' })
+  })
+
+  test('--include with a rule not in lock.excluded fails, listing currently excluded rules', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    saveDownstreamLock(target, { ...initialLock, excluded: ['other-rule'] })
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toBe('not excluded: constitution (currently excluded: other-rule)')
+  })
+
+  test('--include with a rule not in lock.excluded fails, reporting none when nothing is excluded', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toBe('not excluded: constitution (currently excluded: none)')
+  })
+
+  test('excluded rule not named in --include produces zero steps (permanent gate) and status still reports excluded', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    // source moves on -- still must not resurface the excluded rule in any step
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false })
+
+    expect(result.ok).toBe(true)
+    expect((result.steps ?? []).some((s) => s.target.includes('constitution'))).toBe(false)
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded).toEqual(['constitution'])
+
+    const statusAfter = await statusReport(ctxWith(), { source, target })
+    expect(statusAfter.rows).toContainEqual({ rule: 'constitution', state: 'excluded' })
+  })
+
+  test('--overwrite forces a regular modified rule via op apply with note (overwrite), without needing --force', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocally edited\n')
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, overwrite: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n\nv2\n')
+    expect(result.steps).toContainEqual({ op: 'apply', target: '.claude/rules/constitution.md', note: '(overwrite)' })
+    const lock = loadDownstreamLock(target)
+    expect(lock?.rules.constitution).not.toBeUndefined()
+  })
+
+  test('exclusion and re-include never delete the local file copy', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
+
+    await runUpdate(ctxWith(), { source, target, force: false })
+    expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
+
+    await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
   })
 
   test('onProgress fires per executed step in order, not in dry-run', async () => {

@@ -391,6 +391,57 @@ describe('runInit', () => {
     expect(settingsStep?.note).toContain('skipped')
   })
 
+  test('--exclude keeps excluded rule uncopied, out of lock.rules, and recorded sorted+deduped in lock.excluded', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const result = await runInit(ctx, {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['markdown', 'markdown'],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(target, '.claude/rules/markdown.md'))).toBe(false)
+    expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
+
+    const lock = loadDownstreamLock(target)
+    expect(Object.keys(lock?.rules ?? {})).toEqual(['constitution'])
+    expect(lock?.excluded).toEqual(['markdown'])
+  })
+
+  test('--exclude with a rule not in the profile fails listing the profile rules', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, exclude: ['ghost'] })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toBe("unknown rules in --exclude: ghost (profile rules: constitution, markdown)")
+    expect(loadDownstreamLock(target)).toBeNull()
+  })
+
+  test('--exclude dry-run surfaces an exclude-rule step instead of copy-rule, and writes nothing', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, dryRun: true, exclude: ['markdown'] })
+
+    expect(result.ok).toBe(true)
+    const steps = result.steps ?? []
+    expect(steps).toContainEqual({ op: 'exclude-rule', target: 'markdown', note: 'excluded' })
+    expect(steps.some((s) => s.op === 'copy-rule' && s.target === '.claude/rules/markdown.md')).toBe(false)
+    expect(existsSync(join(target, '.claude'))).toBe(false)
+  })
+
   test('onProgress fires per executed step in order, not in dry-run', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))

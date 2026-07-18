@@ -20,16 +20,30 @@ interface UpdatePlan {
   items: ReturnType<typeof planAssembly>['items']
   steps: ActionStep[]
   nextRules: Record<string, string>
+  nextExcluded: string[]
 }
 
 async function planUpdate(
   ctx: IuseContext,
-  opts: { source?: string; target: string; force: boolean },
+  opts: { source?: string; target: string; force: boolean; include?: string[]; overwrite?: string[] },
 ): Promise<{ ok: true; plan: UpdatePlan } | { ok: false; message: string }> {
   const lock = loadDownstreamLock(opts.target)
   if (lock === null) {
     return fail(`${opts.target}: not initialized, run 'iuse init' first`)
   }
+
+  const currentlyExcluded = lock.excluded ?? []
+  const currentlyExcludedSet = new Set(currentlyExcluded)
+  const include = [...new Set(opts.include ?? [])]
+  if (include.length > 0) {
+    const unknown = include.filter((rule) => !currentlyExcludedSet.has(rule))
+    if (unknown.length > 0) {
+      const list = currentlyExcluded.length > 0 ? currentlyExcluded.toSorted().join(', ') : 'none'
+      return fail(`not excluded: ${unknown.join(', ')} (currently excluded: ${list})`)
+    }
+  }
+  const includeSet = new Set(include)
+  const overwriteSet = new Set(opts.overwrite ?? [])
 
   let source: Awaited<ReturnType<typeof resolveSource>>
   try {
@@ -87,6 +101,10 @@ async function planUpdate(
     }
 
     // state is 'modified' or 'missing'
+    if (state === 'modified' && overwriteSet.has(rule)) {
+      steps.push({ op: 'apply', target: targetRelPath, note: '(overwrite)' })
+      continue
+    }
     if (!opts.force) {
       steps.push({ op: state === 'modified' ? 'skip-modified' : 'skip-missing', target: targetRelPath, note: `${state} locally, skipped (use --force to overwrite)` })
       continue
@@ -94,19 +112,55 @@ async function planUpdate(
     steps.push({ op: 'apply', target: targetRelPath, note: `${state} locally, overwritten (--force)` })
   }
 
+  const nextExcluded = [...currentlyExcluded]
+
   for (const rule of [...sourceByRule.keys()].toSorted()) {
     if (rule in lock.rules) continue
+    if (currentlyExcludedSet.has(rule)) continue // handled by the include gate below
     const item = sourceByRule.get(rule)
     if (item === undefined) continue
     steps.push({ op: 'add', target: item.targetRelPath })
   }
 
-  return { ok: true, plan: { source, lock, items, steps, nextRules } }
+  // Excluded rules are a permanent gate: they produce zero steps unless the
+  // caller names them in --include, at which point re-inclusion is itself a
+  // clean-copy vs. differing-content decision (mirrors the modified/outdated split above).
+  for (const rule of [...currentlyExcludedSet].toSorted()) {
+    const targetRelPath = ruleTargetRelPath(rule)
+    if (!includeSet.has(rule)) continue
+
+    const item = sourceByRule.get(rule)
+    if (item === undefined) continue // source dropped the rule entirely -- nothing to re-include
+
+    const localHash = localHashFor(opts.target, rule)
+    const isClean = localHash === null || localHash === item.hash
+    if (isClean || opts.force || overwriteSet.has(rule)) {
+      const note = isClean ? undefined : '(overwrite)'
+      steps.push(note === undefined ? { op: 'include', target: targetRelPath } : { op: 'include', target: targetRelPath, note })
+      continue
+    }
+
+    steps.push({
+      op: 'skip-include',
+      target: targetRelPath,
+      note: "local differs, kept (see 'iuse diff <rule>', use --force to overwrite)",
+    })
+  }
+
+  return { ok: true, plan: { source, lock, items, steps, nextRules, nextExcluded } }
 }
 
 export async function runUpdate(
   ctx: IuseContext,
-  opts: { source?: string; target: string; force: boolean; dryRun?: boolean; onProgress?: (step: ActionStep) => void },
+  opts: {
+    source?: string
+    target: string
+    force: boolean
+    dryRun?: boolean
+    include?: string[]
+    overwrite?: string[]
+    onProgress?: (step: ActionStep) => void
+  },
 ): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
   const planned = await planUpdate(ctx, opts)
   if (!planned.ok) return planned
@@ -118,8 +172,9 @@ export async function runUpdate(
     return { ok: true, message, steps: plan.steps }
   }
 
-  const { source, lock, items, steps, nextRules } = plan
+  const { source, lock, items, steps, nextRules, nextExcluded } = plan
   const sourceByRule = new Map(items.map((i) => [i.rule, i]))
+  const excludedAfter = new Set(nextExcluded)
   const notes: string[] = []
 
   for (const step of steps) {
@@ -154,7 +209,18 @@ export async function runUpdate(
       continue
     }
 
-    // skip-modified / skip-missing
+    if (step.op === 'include') {
+      const rule = ruleFromTargetRelPath(step.target)
+      const item = sourceByRule.get(rule)
+      if (item === undefined) continue
+      writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
+      nextRules[rule] = item.hash
+      excludedAfter.delete(rule)
+      notes.push(`${rule}: included${step.note === undefined ? '' : ` ${step.note}`}`)
+      continue
+    }
+
+    // skip-modified / skip-missing / skip-include
     const rule = ruleFromTargetRelPath(step.target)
     notes.push(`${rule}: ${step.note}`)
   }
@@ -165,6 +231,7 @@ export async function runUpdate(
     appliedAt: ctx.now(),
     rules: nextRules,
     templates: lock.templates,
+    excluded: [...excludedAfter].toSorted(),
   })
 
   const message = notes.length > 0 ? notes.join('\n') : 'already up to date'
