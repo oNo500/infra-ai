@@ -247,8 +247,8 @@ describe('TUI status flow', () => {
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
     stdin.write('e') // execute (force off -> edited stays modified, others resolve)
-    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
-    await waitFor(() => (lastFrame() ?? '').includes('extra'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('状态'))
+    await waitFor(() => (lastFrame() ?? '').includes('extra'))
 
     const frame = lastFrame() ?? ''
     const lineFor = (rule: string) => frame.split('\n').find((l) => l.includes(rule)) ?? ''
@@ -281,7 +281,7 @@ describe('TUI status flow', () => {
     expect(lastFrame()).toContain('执行中')
 
     release()
-    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('状态'))
   })
 
   test('r refreshes the status view', async () => {
@@ -407,7 +407,7 @@ describe('TUI status flow', () => {
     await settle()
 
     stdin.write('e') // execute
-    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('状态'))
 
     const lock = loadDownstreamLock(target)
     expect(lock?.excluded ?? []).not.toContain('gone')
@@ -502,7 +502,7 @@ describe('TUI status flow', () => {
     await settle()
 
     stdin.write('e') // execute
-    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('状态'))
 
     // Ignored: local file untouched, rule stays excluded (not re-included this run).
     expect(readFileSync(join(target, '.claude/rules/gone.md'), 'utf8')).toBe('# Gone\n\nlocally kept different content\n')

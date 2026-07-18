@@ -134,7 +134,7 @@ describe('TUI init flow', () => {
 
     stdin.write('\r') // enter: execute
 
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
     expect(lastFrame()).toContain('initialized')
   })
 
@@ -149,7 +149,7 @@ describe('TUI init flow', () => {
     stdin.write('\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     stdin.write('\r') // enter: execute
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
     stdin.write('q')
     // Give the exit path a tick to run; there is no further view transition
@@ -171,7 +171,7 @@ describe('TUI init flow', () => {
     stdin.write('\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     stdin.write('\r') // enter: execute
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
     stdin.write('x')
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
@@ -194,7 +194,7 @@ describe('TUI init flow', () => {
     // While gated on the first instantiate step: its row shows the spinner
     // liveness text and is not yet checked off, and write-lock (a later
     // step) has not become current either.
-    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'))
     const gatedFrame = lastFrame() ?? ''
     const instantiateLine = gatedFrame.split('\n').find((l) => l.includes('claude 实例化中（分钟级）')) ?? ''
     expect(instantiateLine).not.toContain('✓')
@@ -204,7 +204,7 @@ describe('TUI init flow', () => {
 
     release()
 
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
     expect(lastFrame()).toContain('initialized')
   })
 
@@ -242,7 +242,7 @@ describe('TUI init flow', () => {
 
     stdin.write('\r') // enter: execute with extra excluded
 
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
     const lock = loadDownstreamLock(target)
     expect(lock?.excluded).toEqual(['extra'])
@@ -279,7 +279,7 @@ describe('TUI init flow', () => {
 
     // While gated on the first instantiate step, the run is stalled mid-flight
     // -- inspect the progress rows before it completes and gets torn down.
-    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'))
     const gatedFrame = lastFrame() ?? ''
     const lines = gatedFrame.split('\n')
     expect(lines.some((l) => l.includes('exclude-rule') && l.includes('extra'))).toBe(true)
@@ -288,7 +288,7 @@ describe('TUI init flow', () => {
     expect(lines.some((l) => l.includes('copy-rule') && l.includes('constitution.md'))).toBe(true)
 
     release()
-    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
   })
 
   test('source resolution failure lands in error view with message', async () => {
