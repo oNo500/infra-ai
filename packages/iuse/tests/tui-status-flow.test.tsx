@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { render } from 'ink-testing-library'
+import type { Catalog } from '@infra-ai/meta-cli/core'
 import { App } from '../src/tui/app'
 import type { TuiDeps } from '../src/tui/app'
 import { runInit } from '../src/core/init'
@@ -39,6 +40,20 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
   writeFileSync(join(dir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
   writeFileSync(join(dir, 'meta', 'prompts', 'template-instantiate.md'), '# contract\n')
+
+  // catalog.json is browse's data source (entered via 'b' from status) --
+  // handwritten to match the base profile rules present at fixture creation.
+  const catalog: Catalog = {
+    generatedAt: '2026-07-18T00:00:00Z',
+    tags: { concern: { exclusive: false, values: { core: 'x' } } },
+    rules: {
+      constitution: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/constitution.md', profiles: ['demo'] },
+      edited: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/edited.md', profiles: ['demo'] },
+      gone: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/gone.md', profiles: ['demo'] },
+    },
+  }
+  writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
+
   return dir
 }
 

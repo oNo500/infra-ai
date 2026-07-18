@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Box, Text, useApp, useInput } from 'ink'
 import { join } from 'node:path'
+import { loadCatalog, readTextIfExists } from '@infra-ai/meta-cli/core'
+import type { TagVocabulary } from '@infra-ai/meta-cli/core'
 import type { ActionStep, IuseContext } from '../core/init'
 import { runInit } from '../core/init'
+import type { ListRow } from '../core/list'
+import { listReport } from '../core/list'
 import { loadDownstreamLock } from '../core/manifest'
 import { listProfiles } from '../core/profiles'
 import type { ProfileInfo } from '../core/profiles'
 import { resolveSource } from '../core/source'
 import type { SourceRef } from '../core/source'
+import { BrowseView } from './browse-view'
 import { MessageBlock } from './message-block'
 import { PlanView } from './plan-view'
 import { ProfilePicker } from './profile-picker'
@@ -21,20 +26,70 @@ export interface TuiDeps {
   source?: string
 }
 
+interface BrowseData {
+  source: SourceRef
+  rows: ListRow[]
+  contentByName: Record<string, string>
+  tags: TagVocabulary
+}
+
 type View =
   | { kind: 'loading' }
+  | { kind: 'browse'; data: BrowseData; initialized: boolean; profile: string | undefined }
   | { kind: 'profile-pick'; source: SourceRef; profiles: ProfileInfo[]; selected: number }
   | { kind: 'plan'; source: SourceRef; profile: string; steps: ActionStep[] }
   | { kind: 'running'; source: SourceRef; profile: string; steps: ActionStep[]; attempt: number; exclude: string[] }
   | { kind: 'result'; message: string; profile: string }
   | { kind: 'status'; profile: string; refreshKey: number; source: SourceRef | undefined }
-  | { kind: 'update-plan'; profile: string }
+  | { kind: 'update-plan'; profile: string; initialAdd?: string[]; initialRemove?: string[] }
   | {
       kind: 'error'
       message: string
       retry: 'source' | 'plan' | 'init'
       context?: { source: SourceRef; profile: string; steps: ActionStep[] }
     }
+
+/**
+ * Assembles browse's left-column rows plus prefetched right-pane bodies for
+ * every catalog rule in one pass -- browse never lazily re-fetches per
+ * keystroke, so the whole content set is read up front at bootstrap.
+ */
+async function loadBrowseData(
+  ctx: IuseContext,
+  opts: { source?: string; target: string },
+): Promise<{ ok: true; data: BrowseData } | { ok: false; message: string }> {
+  const listed = await listReport(ctx, { source: opts.source, target: opts.target })
+  if (!listed.ok) return { ok: false, message: listed.message ?? 'catalog 加载失败' }
+
+  let source: SourceRef
+  try {
+    source = await resolveSource({
+      explicit: opts.source,
+      envRoot: ctx.env.INFRA_AI_ROOT,
+      homeDefault: join(ctx.home, 'code/infra-ai'),
+      cacheDir: ctx.cacheDir,
+      download: ctx.download,
+      run: ctx.run,
+    })
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error) }
+  }
+
+  const catalog = loadCatalog(source.root)
+  if (catalog === null) {
+    return { ok: false, message: `${source.root}: catalog.json missing, run 'imeta catalog' in the source` }
+  }
+
+  const contentByName: Record<string, string> = {}
+  for (const row of listed.rows) {
+    const rule = catalog.rules[row.name]
+    if (rule === undefined) continue
+    const content = readTextIfExists(join(source.root, rule.path))
+    if (content !== null) contentByName[row.name] = content
+  }
+
+  return { ok: true, data: { source, rows: listed.rows, contentByName, tags: catalog.tags } }
+}
 
 async function resolveSourceRef(deps: TuiDeps): Promise<{ ok: true; source: SourceRef } | { ok: false; message: string }> {
   try {
@@ -99,14 +154,13 @@ export function App({ deps }: { deps: TuiDeps }) {
       return
     }
 
-    resolveSourceRef(deps).then((resolved) => {
+    loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
       if (cancelled) return
-      if (!resolved.ok) {
-        setView({ kind: 'error', message: resolved.message, retry: 'source' })
+      if (!result.ok) {
+        setView({ kind: 'error', message: result.message, retry: 'source' })
         return
       }
-      const profiles = listProfiles(resolved.source.root)
-      setView({ kind: 'profile-pick', source: resolved.source, profiles, selected: 0 })
+      setView({ kind: 'browse', data: result.data, initialized: false, profile: undefined })
     })
 
     return () => {
@@ -138,13 +192,13 @@ export function App({ deps }: { deps: TuiDeps }) {
     if (view.kind !== 'error') return
     if (view.retry === 'source') {
       setView({ kind: 'loading' })
-      resolveSourceRef(deps).then((resolved) => {
-        if (!resolved.ok) {
-          setView({ kind: 'error', message: resolved.message, retry: 'source' })
+      loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
+        if (!result.ok) {
+          setView({ kind: 'error', message: result.message, retry: 'source' })
           return
         }
-        const profiles = listProfiles(resolved.source.root)
-        setView({ kind: 'profile-pick', source: resolved.source, profiles, selected: 0 })
+        const lock = loadDownstreamLock(deps.target)
+        setView({ kind: 'browse', data: result.data, initialized: lock !== null, profile: lock?.profile })
       })
       return
     }
@@ -197,6 +251,58 @@ export function App({ deps }: { deps: TuiDeps }) {
           target={deps.target}
           source={deps.source}
           onUpdate={() => setView({ kind: 'update-plan', profile: view.profile })}
+          onBrowse={() => {
+            const profile = view.profile
+            loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
+              if (!result.ok) {
+                setView({ kind: 'error', message: result.message, retry: 'source' })
+                return
+              }
+              setView({ kind: 'browse', data: result.data, initialized: true, profile })
+            })
+          }}
+          onQuit={exit}
+        />
+      </Box>
+    )
+  }
+
+  if (view.kind === 'browse') {
+    return (
+      <Box flexDirection="column">
+        <TopBar target={deps.target} profile={view.profile} source={view.data.source} />
+        <BrowseView
+          rows={view.data.rows}
+          contentFor={(name) => view.data.contentByName[name] ?? ''}
+          tags={view.data.tags}
+          initialized={view.initialized}
+          onInitRules={(rules) => {
+            runInit(deps.ctx, { rules, profile: '-', source: deps.source, target: deps.target, force: false, dryRun: true }).then((result) => {
+              if (result.ok && result.steps !== undefined) {
+                setView({ kind: 'plan', source: view.data.source, profile: '-', steps: result.steps })
+              } else {
+                setView({
+                  kind: 'error',
+                  message: result.message,
+                  retry: 'plan',
+                  context: { source: view.data.source, profile: '-', steps: [] },
+                })
+              }
+            })
+          }}
+          onAdd={(rule) => setView({ kind: 'update-plan', profile: view.profile ?? '-', initialAdd: [rule] })}
+          onRemove={(rule) => setView({ kind: 'update-plan', profile: view.profile ?? '-', initialRemove: [rule] })}
+          onPickProfile={() => {
+            const profiles = listProfiles(view.data.source.root)
+            setView({ kind: 'profile-pick', source: view.data.source, profiles, selected: 0 })
+          }}
+          onBack={() => {
+            if (view.initialized) {
+              setView({ kind: 'status', profile: view.profile ?? '-', refreshKey: 0, source: view.data.source })
+              return
+            }
+            exit()
+          }}
           onQuit={exit}
         />
       </Box>
@@ -311,6 +417,8 @@ export function App({ deps }: { deps: TuiDeps }) {
           ctx={deps.ctx}
           target={deps.target}
           source={deps.source}
+          initialAdd={view.initialAdd}
+          initialRemove={view.initialRemove}
           onDone={() => setView({ kind: 'status', profile: view.profile, refreshKey: Date.now(), source: undefined })}
           onBack={() => setView({ kind: 'status', profile: view.profile, refreshKey: 0, source: undefined })}
           onQuit={exit}

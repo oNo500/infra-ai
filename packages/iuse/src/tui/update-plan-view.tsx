@@ -72,6 +72,8 @@ export function UpdatePlanView({
   ctx,
   target,
   source,
+  initialAdd,
+  initialRemove,
   onDone,
   onBack,
   onQuit,
@@ -79,12 +81,20 @@ export function UpdatePlanView({
   ctx: IuseContext
   target: string
   source: string | undefined
+  /** Browse's `a` action seeds a single rule here -- an explicit add, distinct
+   *  from the re-include candidates toggled interactively below (both flow
+   *  through runUpdate's `add`, which differentiates by excluded-state). */
+  initialAdd?: string[]
+  /** Browse's `x` action seeds a single rule here -- a one-shot remove, not
+   *  interactively toggleable in this view (no undo affordance exists for it). */
+  initialRemove?: string[]
   onDone: () => void
   onBack: () => void
   onQuit: () => void
 }) {
   const [force, setForce] = useState(false)
-  const [includeCandidates, setIncludeCandidates] = useState<ReadonlySet<string>>(new Set())
+  const [includeCandidates, setIncludeCandidates] = useState<ReadonlySet<string>>(new Set(initialAdd ?? []))
+  const [remove] = useState<readonly string[]>(initialRemove ?? [])
   const [decisions, setDecisions] = useState<ReadonlyMap<string, Decision>>(new Map())
   const [cursor, setCursor] = useState(0)
   const [diffRule, setDiffRule] = useState<string | undefined>(undefined)
@@ -100,7 +110,7 @@ export function UpdatePlanView({
   useEffect(() => {
     let cancelled = false
     setState({ kind: 'loading' })
-    runUpdate(ctx, { source, target, force, add: [...includeCandidates], dryRun: true }).then((result) => {
+    runUpdate(ctx, { source, target, force, add: [...includeCandidates], remove: [...remove], dryRun: true }).then((result) => {
       if (cancelled) return
       if (result.ok && result.steps !== undefined) {
         setState({ kind: 'plan', steps: result.steps })
@@ -220,7 +230,7 @@ export function UpdatePlanView({
       <ProgressView
         key={state.attempt}
         steps={state.steps}
-        run={(onProgress) => runUpdate(ctx, { source, target, force, add, overwrite, onProgress })}
+        run={(onProgress) => runUpdate(ctx, { source, target, force, add, remove: [...remove], overwrite, onProgress })}
         onDone={() => onDone()}
         onFail={(message) => setState((prev) => ({ kind: 'run-error', steps: prev.kind === 'running' ? prev.steps : [], message }))}
       />

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { render } from 'ink-testing-library'
+import type { Catalog } from '@infra-ai/meta-cli/core'
 import { App } from '../src/tui/app'
 import type { TuiDeps } from '../src/tui/app'
 import type { IuseContext } from '../src/core/init'
@@ -36,6 +37,31 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
   writeFileSync(join(dir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
   writeFileSync(join(dir, 'meta', 'prompts', 'template-instantiate.md'), '# contract\n')
+
+  // catalog.json is browse's data source -- bare entry on an uninitialized
+  // target now bootstraps into browse (Task 5), which fails without it.
+  const catalog: Catalog = {
+    generatedAt: '2026-07-18T00:00:00Z',
+    tags: { concern: { exclusive: false, values: { core: 'x' } } },
+    rules: {
+      constitution: {
+        description: 'x',
+        tags: ['core'],
+        scope: 'global',
+        path: 'rules/global/constitution.md',
+        profiles: ['node-web', 'python-cli'],
+      },
+      extra: {
+        description: 'x',
+        tags: ['core'],
+        scope: 'global',
+        path: 'rules/global/extra.md',
+        profiles: ['python-cli'],
+      },
+    },
+  }
+  writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
+
   return dir
 }
 
@@ -123,13 +149,17 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<voi
 }
 
 describe('TUI init flow', () => {
-  test('bare TTY run without lock shows profile picker and previews rules switch on down-arrow', async () => {
+  test('bare TTY run without lock lands on browse, and p enters profile picker with rules switching on down-arrow', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    expect(lastFrame()).toContain('浏览')
+
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     expect(lastFrame()).toContain('node-web')
     expect(lastFrame()).toContain('constitution') // rules preview for first (selected) profile
@@ -147,6 +177,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
 
@@ -166,6 +198,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
@@ -188,6 +222,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
@@ -207,6 +243,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
@@ -236,6 +274,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     // node-web sorts before python-cli in the picker, so move down to select python-cli first.
     await press(stdin, '[B') // down arrow
@@ -279,6 +319,8 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '[B') // down arrow: select python-cli (constitution + extra)
     await waitFor(() => {

@@ -23,12 +23,14 @@ export function StatusView({
   target,
   source,
   onUpdate,
+  onBrowse,
   onQuit,
 }: {
   ctx: IuseContext
   target: string
   source: string | undefined
   onUpdate: () => void
+  onBrowse: () => void
   onQuit: () => void
 }) {
   const [state, setState] = useState<FetchState>({ kind: 'loading' })
@@ -62,6 +64,10 @@ export function StatusView({
     }
     if (input === 'u' && state.kind === 'rows') {
       onUpdate()
+      return
+    }
+    if (input === 'b' && state.kind === 'rows') {
+      onBrowse()
     }
   })
 
@@ -91,7 +97,7 @@ export function StatusView({
         {state.rows.length === 0 && <Text dimColor>没有 rule 记录</Text>}
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>u 进入 update  r 刷新  q 退出</Text>
+        <Text dimColor>u 进入 update  b 浏览  r 刷新  q 退出</Text>
       </Box>
     </Box>
   )
