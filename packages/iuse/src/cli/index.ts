@@ -6,8 +6,10 @@ import { runClaude, runCommand } from '@infra-ai/meta-cli/core'
 import { diffReport } from '../core/diff'
 import type { IuseContext } from '../core/init'
 import { runInit } from '../core/init'
+import { listReport } from '../core/list'
 import { profilesReport } from '../core/profiles-report'
 import { statusReport } from '../core/report'
+import { showReport } from '../core/show'
 import { runUpdate } from '../core/update'
 
 /**
@@ -45,10 +47,11 @@ const initCommand = defineCommand({
   meta: {
     name: 'init',
     description:
-      '按 profile 向目标项目拼装配置（rules + settings + AI 实例化 CLAUDE.md/architecture）。--dry-run 预演。成功退 0。',
+      '按 profile 或显式 --rules 向目标项目拼装配置（rules + settings + AI 实例化 CLAUDE.md/architecture）。--profile 与 --rules 二选一。--dry-run 预演。成功退 0。',
   },
   args: {
-    profile: { type: 'string', required: true, description: '要拼装的 profile 名（见 iuse profiles）' },
+    profile: { type: 'string', required: false, description: '要拼装的 profile 名（见 iuse profiles）；与 --rules 二选一' },
+    rules: { type: 'string', description: '显式安装的 rule 名（逗号分隔）；与 --profile 二选一' },
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
     force: { type: 'boolean', description: '重新初始化：覆盖已有内容并重新实例化模板' },
     'dry-run': { type: 'boolean', description: '只打印计划步骤，不写任何文件' },
@@ -58,9 +61,17 @@ const initCommand = defineCommand({
   },
   async run({ args }) {
     const exclude = splitNames(args.exclude)
+    const rules = splitNames(args.rules)
+
+    if ((args.profile === undefined) === (rules === undefined)) {
+      console.error('exactly one of --profile / --rules is required')
+      process.exitCode = 2
+      return
+    }
 
     const result = await runInit(defaultContext(), {
-      profile: args.profile,
+      profile: args.profile ?? '-',
+      rules,
       source: args.source,
       force: args.force ?? false,
       dryRun: args['dry-run'] ?? false,
@@ -204,12 +215,89 @@ const diffCommand = defineCommand({
   },
 })
 
+const listCommand = defineCommand({
+  meta: {
+    name: 'list',
+    description: '列出中心源 catalog 中的 rule；--tag/--grep 过滤；已初始化目标标注安装状态。恒退 0（源/catalog 解析失败除外）。',
+  },
+  args: {
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    tag: { type: 'string', description: '按 tag 过滤（逗号分隔，取交集）' },
+    grep: { type: 'string', description: '按名称/描述/正文子串过滤' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
+  },
+  async run({ args }) {
+    const tags = splitNames(args.tag)
+
+    const result = await listReport(defaultContext(), {
+      source: args.source,
+      target: args.target ?? process.cwd(),
+      tags,
+      grep: args.grep,
+    })
+    if (args.json === true) {
+      const payload = result.ok
+        ? { ok: true, rows: result.rows, exitCode: result.exitCode }
+        : { ok: false, message: result.message, exitCode: result.exitCode }
+      console.log(renderJson(payload))
+    } else {
+      if (result.message !== undefined) console.log(result.message)
+      for (const row of result.rows) {
+        console.log([row.name, row.state, row.description].filter((s) => s !== undefined).join('  '))
+      }
+    }
+    process.exitCode = result.exitCode
+  },
+})
+
+const showCommand = defineCommand({
+  meta: {
+    name: 'show',
+    description: '显示单条 rule 的元数据与正文。名不存在退 1。',
+  },
+  args: {
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    // citty 的 positional 匹配是纯声明序 FIFO，不看 required——required 的
+    // positional 必须先声明，否则被后声明的 optional 挡道（见 iuse show <name> [target] 用法）
+    name: { type: 'positional', required: true, description: 'rule 名（见 iuse list）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
+  },
+  async run({ args }) {
+    const result = await showReport(defaultContext(), {
+      source: args.source,
+      target: args.target ?? process.cwd(),
+      name: args.name,
+    })
+    if (args.json === true) {
+      console.log(renderJson({ ok: result.ok, entry: result.entry, content: result.content }))
+    } else {
+      if (result.message !== undefined) console.log(result.message)
+      if (result.entry !== undefined) {
+        const { name, description, tags, scope, profiles, state } = result.entry
+        console.log(`name: ${name}`)
+        console.log(`description: ${description}`)
+        console.log(`tags: ${tags.join(', ')}`)
+        console.log(`scope: ${scope}`)
+        console.log(`profiles: ${profiles.join(', ')}`)
+        if (state !== undefined) console.log(`state: ${state}`)
+        if (result.content !== undefined) {
+          console.log('')
+          console.log(result.content)
+        }
+      }
+    }
+    process.exitCode = result.exitCode
+  },
+})
+
 export function buildMainCommand() {
   return defineCommand({
     meta: {
       name: 'iuse',
       description:
-        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：profiles -> init --dry-run -> init -> status/update。',
+        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：list/show 查阅 -> profiles -> init --dry-run -> init -> status/update。',
     },
     subCommands: {
       init: initCommand,
@@ -217,6 +305,8 @@ export function buildMainCommand() {
       status: statusCommand,
       update: updateCommand,
       diff: diffCommand,
+      list: listCommand,
+      show: showCommand,
     },
   })
 }

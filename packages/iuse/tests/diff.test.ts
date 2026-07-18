@@ -255,16 +255,54 @@ describe('diffReport', () => {
     expect(result.exitCode).toBe(1)
   })
 
-  test('composition violations fail the report', async () => {
+  test('diff no longer runs composition validation; a bogus profile rule unrelated to lock.rules does not fail the report', async () => {
+    // diff works off lock.rules (the installed set), not the seed profile --
+    // mirrors statusReport's SSoT-lock model. A profile mutation that never
+    // touches an installed rule must not surface as a diff failure.
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(source, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'ghost'] } }))
 
     const result = await diffReport(ctxWith(), { source, target })
 
-    expect(result.ok).toBe(false)
-    expect(result.message).toContain('ghost')
+    expect(result.ok).toBe(true)
     expect(result.diffs).toEqual([])
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('a locked rule whose built artifact is missing at the source surfaces as an assembly violation', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    rmSync(join(source, 'rules', 'global', 'constitution.md'))
+
+    const result = await diffReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('constitution')
+    expect(result.message).toContain('built artifact missing')
+    expect(result.diffs).toEqual([])
+    expect(result.exitCode).toBe(1)
+  })
+
+  test('rules-only target (profile "-") diffs cleanly without consulting profiles.json', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-diff-tgt-'))
+    const initResult = await runInit(ctxWith(), { source, rules: ['constitution'], profile: '-', target, force: false })
+    if (!initResult.ok) throw new Error(`fixture init failed: ${initResult.message}`)
+
+    const clean = await diffReport(ctxWith(), { source, target })
+    expect(clean.ok).toBe(true)
+    expect(clean.diffs).toEqual([])
+    expect(clean.exitCode).toBe(0)
+
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nline a\n')
+
+    const result = await diffReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(true)
+    expect(result.diffs).toEqual([
+      { rule: 'constitution', state: 'outdated', additions: 2, deletions: 0 },
+    ])
     expect(result.exitCode).toBe(1)
   })
 })

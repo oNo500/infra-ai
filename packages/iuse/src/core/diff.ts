@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { readTextIfExists } from '@infra-ai/meta-cli/core'
 import { createTwoFilesPatch, structuredPatch } from 'diff'
-import { planAssembly } from './assemble'
+import { assembleRules } from './assemble'
 import type { IuseContext } from './init'
 import { loadDownstreamLock, ruleTargetRelPath } from './manifest'
 import type { DriftState } from './manifest'
@@ -72,17 +72,15 @@ export async function diffReport(
     return { ok: false, message: error instanceof Error ? error.message : String(error), diffs: [], exitCode: 1 }
   }
 
-  let items: ReturnType<typeof planAssembly>['items']
-  let violations: ReturnType<typeof planAssembly>['violations']
-  try {
-    ;({ items, violations } = planAssembly(source.root, lock.profile))
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : String(error), diffs: [], exitCode: 1 }
-  }
+  // diff operates on what's actually installed (lock.rules + excluded), not
+  // on the seed profile -- a rules-only target (lock.profile === '-') has no
+  // profile to resolve, and a profile target's diff must not fail just
+  // because the source profile grew an unrelated bad entry since init.
+  const { items, violations } = assembleRules(source.root, [...Object.keys(lock.rules), ...(lock.excluded ?? [])])
   if (violations.length > 0) {
     return {
       ok: false,
-      message: `composition violations for profile '${lock.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`,
+      message: `assembly violations:\n${violations.map((v) => `  - ${v}`).join('\n')}`,
       diffs: [],
       exitCode: 1,
     }
