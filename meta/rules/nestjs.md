@@ -1,5 +1,6 @@
 ---
 name: nestjs
+description: NestJS 分层架构与 DIP 纪律（Repository 接口、模型选择、模块间通信）
 status: ready
 scope: "src/**/*.ts"
 tags: [ts, backend, nestjs]

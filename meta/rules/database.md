@@ -1,5 +1,6 @@
 ---
 name: database
+description: 数据库 ORM 选型（Drizzle 优先）与迁移纪律
 status: ready
 scope: global
 tags: [ts, backend]

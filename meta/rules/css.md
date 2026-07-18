@@ -1,5 +1,6 @@
 ---
 name: css
+description: CSS 设计 token 三处同改纪律与 shadcn 定制约束
 status: ready
 scope: "**/*.css"
 tags: [frontend]

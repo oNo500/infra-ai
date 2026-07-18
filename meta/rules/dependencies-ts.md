@@ -1,5 +1,6 @@
 ---
 name: dependencies-ts
+description: TS 依赖与工具链选型：pnpm、oxlint/oxfmt、zod、SemVer 策略
 status: ready
 scope: global
 tags: [ts]

@@ -1,5 +1,6 @@
 ---
 name: constitution
+description: 跨项目核心工程原则与不可违反规则（Library/MVP/FP-First）
 status: ready
 scope: global
 tags: [core]

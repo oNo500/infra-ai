@@ -1,5 +1,6 @@
 ---
 name: python
+description: Python 工具链选型：uv 单一入口、ruff、pyright、现代类型语法
 status: ready
 scope: "**/*.py"
 tags: [python]

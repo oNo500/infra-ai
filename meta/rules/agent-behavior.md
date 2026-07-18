@@ -1,5 +1,6 @@
 ---
 name: agent-behavior
+description: AI 协作行为红线：不确定即问、忽略实时 LSP 诊断、研究子代理纪律
 status: ready
 scope: global
 tags: [core, workflow]

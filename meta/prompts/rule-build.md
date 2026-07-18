@@ -5,7 +5,8 @@ markdown 文件。读完本文件与元指令后再动笔。
 
 ## 步骤
 
-1. 读元指令，理解意图、约束与素材
+1. 读元指令，理解意图、约束与素材；`description` 只是管理元数据（面向
+   「要不要装这条 rule」的使用者），不进产物正文，构建时忽略
 2. 过下方检查清单，确认该不该独立成文、要不要 `paths`
 3. 按元指令的 `scope` 决定落点与 frontmatter：
    - `scope: global` — 产物落 `rules/global/<name>.md`，不写 `paths`

@@ -87,6 +87,9 @@ export function validateComposition(
     if (rule.status === 'ready' && rule.tags.length === 0) {
       violations.push(`${rule.name}: ready rule must declare tags`)
     }
+    if (rule.status === 'ready' && rule.description === '') {
+      violations.push(`${rule.name}: ready rule missing description`)
+    }
     const byFacet = new Map<string, string[]>()
     for (const tag of rule.tags) {
       usedTags.add(tag)

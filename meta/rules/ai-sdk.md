@@ -1,5 +1,6 @@
 ---
 name: ai-sdk
+description: AI 应用选型：生产落地默认 Vercel AI SDK，Python 侧只做前沿实验
 status: ready
 scope: global
 tags: [ai, ts]

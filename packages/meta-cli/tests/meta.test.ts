@@ -35,6 +35,7 @@ describe('parseMetaFile', () => {
       requires: [],
       metaPath: 'meta/rules/constitution.md',
       artifactPath: 'rules/global/constitution.md',
+      description: '',
     })
   })
   test('missing status defaults to stub, missing name falls back to filename', () => {
@@ -123,6 +124,20 @@ describe('metaContentHash', () => {
     expect(metaContentHash(`---\nname: a\nstatus: ready\nscope: "**/*.ts"\n---\nbody`)).not.toBe(
       metaContentHash(a),
     )
+  })
+})
+
+describe('parseMetaFile description', () => {
+  test('parseMetaFile surfaces frontmatter description, defaults to empty string', () => {
+    const withDesc = parseMetaFile(
+      '---\nname: demo\nstatus: ready\nscope: global\ndescription: 一句话说明\ntags: [core]\n---\nbody',
+      'demo.md',
+      'rule',
+    )
+    expect(withDesc.description).toBe('一句话说明')
+
+    const without = parseMetaFile('---\nname: demo2\nstatus: ready\n---\nbody', 'demo2.md', 'rule')
+    expect(without.description).toBe('')
   })
 })
 

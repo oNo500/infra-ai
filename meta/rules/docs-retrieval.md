@@ -1,5 +1,6 @@
 ---
 name: docs-retrieval
+description: 面向 AI/RAG 检索消费的文档写作约定（章节自包含、图文分离）
 status: ready
 scope: "**/*.md"
 tags: [docs, ai]

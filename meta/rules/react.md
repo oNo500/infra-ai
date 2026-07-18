@@ -1,5 +1,6 @@
 ---
 name: react
+description: React 组件与状态管理约束：feature-based 架构、组件类型习惯、状态阶梯
 status: ready
 scope: "**/*.tsx"
 tags: [ts, frontend, react]

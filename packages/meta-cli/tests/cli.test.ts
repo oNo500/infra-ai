@@ -76,7 +76,7 @@ describe('cli end-to-end', () => {
     try {
       writeFileSync(
         join(root, 'meta/rules/foo.md'),
-        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ntags: [ts]\n---\nbody\n',
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: demo rule\ntags: [ts]\n---\nbody\n',
       )
       writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
       const meta = readFileSync(join(root, 'meta/rules/foo.md'), 'utf8')

@@ -1,5 +1,6 @@
 ---
 name: typescript
+description: TypeScript 类型纪律：禁双重断言/@ts-ignore/非空断言，import type 风格
 status: ready
 scope: "**/*.{ts,tsx}"
 tags: [ts]

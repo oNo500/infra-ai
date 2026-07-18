@@ -51,6 +51,7 @@ const ruleAsset: MetaAsset = {
   requires: [],
   metaPath: 'meta/rules/constitution.md',
   artifactPath: 'rules/global/constitution.md',
+  description: '',
 }
 
 describe('gatherFacts', () => {

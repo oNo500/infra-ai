@@ -1,5 +1,6 @@
 ---
 name: nextjs
+description: Next.js App Router 约束：app/ 只做路由编排，页面文件保持薄
 status: ready
 scope: "**/*.tsx"
 tags: [ts, frontend, nextjs]

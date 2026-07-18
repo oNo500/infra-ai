@@ -1,5 +1,6 @@
 ---
 name: testing
+description: 测试组织与命名约定，mock 边界与不得为过测试改断言的纪律红线
 status: ready
 scope: "**/*.{test,spec,e2e-spec}.{ts,tsx,js,jsx}"
 tags: [ts, testing]

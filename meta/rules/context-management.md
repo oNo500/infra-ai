@@ -1,5 +1,6 @@
 ---
 name: context-management
+description: 会话上下文管理：子代理分派判断与跨会话 memory 准入
 status: ready
 scope: global
 tags: [core, workflow]

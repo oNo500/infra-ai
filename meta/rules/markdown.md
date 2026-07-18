@@ -1,5 +1,6 @@
 ---
 name: markdown
+description: Markdown 文档写作规范：结构、格式、术语与来源纪律
 status: ready
 scope: "**/*.md"
 tags: [docs]

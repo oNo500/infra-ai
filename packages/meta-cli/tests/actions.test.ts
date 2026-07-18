@@ -74,7 +74,7 @@ describe('status action', () => {
       syncLock(root)
       writeFileSync(
         join(root, 'meta/rules/foo.md'),
-        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ntags: [ts]\n---\nbody\n',
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: demo rule\ntags: [ts]\n---\nbody\n',
       )
       writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
       const all = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })

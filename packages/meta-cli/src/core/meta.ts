@@ -17,6 +17,7 @@ export interface MetaAsset {
   requires: string[]
   metaPath: string
   artifactPath: string
+  description: string
 }
 
 export function artifactPathFor(kind: AssetKind, name: string, scope: string | null): string {
@@ -48,6 +49,7 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
     requires: stringArray(data.requires),
     metaPath: `${KINDS[kind].metaDir}/${filename}`,
     artifactPath: artifactPathFor(kind, name, scope),
+    description: typeof data.description === 'string' ? data.description.trim() : '',
   }
 }
 

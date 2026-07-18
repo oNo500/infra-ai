@@ -21,6 +21,7 @@ const ruleAsset: MetaAsset = {
   requires: [],
   metaPath: 'meta/rules/constitution.md',
   artifactPath: 'rules/global/constitution.md',
+  description: '',
 }
 
 const skillAsset: MetaAsset = {
@@ -32,6 +33,7 @@ const skillAsset: MetaAsset = {
   requires: [],
   metaPath: 'meta/skills/commit-lite.md',
   artifactPath: 'skills/commit-lite/SKILL.md',
+  description: '',
 }
 
 describe('parseStreamJsonLine', () => {

@@ -1,5 +1,6 @@
 ---
 name: tooling
+description: 开发工具选用：LSP 优先、rg/fd 限文本、信息检索链、gh/sg、CLI-first
 status: ready
 scope: global
 tags: [core, workflow]
