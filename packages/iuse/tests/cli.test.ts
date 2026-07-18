@@ -8,6 +8,32 @@ import { runInit } from '../src/core/init'
 import { profilesReport } from '../src/core/profiles-report'
 import { statusReport } from '../src/core/report'
 
+describe('runCli entry routing', () => {
+  test('runCli({ isTTY: false }) with no subcommand prints existing help text and never renders the TUI', async () => {
+    // Out-of-process: the non-TTY "no command" path calls process.exit(1),
+    // which would kill the test runner if invoked in-process.
+    const harness = join(import.meta.dir, 'fixtures/run-cli-non-tty.ts')
+    const proc = Bun.spawn(['bun', 'run', harness], {
+      cwd: join(import.meta.dir, '..'),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+
+    // citty prints usage to stdout and the CLIError message to stderr.
+    expect(stdout).toContain('USAGE')
+    expect(stderr).toContain('No command specified')
+    // TUI-only Chinese label from the profile picker must never appear --
+    // proof the dynamic import('../tui/app') branch did not run.
+    expect(stdout).not.toContain('选择 profile')
+    expect(exitCode).toBe(1)
+  })
+})
+
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })

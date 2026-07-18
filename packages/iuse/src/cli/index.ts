@@ -150,6 +150,8 @@ const updateCommand = defineCommand({
   },
 })
 
+const SUBCOMMAND_NAMES = ['init', 'profiles', 'status', 'update']
+
 export function buildMainCommand() {
   return defineCommand({
     meta: {
@@ -161,6 +163,22 @@ export function buildMainCommand() {
   })
 }
 
-export async function runCli(): Promise<void> {
+/**
+ * True when argv carries none of the known subcommands -- a bare `iuse` run
+ * (or one with only flags, no positional). Subcommand runs always take the
+ * existing citty path unchanged, per spec D1.
+ */
+function hasNoSubcommand(argv: string[]): boolean {
+  return !argv.some((arg) => SUBCOMMAND_NAMES.includes(arg))
+}
+
+export async function runCli(opts?: { isTTY?: boolean }): Promise<void> {
+  const argv = process.argv.slice(2)
+  const isTTY = opts?.isTTY ?? process.stdout.isTTY === true
+  if (hasNoSubcommand(argv) && isTTY) {
+    const { runTui } = await import('../tui/app')
+    await runTui({ ctx: defaultContext(), target: process.cwd() })
+    return
+  }
   await runMain(buildMainCommand())
 }
