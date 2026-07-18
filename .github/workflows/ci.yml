@@ -17,19 +17,19 @@ jobs:
       - name: meta-cli tests + typecheck + lint
         working-directory: packages/meta-cli
         run: |
-          bun test
+          bun run test
           bunx tsc --noEmit
           bun run lint
       - name: iuse tests + typecheck + lint
         working-directory: packages/iuse
         run: |
-          bun test
+          bun run test
           bunx tsc --noEmit
           bun run lint
       - name: preview tests + typecheck + lint
         working-directory: packages/preview
         run: |
-          bun test
+          bun run test
           bunx tsc --noEmit
           bun run lint
       - name: asset reconcile gate

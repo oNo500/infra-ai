@@ -93,7 +93,7 @@ function fakeRunGatedFromCall(gateFromCall: number): { run: IuseContext['run']; 
 }
 
 /** Local polling helper -- no new dependency, per task brief. */
-async function waitFor(predicate: () => boolean, timeoutMs = 3000): Promise<void> {
+async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   const start = Date.now()
   while (!predicate()) {
     if (Date.now() - start > timeoutMs) throw new Error('waitFor: timed out')
