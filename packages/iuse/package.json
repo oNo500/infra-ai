@@ -16,6 +16,7 @@
     "@infra-ai/meta-cli": "workspace:*",
     "@inkjs/ui": "^2.0.0",
     "citty": "^0.2.2",
+    "diff": "^9.0.0",
     "giget": "^3.3.0",
     "ink": "^6.0.0",
     "react": "^19.0.0"

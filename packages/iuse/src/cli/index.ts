@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import { downloadTemplate } from 'giget'
 import { runClaude, runCommand } from '@infra-ai/meta-cli/core'
+import { diffReport } from '../core/diff'
 import type { IuseContext } from '../core/init'
 import { runInit } from '../core/init'
 import { profilesReport } from '../core/profiles-report'
@@ -150,7 +151,38 @@ const updateCommand = defineCommand({
   },
 })
 
-const SUBCOMMAND_NAMES = ['init', 'profiles', 'status', 'update']
+const diffCommand = defineCommand({
+  meta: {
+    name: 'diff',
+    description: '对比下游副本与中心源的内容差异。--rule 查看单条完整 diff。有差异退 1，无差异退 0。',
+  },
+  args: {
+    rule: { type: 'string', description: '只看这一条 rule 的完整 diff（可为普通或已排除项）' },
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
+  },
+  async run({ args }) {
+    const result = await diffReport(defaultContext(), {
+      source: args.source,
+      rule: args.rule,
+      target: args.target ?? process.cwd(),
+    })
+    if (args.json === true) {
+      const payload = result.ok ? { ok: true, diffs: result.diffs } : { ok: false, message: result.message }
+      console.log(renderJson(payload))
+    } else {
+      if (result.message !== undefined) console.log(result.message)
+      for (const entry of result.diffs) {
+        console.log(`${entry.rule} +${entry.additions} -${entry.deletions}`)
+        if (entry.patch !== undefined) console.log(entry.patch)
+      }
+    }
+    process.exitCode = result.exitCode
+  },
+})
+
+const SUBCOMMAND_NAMES = ['init', 'profiles', 'status', 'update', 'diff']
 
 export function buildMainCommand() {
   return defineCommand({
@@ -159,7 +191,13 @@ export function buildMainCommand() {
       description:
         '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：profiles -> init --dry-run -> init -> status/update。',
     },
-    subCommands: { init: initCommand, profiles: profilesCommand, status: statusCommand, update: updateCommand },
+    subCommands: {
+      init: initCommand,
+      profiles: profilesCommand,
+      status: statusCommand,
+      update: updateCommand,
+      diff: diffCommand,
+    },
   })
 }
 
