@@ -33,15 +33,15 @@ const initCommand = defineCommand({
   meta: {
     name: 'init',
     description:
-      'Assemble a profile into a target project (rules + settings + AI-instantiated CLAUDE.md/architecture). Use --dry-run to preview. Exit 0 on success.',
+      '按 profile 向目标项目拼装配置（rules + settings + AI 实例化 CLAUDE.md/architecture）。--dry-run 预演。成功退 0。',
   },
   args: {
-    profile: { type: 'string', required: true, description: 'profile name to assemble' },
-    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
-    force: { type: 'boolean', description: 'reinitialize, overwrite, and re-instantiate even if already applied' },
-    'dry-run': { type: 'boolean', description: 'print the planned steps without writing anything' },
-    json: { type: 'boolean', description: 'print machine-readable JSON to stdout instead of text' },
-    target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
+    profile: { type: 'string', required: true, description: '要拼装的 profile 名（见 iuse profiles）' },
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    force: { type: 'boolean', description: '重新初始化：覆盖已有内容并重新实例化模板' },
+    'dry-run': { type: 'boolean', description: '只打印计划步骤，不写任何文件' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
     const result = await runInit(defaultContext(), {
@@ -66,11 +66,11 @@ const initCommand = defineCommand({
 const profilesCommand = defineCommand({
   meta: {
     name: 'profiles',
-    description: 'List profiles available in the central source with their rules. Exit 0.',
+    description: '列出中心源可用的 profile 及各自的 rules。恒退 0。',
   },
   args: {
-    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
-    json: { type: 'boolean', description: 'print machine-readable JSON to stdout instead of text' },
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
   },
   async run({ args }) {
     const result = await profilesReport(defaultContext(), {
@@ -93,12 +93,12 @@ const statusCommand = defineCommand({
   meta: {
     name: 'status',
     description:
-      'Report per-rule drift (synced/modified/outdated/missing) against the source. Exit 1 when anything needs attention, 0 when clean.',
+      '逐 rule 对账下游副本与中心源的漂移（synced/modified/outdated/missing）。有待处理项退 1，干净退 0。',
   },
   args: {
-    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
-    json: { type: 'boolean', description: 'print machine-readable JSON to stdout instead of text' },
-    target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
     const result = await statusReport(defaultContext(), {
@@ -122,14 +122,14 @@ const updateCommand = defineCommand({
   meta: {
     name: 'update',
     description:
-      'Apply source changes to an initialized target; locally modified copies are skipped unless --force. Use --dry-run to preview. Exit 0 on success.',
+      '应用中心源变更到已初始化目标；本地改过的副本默认跳过，--force 才覆盖。--dry-run 预演。成功退 0。',
   },
   args: {
-    source: { type: 'string', description: 'infra-ai source (local path or gh: locator)' },
-    force: { type: 'boolean', description: 'overwrite locally modified or missing rule files' },
-    'dry-run': { type: 'boolean', description: 'print the planned steps without applying anything' },
-    json: { type: 'boolean', description: 'print machine-readable JSON to stdout instead of text' },
-    target: { type: 'positional', required: false, description: 'target project directory (default: cwd)' },
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    force: { type: 'boolean', description: '覆盖本地已修改或缺失的 rule 副本' },
+    'dry-run': { type: 'boolean', description: '只打印计划步骤，不应用任何变更' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
     const result = await runUpdate(defaultContext(), {
@@ -155,7 +155,7 @@ export function buildMainCommand() {
     meta: {
       name: 'iuse',
       description:
-        'Assemble Claude Code config from the infra-ai central source by profile. Typical flow: profiles -> init --dry-run -> init -> status/update.',
+        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：profiles -> init --dry-run -> init -> status/update。',
     },
     subCommands: { init: initCommand, profiles: profilesCommand, status: statusCommand, update: updateCommand },
   })

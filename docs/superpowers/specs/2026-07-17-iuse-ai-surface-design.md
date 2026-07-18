@@ -40,8 +40,9 @@ iuse 当前只达标幂等，本设计补齐前两项。
 4. **help 完善**——citty 各命令 description 扩为「一句定位 + 何时用 +
    退出码语义」；顶层 `iuse --help` 描述写明工具定位（从 infra-ai 中心源
    按 profile 拼装 Claude 配置）与典型流程
-   （profiles → init --dry-run → init → status/update）。help 文本英文
-   （CLI 输出面向工具生态）。
+   （profiles → init --dry-run → init → status/update）。help 文本以
+   中文为主（2026-07-18 用户裁决，推翻初版的英文决定）；命令名、flag、
+   状态词（synced/modified/...）、退出码与术语保留英文。
 
 5. **ctx-init skill 改写为 iuse 指路 skill**（了结终审遗留裁决）——
    元指令重写：description 触发「初始化/配置 Claude 项目」场景不变；
