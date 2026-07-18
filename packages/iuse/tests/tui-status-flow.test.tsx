@@ -101,6 +101,16 @@ function bootApp(deps: TuiDeps): ReturnType<typeof render> {
   return instance
 }
 
+/**
+ * 新视图首帧 commit 后，其 useInput 订阅要等 passive effect flush 才挂上；
+ * 见帧就写键会把键写进无监听者的 fake stdin（真实终端有内核缓冲，无此问题）。
+ * 写键前让出 50ms，跨过这个空窗。
+ */
+async function press(stdin: { write: (data: string) => void }, key: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  stdin.write(key)
+}
+
 /** Local polling helper -- no new dependency, per task brief. */
 async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   const start = Date.now()
@@ -210,7 +220,7 @@ describe('TUI status flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
     // ink wraps a long row across terminal width, so the trailing annotation
@@ -233,12 +243,16 @@ describe('TUI status flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
     expect(lastFrame()).not.toContain('force 已开启')
 
-    stdin.write('f')
-    await waitFor(() => (lastFrame() ?? '').includes('force 已开启'))
+    await press(stdin, 'f')
+    // force 指示是同步置位的，重取的计划行随后才到；两者都到齐再断言
+    await waitFor(() => {
+      const fr = lastFrame() ?? ''
+      return fr.includes('force 已开启') && (fr.split('\n').find((l) => l.includes('edited.md')) ?? '').includes('apply')
+    })
 
     const frame = lastFrame() ?? ''
     const editedLine = frame.split('\n').find((l) => l.includes('edited.md'))
@@ -254,10 +268,10 @@ describe('TUI status flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
-    stdin.write('e') // execute (force off -> edited stays modified, others resolve)
+    await press(stdin, 'e') // execute (force off -> edited stays modified, others resolve)
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
     await waitFor(() => (lastFrame() ?? '').includes('extra'))
 
@@ -281,13 +295,13 @@ describe('TUI status flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
-    stdin.write('e') // execute -- runUpdate re-resolves the source, stalling on the gated run
+    await press(stdin, 'e') // execute -- runUpdate re-resolves the source, stalling on the gated run
     await waitFor(() => (lastFrame() ?? '').includes('执行中'))
 
-    stdin.write('q') // must be a no-op: the run is still in flight
+    await press(stdin, 'q') // must be a no-op: the run is still in flight
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(lastFrame()).toContain('执行中')
 
@@ -307,7 +321,7 @@ describe('TUI status flow', () => {
     // confirm the view re-fetches instead of showing stale rows.
     writeFileSync(join(target, '.claude/rules/edited.md'), '# Edited\n')
 
-    stdin.write('r')
+    await press(stdin, 'r')
     await waitFor(() => {
       const frame = lastFrame() ?? ''
       const line = frame.split('\n').find((l) => l.includes('edited'))
@@ -323,7 +337,7 @@ describe('TUI status flow', () => {
     const { lastFrame, stdin, unmount } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
-    stdin.write('q')
+    await press(stdin, 'q')
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     // ink's useApp().exit() flips isDone/unmounts internally; assert no crash
@@ -351,7 +365,7 @@ describe('TUI status flow', () => {
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     // Verify we can navigate to update view
-    stdin.write('u')
+    await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
     // Verify the plan steps are visible
@@ -361,7 +375,7 @@ describe('TUI status flow', () => {
     expect(planFrame).toContain('extra')
 
     // Verify we can escape back
-    stdin.write('\x1b') // escape key
+    await press(stdin, '\x1b') // escape key
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
   })
 
@@ -382,7 +396,7 @@ describe('TUI status flow', () => {
     // a step (this mirrors real typed input, which never arrives same-tick anyway).
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await settle()
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
@@ -391,15 +405,15 @@ describe('TUI status flow', () => {
     // Two down-arrows land the cursor on gone; space marks it a re-include candidate,
     // which re-fetches the plan and turns row 2 into a 'skip-include' step (still index 2,
     // since it lands in the same slot the synthesized excluded row occupied).
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write(' ') // space: mark gone as re-include candidate
+    await press(stdin, ' ') // space: mark gone as re-include candidate
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
     await settle()
 
-    stdin.write('\r') // enter: gone row (still selected) is now diffable -> open diff view
+    await press(stdin, '\r') // enter: gone row (still selected) is now diffable -> open diff view
     await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
     await settle()
 
@@ -407,7 +421,7 @@ describe('TUI status flow', () => {
     expect(diffFrame).toContain('+')
     expect(diffFrame).toContain('-')
 
-    stdin.write('o') // adjudicate: overwrite
+    await press(stdin, 'o') // adjudicate: overwrite
     // ink wraps the long skip-include row across two printed lines, so the
     // trailing [覆盖] suffix can land on its own line -- scan adjacent-line
     // pairs rather than requiring 'gone' and the suffix on one physical line.
@@ -417,7 +431,7 @@ describe('TUI status flow', () => {
     })
     await settle()
 
-    stdin.write('e') // execute
+    await press(stdin, 'e') // execute
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
 
     const lock = loadDownstreamLock(target)
@@ -436,24 +450,24 @@ describe('TUI status flow', () => {
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await settle()
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
 
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write(' ') // space: mark gone as re-include candidate
+    await press(stdin, ' ') // space: mark gone as re-include candidate
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
     await settle()
 
-    stdin.write('\r') // enter: open diff view for gone
+    await press(stdin, '\r') // enter: open diff view for gone
     await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
     await settle()
 
-    stdin.write('o') // adjudicate: overwrite -- records a decision for 'gone'
+    await press(stdin, 'o') // adjudicate: overwrite -- records a decision for 'gone'
     await waitFor(() => {
       const lines = (lastFrame() ?? '').split('\n')
       return lines.some((l, i) => l.includes('gone') && lines.slice(i, i + 2).join(' ').includes('[覆盖]'))
@@ -465,7 +479,7 @@ describe('TUI status flow', () => {
     // synthesized "excluded, not a candidate" row -- the earlier decision no
     // longer describes a live choice on this shape-changed row, so [覆盖]
     // must not carry over onto it.
-    stdin.write(' ')
+    await press(stdin, ' ')
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone excluded')))
     await settle()
 
@@ -487,24 +501,24 @@ describe('TUI status flow', () => {
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await settle()
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
 
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write(' ') // space: mark gone as re-include candidate
+    await press(stdin, ' ') // space: mark gone as re-include candidate
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
     await settle()
 
-    stdin.write('\r') // enter: open diff view for gone
+    await press(stdin, '\r') // enter: open diff view for gone
     await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
     await settle()
 
-    stdin.write('i') // adjudicate: ignore (skip this run, keep local)
+    await press(stdin, 'i') // adjudicate: ignore (skip this run, keep local)
     // Same physical-line-wrap caveat as the overwrite path above.
     await waitFor(() => {
       const lines = (lastFrame() ?? '').split('\n')
@@ -512,7 +526,7 @@ describe('TUI status flow', () => {
     })
     await settle()
 
-    stdin.write('e') // execute
+    await press(stdin, 'e') // execute
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
 
     // Ignored: local file untouched, rule stays excluded (not re-included this run).
@@ -535,20 +549,20 @@ describe('TUI status flow', () => {
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
-    stdin.write('u')
+    await press(stdin, 'u')
     await settle()
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
 
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write('[B')
+    await press(stdin, '[B')
     await settle()
-    stdin.write(' ') // space: mark gone as re-include candidate
+    await press(stdin, ' ') // space: mark gone as re-include candidate
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
     await settle()
 
-    stdin.write('\r') // enter: open diff view for gone
+    await press(stdin, '\r') // enter: open diff view for gone
     await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
 
     await waitFor(() => (lastFrame() ?? '').includes('完整差异'))

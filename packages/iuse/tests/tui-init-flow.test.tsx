@@ -101,6 +101,16 @@ function bootApp(deps: TuiDeps): ReturnType<typeof render> {
   return instance
 }
 
+/**
+ * 新视图首帧 commit 后，其 useInput 订阅要等 passive effect flush 才挂上；
+ * 见帧就写键会把键写进无监听者的 fake stdin（真实终端有内核缓冲，无此问题）。
+ * 写键前让出 50ms，跨过这个空窗。
+ */
+async function press(stdin: { write: (data: string) => void }, key: string): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  stdin.write(key)
+}
+
 /** Local polling helper -- no new dependency, per task brief. */
 async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   const start = Date.now()
@@ -124,7 +134,7 @@ describe('TUI init flow', () => {
     expect(lastFrame()).toContain('node-web')
     expect(lastFrame()).toContain('constitution') // rules preview for first (selected) profile
 
-    stdin.write('[B') // down arrow
+    await press(stdin, '[B') // down arrow
     await waitFor(() => (lastFrame() ?? '').includes('node-web'))
     // node-web highlighted now; rules preview still shows constitution (both profiles share it)
     expect(lastFrame()).toContain('constitution')
@@ -138,12 +148,12 @@ describe('TUI init flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
-    stdin.write('\r') // enter: confirm profile selection
+    await press(stdin, '\r') // enter: confirm profile selection
 
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     expect(lastFrame()).toContain('copy-rule')
 
-    stdin.write('\r') // enter: execute
+    await press(stdin, '\r') // enter: execute
 
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
     expect(lastFrame()).toContain('initialized')
@@ -157,12 +167,12 @@ describe('TUI init flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
-    stdin.write('\r') // enter: confirm profile selection
+    await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
-    stdin.write('\r') // enter: execute
+    await press(stdin, '\r') // enter: execute
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
-    stdin.write('q')
+    await press(stdin, 'q')
     // Give the exit path a tick to run; there is no further view transition
     // to wait for, so a short delay stands in for "nothing happened".
     await new Promise((resolve) => setTimeout(resolve, 50))
@@ -179,12 +189,12 @@ describe('TUI init flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
-    stdin.write('\r') // enter: confirm profile selection
+    await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
-    stdin.write('\r') // enter: execute
+    await press(stdin, '\r') // enter: execute
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
-    stdin.write('x')
+    await press(stdin, 'x')
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
     expect(lastFrame()).toContain('constitution')
   })
@@ -198,9 +208,9 @@ describe('TUI init flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
-    stdin.write('\r') // enter: confirm profile selection
+    await press(stdin, '\r') // enter: confirm profile selection
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
-    stdin.write('\r') // enter: execute
+    await press(stdin, '\r') // enter: execute
 
     // While gated on the first instantiate step: its row shows the spinner
     // liveness text and is not yet checked off, and write-lock (a later
@@ -228,13 +238,13 @@ describe('TUI init flow', () => {
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     // node-web sorts before python-cli in the picker, so move down to select python-cli first.
-    stdin.write('[B') // down arrow
+    await press(stdin, '[B') // down arrow
     await waitFor(() => {
       const frame = lastFrame() ?? ''
       const line = frame.split('\n').find((l) => l.includes('>'))
       return line !== undefined && line.includes('python-cli')
     })
-    stdin.write('\r') // enter: confirm python-cli (constitution + extra)
+    await press(stdin, '\r') // enter: confirm python-cli (constitution + extra)
 
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     await waitFor(() => (lastFrame() ?? '').includes('extra.md'))
@@ -247,11 +257,11 @@ describe('TUI init flow', () => {
     expect(extraLine).toContain('[x]')
 
     // Cursor starts on the first row (constitution); move down once to extra, then uncheck it.
-    stdin.write('[B') // down arrow
-    stdin.write(' ') // space: uncheck extra
+    await press(stdin, '[B') // down arrow
+    await press(stdin, ' ') // space: uncheck extra
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('extra.md') && l.includes('[ ]')))
 
-    stdin.write('\r') // enter: execute with extra excluded
+    await press(stdin, '\r') // enter: execute with extra excluded
 
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'))
 
@@ -270,23 +280,23 @@ describe('TUI init flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
-    stdin.write('[B') // down arrow: select python-cli (constitution + extra)
+    await press(stdin, '[B') // down arrow: select python-cli (constitution + extra)
     await waitFor(() => {
       const frame = lastFrame() ?? ''
       const line = frame.split('\n').find((l) => l.includes('>'))
       return line !== undefined && line.includes('python-cli')
     })
-    stdin.write('\r') // enter: confirm python-cli
+    await press(stdin, '\r') // enter: confirm python-cli
 
     await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
     await waitFor(() => (lastFrame() ?? '').includes('extra.md'))
 
     // Cursor starts on constitution; move down once to extra, then uncheck it.
-    stdin.write('[B') // down arrow
-    stdin.write(' ') // space: uncheck extra
+    await press(stdin, '[B') // down arrow
+    await press(stdin, ' ') // space: uncheck extra
     await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('extra.md') && l.includes('[ ]')))
 
-    stdin.write('\r') // enter: execute with extra excluded
+    await press(stdin, '\r') // enter: execute with extra excluded
 
     // While gated on the first instantiate step, the run is stalled mid-flight
     // -- inspect the progress rows before it completes and gets torn down.
