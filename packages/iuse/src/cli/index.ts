@@ -201,8 +201,6 @@ const diffCommand = defineCommand({
   },
 })
 
-const SUBCOMMAND_NAMES = ['init', 'profiles', 'status', 'update', 'diff']
-
 export function buildMainCommand() {
   return defineCommand({
     meta: {
@@ -221,30 +219,15 @@ export function buildMainCommand() {
 }
 
 /**
- * True when argv carries none of the known subcommands -- a bare `iuse` run
- * (or one with only flags, no positional). Subcommand runs always take the
- * existing citty path unchanged, per spec D1.
+ * The TUI is only for a bare `iuse` invocation on an interactive terminal --
+ * zero argv and a TTY. Anything else (a subcommand, a typo, --help, --json,
+ * a stray flag) falls through to citty, which already knows how to error or
+ * handle each of those cases correctly.
  */
-function hasNoSubcommand(argv: string[]): boolean {
-  return !argv.some((arg) => SUBCOMMAND_NAMES.includes(arg))
-}
-
-const HELP_VERSION_FLAGS = ['-h', '--help', '--version']
-
-/**
- * True when argv carries a help/version flag. These must always fall through
- * to citty, even on a bare TTY run with no subcommand -- otherwise `iuse
- * --help` from an interactive terminal would launch the TUI instead of
- * printing usage.
- */
-function hasHelpOrVersionFlag(argv: string[]): boolean {
-  return argv.some((arg) => HELP_VERSION_FLAGS.includes(arg))
-}
-
 export async function runCli(opts?: { isTTY?: boolean }): Promise<void> {
   const argv = process.argv.slice(2)
   const isTTY = opts?.isTTY ?? process.stdout.isTTY === true
-  if (hasNoSubcommand(argv) && isTTY && !hasHelpOrVersionFlag(argv)) {
+  if (argv.length === 0 && isTTY) {
     const { runTui } = await import('../tui/app')
     await runTui({ ctx: defaultContext(), target: process.cwd() })
     return

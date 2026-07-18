@@ -37,12 +37,12 @@ export interface ActionStep {
   note?: string
 }
 
-function fail(message: string): { ok: false; message: string } {
-  return { ok: false, message }
+export function formatSteps(steps: ActionStep[]): string {
+  return steps.map((s) => (s.note === undefined ? `${s.op} ${s.target}` : `${s.op} ${s.target} (${s.note})`)).join('\n')
 }
 
-function formatSteps(steps: ActionStep[]): string {
-  return steps.map((s) => (s.note === undefined ? `${s.op} ${s.target}` : `${s.op} ${s.target} (${s.note})`)).join('\n')
+function fail(message: string): { ok: false; message: string } {
+  return { ok: false, message }
 }
 
 async function instantiateTemplate(

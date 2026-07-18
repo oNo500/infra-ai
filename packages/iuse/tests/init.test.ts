@@ -469,4 +469,23 @@ describe('runInit', () => {
     expect(resultDry.ok).toBe(true)
     expect(seenOpsDry.length).toBe(0)
   })
+
+  test('onProgress fires exclude-rule for a real (non-dry-run) init with --exclude', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const seenOps: string[] = []
+    const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, exclude: ['markdown'], onProgress })
+
+    expect(result.ok).toBe(true)
+    expect(seenOps).toContain('exclude-rule')
+    const resultOps = (result.steps ?? []).map((s) => s.op)
+    expect(seenOps).toEqual(resultOps)
+  })
 })

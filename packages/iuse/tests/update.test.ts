@@ -534,4 +534,44 @@ describe('runUpdate', () => {
     expect(resultDry.ok).toBe(true)
     expect(seenOpsDry.length).toBe(0)
   })
+
+  test('onProgress fires include for a clean re-include via --include', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    // local file untouched, content identical to source -- clean re-include
+
+    const seenOps: string[] = []
+    const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'], onProgress })
+
+    expect(result.ok).toBe(true)
+    expect(seenOps).toContain('include')
+    const resultOps = (result.steps ?? []).filter((s) => s.op !== 'synced').map((s) => s.op)
+    expect(seenOps).toEqual(resultOps)
+  })
+
+  test('onProgress fires skip-include when a re-include candidate has differing local content and --force is not set', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+    writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
+
+    const seenOps: string[] = []
+    const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'], onProgress })
+
+    expect(result.ok).toBe(true)
+    expect(seenOps).toContain('skip-include')
+    const resultOps = (result.steps ?? []).filter((s) => s.op !== 'synced').map((s) => s.op)
+    expect(seenOps).toEqual(resultOps)
+  })
 })

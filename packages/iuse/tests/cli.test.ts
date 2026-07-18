@@ -56,6 +56,32 @@ describe('runCli entry routing', () => {
     expect(stdout).not.toContain('选择 profile')
     expect(exitCode).toBe(0)
   })
+
+  test('runCli({ isTTY: true }) with argv ["stauts"] (typo) never renders the TUI and surfaces citty\'s unknown-command handling', async () => {
+    // Out-of-process, same rationale as the other TTY fixtures: before the
+    // argv.length === 0 tightening, a typo'd subcommand like "stauts" wasn't
+    // in the known-subcommand list, so hasNoSubcommand() was true and this
+    // would have hijacked into the TUI on a TTY instead of reaching citty.
+    const harness = join(import.meta.dir, 'fixtures/run-cli-tty-typo.ts')
+    const proc = Bun.spawn(['bun', 'run', harness], {
+      cwd: join(import.meta.dir, '..'),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+
+    // citty prints usage to stdout and the unknown-command error to stderr.
+    expect(stdout).toContain('USAGE')
+    expect(stderr).toContain('Unknown command')
+    // TUI-only Chinese label from the profile picker must never appear --
+    // proof the dynamic import('../tui/app') branch did not run.
+    expect(stdout).not.toContain('选择 profile')
+    expect(exitCode).toBe(1)
+  })
 })
 
 function fixtureSource(): string {

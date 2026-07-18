@@ -27,7 +27,7 @@ type View =
   | { kind: 'plan'; source: SourceRef; profile: string; steps: ActionStep[] }
   | { kind: 'running'; source: SourceRef; profile: string; steps: ActionStep[]; attempt: number; exclude: string[] }
   | { kind: 'result'; message: string; profile: string }
-  | { kind: 'status'; profile: string; refreshKey: number }
+  | { kind: 'status'; profile: string; refreshKey: number; source: SourceRef | undefined }
   | { kind: 'update-plan'; profile: string }
   | {
       kind: 'error'
@@ -52,6 +52,29 @@ async function resolveSourceRef(deps: TuiDeps): Promise<{ ok: true; source: Sour
   }
 }
 
+/**
+ * app.tsx 拿到的 running 步骤是勾选前的原始 dry-run 计划：用户在 PlanView 里取消
+ * 勾选后，真实执行会对这些 rule 各发一次 exclude-rule 事件（target 是 rule 名，
+ * 见 core/init.ts planInit），而不是原计划里的 copy-rule 行（target 是
+ * targetRelPath）。ProgressView 按 op+target 对号打勾，两者对不上号会让排除的
+ * rule 行永远不亮、也吃不到真实事件。这里在渲染前按同样规则本地重写，让显示的
+ * 行与即将触发的真实事件一一对应。
+ */
+function ruleFromCopyRuleTarget(targetRelPath: string): string {
+  return targetRelPath.replace(/^\.claude\/rules\//u, '').replace(/\.md$/u, '')
+}
+
+function stepsForExecution(steps: ActionStep[], exclude: string[]): ActionStep[] {
+  if (exclude.length === 0) return steps
+  const excludedSet = new Set(exclude)
+  return steps.map((step) => {
+    if (step.op !== 'copy-rule') return step
+    const rule = ruleFromCopyRuleTarget(step.target)
+    if (!excludedSet.has(rule)) return step
+    return { op: 'exclude-rule', target: rule, note: 'excluded' }
+  })
+}
+
 function TopBar({ target, profile, source }: { target: string; profile: string | undefined; source: SourceRef | undefined }) {
   const sourceText = source === undefined ? '-' : `${source.locator}@${source.version.id}`
   return (
@@ -72,7 +95,7 @@ export function App({ deps }: { deps: TuiDeps }) {
 
     const lock = loadDownstreamLock(deps.target)
     if (lock !== null) {
-      if (!cancelled) setView({ kind: 'status', profile: lock.profile, refreshKey: 0 })
+      if (!cancelled) setView({ kind: 'status', profile: lock.profile, refreshKey: 0, source: undefined })
       return
     }
 
@@ -90,6 +113,26 @@ export function App({ deps }: { deps: TuiDeps }) {
       cancelled = true
     }
   }, [deps])
+
+  // The status path (both the initial bootstrap and every return trip from
+  // result/update-plan) enters with source left unresolved -- it only needs
+  // the source for the TopBar locator, not for status's own data fetch. This
+  // backfills it once per status view without blocking the status view
+  // itself; a failure is swallowed and the TopBar keeps showing '-'. Keyed on
+  // refreshKey (not the whole view object) so it fires once per distinct
+  // status-view instance, not on every unrelated field change.
+  const statusRefreshKey = view.kind === 'status' ? view.refreshKey : undefined
+  useEffect(() => {
+    if (view.kind !== 'status' || view.source !== undefined) return
+    let cancelled = false
+    resolveSourceRef(deps).then((resolved) => {
+      if (cancelled || !resolved.ok) return
+      setView((prev) => (prev.kind === 'status' ? { ...prev, source: resolved.source } : prev))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [deps, statusRefreshKey])
 
   const retry = () => {
     if (view.kind !== 'error') return
@@ -130,7 +173,7 @@ export function App({ deps }: { deps: TuiDeps }) {
       if (input === 'q') {
         exit()
       } else {
-        setView({ kind: 'status', profile: view.profile, refreshKey: 0 })
+        setView({ kind: 'status', profile: view.profile, refreshKey: 0, source: undefined })
       }
     }
   })
@@ -147,7 +190,7 @@ export function App({ deps }: { deps: TuiDeps }) {
   if (view.kind === 'status') {
     return (
       <Box flexDirection="column">
-        <TopBar target={deps.target} profile={view.profile} source={undefined} />
+        <TopBar target={deps.target} profile={view.profile} source={view.source} />
         <StatusView
           key={view.refreshKey}
           ctx={deps.ctx}
@@ -220,12 +263,13 @@ export function App({ deps }: { deps: TuiDeps }) {
   }
 
   if (view.kind === 'running') {
+    const executionSteps = stepsForExecution(view.steps, view.exclude)
     return (
       <Box flexDirection="column">
         <TopBar target={deps.target} profile={view.profile} source={view.source} />
         <ProgressView
           key={view.attempt}
-          steps={view.steps}
+          steps={executionSteps}
           run={(onProgress) =>
             runInit(deps.ctx, {
               profile: view.profile,
@@ -267,8 +311,8 @@ export function App({ deps }: { deps: TuiDeps }) {
           ctx={deps.ctx}
           target={deps.target}
           source={deps.source}
-          onDone={() => setView({ kind: 'status', profile: view.profile, refreshKey: Date.now() })}
-          onBack={() => setView({ kind: 'status', profile: view.profile, refreshKey: 0 })}
+          onDone={() => setView({ kind: 'status', profile: view.profile, refreshKey: Date.now(), source: undefined })}
+          onBack={() => setView({ kind: 'status', profile: view.profile, refreshKey: 0, source: undefined })}
           onQuit={exit}
         />
       </Box>

@@ -117,7 +117,11 @@ export function UpdatePlanView({
   const rows = state.kind === 'plan' ? buildRows(state.steps, excludedRules, includeCandidates) : []
 
   useInput((input, key) => {
-    if (input === 'q') {
+    // Mid-execution, a stray 'q' must not tear down the run: writes/instantiation
+    // may already be in flight, and quitting the whole app here would leave the
+    // lock and target in an unobserved partial state instead of surfacing the
+    // done/fail transition ProgressView is already driving toward.
+    if (input === 'q' && state.kind !== 'running') {
       onQuit()
       return
     }
@@ -250,7 +254,14 @@ export function UpdatePlanView({
       )}
       <Box flexDirection="column" marginTop={1}>
         {rows.map((row, i) => {
-          const decision = row.rule === undefined ? undefined : decisions.get(row.rule)
+          // A decision was only ever recorded through DiffView, reachable
+          // exclusively from a diffable row. If the plan re-fetch (triggered
+          // by toggling force/includeCandidates) later reshapes this rule's
+          // row into something else -- e.g. it resolves to a clean 'include'
+          // once local content stops differing, or reverts to the synthesized
+          // 'excluded' row -- the stale decision no longer describes a real
+          // choice on the row and must not render.
+          const decision = row.rule !== undefined && row.diffable ? decisions.get(row.rule) : undefined
           const suffix = decision === 'overwrite' ? '  [覆盖]' : decision === 'ignore' ? '  [忽略]' : ''
           const checkbox = row.toggleable ? (row.checked ? '[x] ' : '[ ] ') : ''
           return (

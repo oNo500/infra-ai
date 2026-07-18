@@ -2,16 +2,13 @@ import { join } from 'node:path'
 import { writeFileAtomic } from '@infra-ai/meta-cli/core'
 import { planAssembly } from './assemble'
 import type { ActionStep, IuseContext } from './init'
+import { formatSteps } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor, ruleTargetRelPath, saveDownstreamLock } from './manifest'
 import type { DownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
 function fail(message: string): { ok: false; message: string } {
   return { ok: false, message }
-}
-
-function formatSteps(steps: ActionStep[]): string {
-  return steps.map((s) => (s.note === undefined ? `${s.op} ${s.target}` : `${s.op} ${s.target} (${s.note})`)).join('\n')
 }
 
 interface UpdatePlan {
@@ -115,7 +112,7 @@ async function planUpdate(
   const nextExcluded = [...currentlyExcluded]
 
   for (const rule of [...sourceByRule.keys()].toSorted()) {
-    if (rule in lock.rules) continue
+    if (Object.hasOwn(lock.rules, rule)) continue
     if (currentlyExcludedSet.has(rule)) continue // handled by the include gate below
     const item = sourceByRule.get(rule)
     if (item === undefined) continue

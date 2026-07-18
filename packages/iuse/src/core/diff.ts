@@ -93,7 +93,7 @@ export async function diffReport(
 
   if (opts.rule !== undefined) {
     const rule = opts.rule
-    const isKnown = rule in lock.rules || excluded.includes(rule)
+    const isKnown = Object.hasOwn(lock.rules, rule) || excluded.includes(rule)
     if (!isKnown) {
       const known = [...Object.keys(lock.rules), ...excluded].toSorted()
       return {

@@ -250,6 +250,47 @@ describe('TUI init flow', () => {
     expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
   })
 
+  test('progress view shows exclude-rule row (not a stale copy-rule row) for an unchecked rule', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
+    const { claude, release } = fakeClaudeGatedOnce()
+    const deps: TuiDeps = { ctx: fakeCtx({ claude }), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
+    stdin.write('[B') // down arrow: select python-cli (constitution + extra)
+    await waitFor(() => {
+      const frame = lastFrame() ?? ''
+      const line = frame.split('\n').find((l) => l.includes('>'))
+      return line !== undefined && line.includes('python-cli')
+    })
+    stdin.write('\r') // enter: confirm python-cli
+
+    await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
+    await waitFor(() => (lastFrame() ?? '').includes('extra.md'))
+
+    // Cursor starts on constitution; move down once to extra, then uncheck it.
+    stdin.write('[B') // down arrow
+    stdin.write(' ') // space: uncheck extra
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('extra.md') && l.includes('[ ]')))
+
+    stdin.write('\r') // enter: execute with extra excluded
+
+    // While gated on the first instantiate step, the run is stalled mid-flight
+    // -- inspect the progress rows before it completes and gets torn down.
+    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'), 5000)
+    const gatedFrame = lastFrame() ?? ''
+    const lines = gatedFrame.split('\n')
+    expect(lines.some((l) => l.includes('exclude-rule') && l.includes('extra'))).toBe(true)
+    expect(lines.some((l) => l.includes('copy-rule') && l.includes('extra.md'))).toBe(false)
+    // The kept rule's row is untouched.
+    expect(lines.some((l) => l.includes('copy-rule') && l.includes('constitution.md'))).toBe(true)
+
+    release()
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+  })
+
   test('source resolution failure lands in error view with message', async () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const badSource = mkdtempSync(join(tmpdir(), 'iuse-tui-badsrc-')) // no profiles.json

@@ -151,7 +151,19 @@ describe('diffReport', () => {
     expect(result.exitCode).toBe(1)
   })
 
-  test('named rule: identical content yields a patch-less zero-count entry, exit 0', async () => {
+  test('named rule: a prototype-property name like "toString" is not mistaken for a known rule', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+
+    const result = await diffReport(ctxWith(), { source, target, rule: 'toString' })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('toString')
+    expect(result.message).toContain('constitution')
+    expect(result.exitCode).toBe(1)
+  })
+
+  test('named rule: identical content yields a zero-count synced entry with a patch header present, exit 0', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
 

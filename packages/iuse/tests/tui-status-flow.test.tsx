@@ -66,6 +66,32 @@ function fakeCtx(overrides: Partial<IuseContext> = {}): IuseContext {
   }
 }
 
+/**
+ * A fake `run` that blocks on a manually-releasable gate starting from its
+ * Nth invocation -- mirrors fakeClaudeGatedOnce in tui-init-flow.test.tsx, but
+ * for runUpdate's real (non-dry-run) execution path, which re-resolves the
+ * source via ctx.run('git', ...) and never calls ctx.claude. `gateFromCall`
+ * skips the earlier calls the TUI's own bootstrap/TopBar-backfill machinery
+ * makes (each of those also goes through ctx.run to resolve the source), so
+ * the gate lands on the specific resolveSource call triggered by pressing
+ * 'e' to execute, freezing the 'running' state open long enough to press a
+ * key mid-execution.
+ */
+function fakeRunGatedFromCall(gateFromCall: number): { run: IuseContext['run']; release: () => void } {
+  let releaseGate: (() => void) | undefined
+  const gate = new Promise<void>((resolve) => {
+    releaseGate = resolve
+  })
+  let calls = 0
+  const run: IuseContext['run'] = async () => {
+    calls += 1
+    if (calls >= gateFromCall) await gate
+    return { code: 0, stdout: 'head1\n', stderr: '' }
+  }
+  if (releaseGate === undefined) throw new Error('gate executor did not run synchronously')
+  return { run, release: releaseGate }
+}
+
 /** Local polling helper -- no new dependency, per task brief. */
 async function waitFor(predicate: () => boolean, timeoutMs = 3000): Promise<void> {
   const start = Date.now()
@@ -134,6 +160,21 @@ describe('TUI status flow', () => {
     expect(lineFor('edited')).toContain('modified')
     expect(lineFor('gone')).toContain('missing')
     expect(lineFor('extra')).toContain('outdated')
+  })
+
+  test('initialized target backfills the TopBar source locator instead of leaving it at "-"', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithAllStates(source)
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    // The status path never resolves a source itself (unlike profile-pick),
+    // so the TopBar backfills it during bootstrap via the same resolveSource
+    // wiring the picker path uses -- locator@version.id, from the fixture's
+    // `run` stub (git rev-parse HEAD -> 'head1', porcelain non-empty -> dirty).
+    await waitFor(() => (lastFrame() ?? '').includes(`source ${source}@head1-dirty`))
   })
 
   test('excluded rule renders as a dimmed "<rule> excluded" row in status', async () => {
@@ -213,6 +254,34 @@ describe('TUI status flow', () => {
     const lineFor = (rule: string) => frame.split('\n').find((l) => l.includes(rule)) ?? ''
     expect(lineFor('extra')).toContain('synced')
     expect(lineFor('edited')).toContain('modified') // still skipped, force was off
+  })
+
+  test('q is ignored while an update execution is running -- it must not tear down a run in flight', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithAllStates(source)
+    // Calls 1-4: bootstrap (TopBar source backfill + StatusView's own status
+    // fetch, each resolving the source via 2 `run` invocations). Calls 5-6:
+    // the update-plan dry-run fetch triggered by 'u'. Call 7 is the first
+    // `run` invocation of the real (non-dry-run) execution triggered by 'e' --
+    // gating from there stalls exactly that resolveSource call.
+    const { run, release } = fakeRunGatedFromCall(7)
+    const deps: TuiDeps = { ctx: fakeCtx({ run }), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+
+    stdin.write('u')
+    await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
+
+    stdin.write('e') // execute -- runUpdate re-resolves the source, stalling on the gated run
+    await waitFor(() => (lastFrame() ?? '').includes('执行中'))
+
+    stdin.write('q') // must be a no-op: the run is still in flight
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(lastFrame()).toContain('执行中')
+
+    release()
+    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
   })
 
   test('r refreshes the status view', async () => {
@@ -343,6 +412,57 @@ describe('TUI status flow', () => {
     const lock = loadDownstreamLock(target)
     expect(lock?.excluded ?? []).not.toContain('gone')
     expect(readFileSync(join(target, '.claude/rules/gone.md'), 'utf8')).toBe('# Gone\n')
+  })
+
+  test('un-checking an adjudicated re-include candidate drops the stale [覆盖] suffix instead of carrying it onto the reverted excluded row', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithExcludedRule(source)
+    writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+
+    stdin.write('u')
+    await settle()
+    await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
+
+    stdin.write('[B')
+    await settle()
+    stdin.write('[B')
+    await settle()
+    stdin.write(' ') // space: mark gone as re-include candidate
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
+    await settle()
+
+    stdin.write('\r') // enter: open diff view for gone
+    await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
+    await settle()
+
+    stdin.write('o') // adjudicate: overwrite -- records a decision for 'gone'
+    await waitFor(() => {
+      const lines = (lastFrame() ?? '').split('\n')
+      return lines.some((l, i) => l.includes('gone') && lines.slice(i, i + 2).join(' ').includes('[覆盖]'))
+    })
+    await settle()
+
+    // Cursor is still on the gone row (index 2); un-check it to withdraw the
+    // re-include candidacy. The plan re-fetch reverts row 2 to the
+    // synthesized "excluded, not a candidate" row -- the earlier decision no
+    // longer describes a live choice on this shape-changed row, so [覆盖]
+    // must not carry over onto it.
+    stdin.write(' ')
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone excluded')))
+    await settle()
+
+    const revertedFrame = lastFrame() ?? ''
+    const lines = revertedFrame.split('\n')
+    const goneIdx = lines.findIndex((l) => l.includes('gone excluded'))
+    expect(goneIdx).toBeGreaterThanOrEqual(0)
+    expect(lines.slice(goneIdx, goneIdx + 2).join(' ')).not.toContain('[覆盖]')
   })
 
   test('adjudicating a re-include candidate as 忽略 keeps the local file and the row shows [忽略]', async () => {

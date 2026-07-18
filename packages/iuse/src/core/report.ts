@@ -80,7 +80,7 @@ export async function statusReport(
   // explicitly excluded is a permanent gate, not a pending pull -- it reports
   // 'excluded' instead and never reverts to 'outdated'.
   for (const rule of sourceHashByRule.keys()) {
-    if (rule in lock.rules) continue
+    if (Object.hasOwn(lock.rules, rule)) continue
     if (excludedSet.has(rule)) continue
     rows.push({ rule, state: 'outdated' })
   }
