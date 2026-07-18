@@ -2,9 +2,10 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { renderJson } from '../src/cli/index'
+import { renderJson, splitNames } from '../src/cli/index'
 import type { ActionStep, IuseContext } from '../src/core/init'
 import { runInit } from '../src/core/init'
+import { loadDownstreamLock } from '../src/core/manifest'
 import { profilesReport } from '../src/core/profiles-report'
 import { statusReport } from '../src/core/report'
 import { runUpdate } from '../src/core/update'
@@ -234,6 +235,29 @@ describe('text-mode rendering is untouched', () => {
   })
 })
 
+describe('splitNames helper', () => {
+  test('splitNames with string input splits on comma and trims', () => {
+    expect(splitNames('a, b, c')).toEqual(['a', 'b', 'c'])
+  })
+
+  test('splitNames with array input (repeated flag) joins then splits', () => {
+    expect(splitNames(['a', 'b', 'c'])).toEqual(['a', 'b', 'c'])
+  })
+
+  test('splitNames with undefined returns undefined', () => {
+    expect(splitNames(undefined)).toBeUndefined()
+  })
+
+  test('splitNames filters empty strings from split', () => {
+    expect(splitNames(', , ')).toEqual([])
+    expect(splitNames('a,,b')).toEqual(['a', 'b'])
+  })
+
+  test('splitNames handles whitespace-only entries', () => {
+    expect(splitNames('a, , b')).toEqual(['a', 'b'])
+  })
+})
+
 describe('exclude/include flags (comma-split plumbing)', () => {
   test('runInit with exclude flag excludes named rules and records in lock', async () => {
     const source = fixtureSource()
@@ -387,5 +411,82 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     const input = ', , '
     const parsed = input.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
     expect(parsed).toEqual([])
+  })
+
+  test('runInit with repeated --exclude flags (array input) merges and excludes all', async () => {
+    // Build multi-rule fixture
+    const sourceDir = mkdtempSync(join(tmpdir(), 'iuse-repeated-exclude-src-'))
+    mkdirSync(join(sourceDir, 'meta', 'rules'), { recursive: true })
+    mkdirSync(join(sourceDir, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(sourceDir, 'templates'), { recursive: true })
+    writeFileSync(
+      join(sourceDir, 'meta', 'tags.json'),
+      JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }),
+    )
+    for (const name of ['constitution', 'architecture', 'pattern']) {
+      writeFileSync(
+        join(sourceDir, 'meta', 'rules', `${name}.md`),
+        `---\nname: ${name}\nstatus: ready\nscope: global\ntags: [core]\n---\nbody`,
+      )
+      writeFileSync(join(sourceDir, 'rules', 'global', `${name}.md`), `# ${name}\n`)
+    }
+    writeFileSync(
+      join(sourceDir, 'profiles.json'),
+      JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'architecture', 'pattern'] } }),
+    )
+    writeFileSync(join(sourceDir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
+    writeFileSync(join(sourceDir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
+    writeFileSync(join(sourceDir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
+    mkdirSync(join(sourceDir, 'meta', 'prompts'), { recursive: true })
+    writeFileSync(join(sourceDir, 'meta', 'prompts', 'template-instantiate.md'), '# contract\n')
+
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-repeated-exclude-'))
+
+    // Simulate citty passing array when flag repeats: --exclude constitution --exclude architecture
+    const result = await runInit(ctxWith(), {
+      source: sourceDir,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['constitution', 'architecture'], // citty array form
+    })
+
+    expect(result.ok).toBe(true)
+    const lockPath = join(target, '.claude/infra-ai.lock.json')
+    const lockContent = JSON.parse(readFileSync(lockPath, 'utf8')) as unknown
+    const lock = lockContent as { excluded?: string[] }
+    // Both should be excluded and sorted
+    expect(lock.excluded).toEqual(['architecture', 'constitution'])
+  })
+
+  test('runUpdate with repeated --include flags (array input) merges and re-includes all', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-repeated-include-'))
+
+    // Pre-init then add extra rules
+    const initResult = await runInit(ctxWith(), {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['constitution'],
+    })
+    expect(initResult.ok).toBe(true)
+
+    // Simulate citty passing array when flag repeats: --include constitution
+    // (In reality this would be multiple flags, but the array form is the issue)
+    const updateResult = await runUpdate(ctxWith(), {
+      source,
+      target,
+      force: false,
+      include: ['constitution'], // citty array form
+    })
+
+    expect(updateResult.ok).toBe(true)
+    expect(updateResult.steps).toBeDefined()
+    expect(updateResult.steps).toContainEqual(expect.objectContaining({ op: 'include' }))
+
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded ?? []).not.toContain('constitution')
   })
 })

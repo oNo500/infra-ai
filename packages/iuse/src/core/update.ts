@@ -143,7 +143,7 @@ async function planUpdate(
     steps.push({
       op: 'skip-include',
       target: targetRelPath,
-      note: "local differs, kept (see 'iuse diff <rule>', use --force to overwrite)",
+      note: "local differs, kept (see 'iuse diff --rule <name>', use --force to overwrite)",
     })
   }
 

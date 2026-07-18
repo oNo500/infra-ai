@@ -10,6 +10,17 @@ import { profilesReport } from '../core/profiles-report'
 import { statusReport } from '../core/report'
 import { runUpdate } from '../core/update'
 
+/**
+ * Normalize and split a comma-separated string or array into trimmed strings.
+ * Handles both single string and repeated flag inputs (citty passes string | string[]).
+ * Returns undefined if input is undefined.
+ */
+export function splitNames(value: string | string[] | undefined): string[] | undefined {
+  if (value === undefined) return undefined
+  const raw = Array.isArray(value) ? value.join(',') : value
+  return raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+}
+
 export function defaultContext(): IuseContext {
   return {
     download: downloadTemplate,
@@ -46,9 +57,7 @@ const initCommand = defineCommand({
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
-    const exclude = args.exclude === undefined
-      ? undefined
-      : args.exclude.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+    const exclude = splitNames(args.exclude)
 
     const result = await runInit(defaultContext(), {
       profile: args.profile,
@@ -140,9 +149,7 @@ const updateCommand = defineCommand({
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
-    const include = args.include === undefined
-      ? undefined
-      : args.include.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+    const include = splitNames(args.include)
 
     const result = await runUpdate(defaultContext(), {
       source: args.source,

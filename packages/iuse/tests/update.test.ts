@@ -386,7 +386,7 @@ describe('runUpdate', () => {
     expect(result.steps).toContainEqual({
       op: 'skip-include',
       target: '.claude/rules/constitution.md',
-      note: "local differs, kept (see 'iuse diff <rule>', use --force to overwrite)",
+      note: "local differs, kept (see 'iuse diff --rule <name>', use --force to overwrite)",
     })
   })
 
