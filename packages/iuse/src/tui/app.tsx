@@ -250,7 +250,7 @@ export function App({ deps }: { deps: TuiDeps }) {
   if (view.kind === 'result') {
     return (
       <Box flexDirection="column">
-        <TopBar target={deps.target} profile={undefined} source={undefined} />
+        <TopBar target={deps.target} profile={view.profile} source={undefined} />
         <MessageBlock title="初始化完成" message={view.message} tone="success" hint="按任意键继续  q 退出" />
       </Box>
     )

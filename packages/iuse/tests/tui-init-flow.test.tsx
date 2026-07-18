@@ -44,6 +44,35 @@ function fakeClaudeInstant(): IuseContext['claude'] {
   }
 }
 
+/**
+ * A fake claude whose first invocation blocks on a manually-releasable gate,
+ * so tests can observe the in-flight rendering of a minute-scale
+ * 'instantiate' step before it resolves. Subsequent invocations resolve
+ * immediately (the second template shouldn't also block, or the test would
+ * need to release twice for no reason).
+ */
+function fakeClaudeGatedOnce(): { claude: IuseContext['claude']; release: () => void } {
+  let releaseGate: (() => void) | undefined
+  const gate = new Promise<void>((resolve) => {
+    releaseGate = resolve
+  })
+  let firstCall = true
+  const claude: IuseContext['claude'] = async (opts) => {
+    if (firstCall) {
+      firstCall = false
+      await gate
+    }
+    const match = /(?:Write|Edit)\((.+)\)/u.exec(opts.allowedTools)
+    const rel = match?.[1]
+    if (rel === undefined) throw new Error('no target file in allowedTools')
+    const targetFile = join(opts.repoRoot, rel)
+    writeFileSync(targetFile, targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n')
+    return { code: 0, timedOut: false, stderr: '' }
+  }
+  if (releaseGate === undefined) throw new Error('gate executor did not run synchronously')
+  return { claude, release: releaseGate }
+}
+
 function fakeCtx(overrides: Partial<IuseContext> = {}): IuseContext {
   return {
     download: async () => ({}),
@@ -141,6 +170,36 @@ describe('TUI init flow', () => {
     stdin.write('x')
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
     expect(lastFrame()).toContain('constitution')
+  })
+
+  test('in-flight instantiate step shows spinner (no checkmark) and later steps stay pending; releasing the gate completes the run', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
+    const { claude, release } = fakeClaudeGatedOnce()
+    const deps: TuiDeps = { ctx: fakeCtx({ claude }), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
+    stdin.write('\r') // enter: confirm profile selection
+    await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
+    stdin.write('\r') // enter: execute
+
+    // While gated on the first instantiate step: its row shows the spinner
+    // liveness text and is not yet checked off, and write-lock (a later
+    // step) has not become current either.
+    await waitFor(() => (lastFrame() ?? '').includes('claude 实例化中（分钟级）'), 5000)
+    const gatedFrame = lastFrame() ?? ''
+    const instantiateLine = gatedFrame.split('\n').find((l) => l.includes('claude 实例化中（分钟级）')) ?? ''
+    expect(instantiateLine).not.toContain('✓')
+    const writeLockLine = gatedFrame.split('\n').find((l) => l.includes('write-lock')) ?? ''
+    expect(writeLockLine).not.toContain('claude 实例化中')
+    expect(writeLockLine).not.toContain('✓')
+
+    release()
+
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+    expect(lastFrame()).toContain('initialized')
   })
 
   test('source resolution failure lands in error view with message', async () => {
