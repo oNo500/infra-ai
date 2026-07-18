@@ -187,6 +187,28 @@ describe('adopt action', () => {
   })
 })
 
+describe('catalog action', () => {
+  test('catalog action writes catalog.json with ready rules including description', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'meta/rules/foo.md'),
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: demo rule\n---\nbody\n',
+      )
+      const result = await getAction('catalog').execute(testContext(root), { positionals: [], flags: {} })
+      expect(result.ok).toBe(true)
+      expect(existsSync(join(root, 'catalog.json'))).toBe(true)
+      const catalog = JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8')) as Record<string, unknown>
+      expect(catalog.rules).toBeDefined()
+      const rules = catalog.rules as Record<string, { description: string }>
+      expect(rules.foo).toBeDefined()
+      expect(rules.foo?.description).toBe('demo rule')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+})
+
 describe('build action', () => {
   test('claude success path verifies artifact and records lock', async () => {
     const root = fixtureRepo()
@@ -298,6 +320,31 @@ describe('build action', () => {
       expect(steps[1]?.[1]?.ok).toBe(true)
       expect(steps[2]?.[0]).toBe('record')
       expect(steps[2]?.[1]?.key).toBe('rule:foo')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+  test('build action rebuilds catalog.json after successful build', async () => {
+    const root = fixtureRepo()
+    try {
+      writeFileSync(
+        join(root, 'meta/rules/foo.md'),
+        '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: built rule\n---\nbody\n',
+      )
+      const claude: ActionContext['claude'] = async () => {
+        mkdirSync(join(root, 'rules/global'), { recursive: true })
+        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        return { code: 0, timedOut: false, stderr: '' }
+      }
+      const result = await getAction('build').execute(testContext(root, { claude }), {
+        positionals: ['foo'],
+        flags: {},
+      })
+      expect(result.ok).toBe(true)
+      expect(existsSync(join(root, 'catalog.json'))).toBe(true)
+      const catalog = JSON.parse(readFileSync(join(root, 'catalog.json'), 'utf8')) as Record<string, unknown>
+      const rules = catalog.rules as Record<string, unknown>
+      expect(Object.keys(rules)).toContain('foo')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
