@@ -54,12 +54,21 @@ Progress:
 `iuse status` 应全 synced 且退出 0。此后拉中心源更新用 `iuse update`：
 本地改过的副本默认跳过，提示带回中心仓。
 
+## 目标级偏差
+
+profile 是中心源清单，目标项目可显式偏离：
+
+- `iuse init --exclude <rule> ...` — 初始化时排除个别 rule
+- `iuse update --include <rule>` — 把先前排除的 rule 补回
+- `iuse diff [--rule <name>]` — 看本地副本与中心源的差异
+
 ## 命令语义
 
-- 退出码：`status` 有任何非 synced 退 1；`init`/`update` 成功退 0
+- 退出码：`status` 有任何非 synced 退 1（excluded 除外——目标级显式排除
+  不计漂移）；`init`/`update` 成功退 0
 - 全命令支持 `--json`，输出单行 JSON 对象，均含 `ok`；数据字段各命令
   不同：`init`/`update` 带 `message`/`steps`，`status` 带
-  `rows`/`exitCode`，`profiles` 带 `profiles`
+  `rows`/`exitCode`，`profiles` 带 `profiles`，`diff` 带 `diffs`
 
 ## 降级流程（无 iuse 时）
 
