@@ -149,9 +149,12 @@ async function planInit(
 
   let items: ReturnType<typeof planAssembly>['items']
   if (opts.rules !== undefined) {
-    const { items: assembled, missing } = assembleRules(source.root, opts.rules)
+    const { items: assembled, missing, violations } = assembleRules(source.root, opts.rules)
     if (missing.length > 0) {
       return fail(`unknown rules: ${missing.join(', ')}`)
+    }
+    if (violations.length > 0) {
+      return fail(violations.join('\n'))
     }
     items = assembled
   } else {

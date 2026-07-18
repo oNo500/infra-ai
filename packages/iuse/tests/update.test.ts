@@ -637,4 +637,21 @@ describe('runUpdate', () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain('nope')
   })
+
+  test('--add a rule with meta but missing artifact (violation) fails with imeta build hint', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    // Create meta instruction but no artifact
+    addRule(source, 'incomplete', '# Incomplete\n')
+    writeFileSync(
+      join(source, 'meta', 'rules', 'incomplete.md'),
+      '---\nname: incomplete\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
+    )
+    rmSync(join(source, 'rules', 'global', 'incomplete.md'))
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['incomplete'] })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('imeta build')
+  })
 })

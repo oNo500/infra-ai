@@ -51,13 +51,22 @@ async function planUpdate(
     return fail(error instanceof Error ? error.message : String(error))
   }
 
-  const { items, missing } = assembleRules(source.root, [...locked, ...add])
+  const { items, missing, violations } = assembleRules(source.root, [...locked, ...add])
   const missingSet = new Set(missing)
 
   if (add.length > 0) {
     const unknown = add.filter((rule) => missingSet.has(rule))
     if (unknown.length > 0) {
       return fail(`unknown rules in --add: ${unknown.join(', ')}`)
+    }
+    const addSetForViolations = new Set(add)
+    const addViolations = violations.filter((v) => {
+      const parts = v.split(':')
+      const ruleName = parts[0]
+      return ruleName !== undefined && addSetForViolations.has(ruleName)
+    })
+    if (addViolations.length > 0) {
+      return fail(addViolations.join('\n'))
     }
     const alreadyInstalled = add.filter((rule) => Object.hasOwn(lock.rules, rule) && !currentlyExcludedSet.has(rule))
     if (alreadyInstalled.length > 0) {

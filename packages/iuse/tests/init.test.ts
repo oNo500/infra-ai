@@ -535,4 +535,21 @@ describe('runInit', () => {
     expect(result.ok).toBe(false)
     expect(loadDownstreamLock(target)).toBeNull()
   })
+
+  test('init with explicit rules that have meta but missing artifacts fails with imeta build hint', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    // Create meta instruction but no artifact for a rule
+    writeFileSync(
+      join(source, 'meta', 'rules', 'broken.md'),
+      '---\nname: broken\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
+    )
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: '-', rules: ['constitution', 'broken'], target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('imeta build')
+    expect(loadDownstreamLock(target)).toBeNull()
+  })
 })
