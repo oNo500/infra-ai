@@ -187,7 +187,7 @@ async function planInit(
 
 export async function runInit(
   ctx: IuseContext,
-  opts: { source?: string; profile: string; target: string; force: boolean; dryRun?: boolean },
+  opts: { source?: string; profile: string; target: string; force: boolean; dryRun?: boolean; onProgress?: (step: ActionStep) => void },
 ): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
   const planned = await planInit(ctx, opts)
   if (!planned.ok) return planned
@@ -203,6 +203,7 @@ export async function runInit(
   for (const step of steps) {
     if (step.op === 'copy-rule') {
       if (step.note !== undefined) continue
+      opts.onProgress?.(step)
       const item = items.find((i) => i.targetRelPath === step.target)
       if (item === undefined) continue
       writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
@@ -212,6 +213,7 @@ export async function runInit(
   const notes: string[] = []
   const settingsStep = steps.find((s) => s.op === 'copy-settings')
   if (settingsStep !== undefined) {
+    opts.onProgress?.(settingsStep)
     if (settingsStep.note !== undefined) {
       notes.push(`${settingsStep.target}: already present, skipped (use --force to overwrite)`)
     } else {
@@ -224,12 +226,21 @@ export async function runInit(
 
   try {
     for (const spec of TEMPLATE_SPECS) {
+      const instantiateStep = steps.find((s) => s.op === 'instantiate' && s.target === spec.targetRelPath)
+      if (instantiateStep !== undefined) {
+        opts.onProgress?.(instantiateStep)
+      }
       const result = await instantiateTemplate(ctx, source.root, opts.target, spec, opts.force)
       if (!result.ok) return fail(result.message)
       notes.push(result.message)
     }
   } finally {
     rmSync(join(opts.target, '.iuse-staging'), { recursive: true, force: true })
+  }
+
+  const writeLockStep = steps.find((s) => s.op === 'write-lock')
+  if (writeLockStep !== undefined) {
+    opts.onProgress?.(writeLockStep)
   }
 
   saveDownstreamLock(opts.target, {

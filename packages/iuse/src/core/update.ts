@@ -106,7 +106,7 @@ async function planUpdate(
 
 export async function runUpdate(
   ctx: IuseContext,
-  opts: { source?: string; target: string; force: boolean; dryRun?: boolean },
+  opts: { source?: string; target: string; force: boolean; dryRun?: boolean; onProgress?: (step: ActionStep) => void },
 ): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {
   const planned = await planUpdate(ctx, opts)
   if (!planned.ok) return planned
@@ -124,6 +124,8 @@ export async function runUpdate(
 
   for (const step of steps) {
     if (step.op === 'synced') continue
+
+    opts.onProgress?.(step)
 
     if (step.op === 'drop') {
       const rule = ruleFromTargetRelPath(step.target)

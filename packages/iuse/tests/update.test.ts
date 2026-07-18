@@ -325,4 +325,30 @@ describe('runUpdate', () => {
     expect(steps).toContainEqual(expect.objectContaining({ op: 'apply', target: '.claude/rules/constitution.md' }))
     expect(steps).toContainEqual(expect.objectContaining({ op: 'add', target: '.claude/rules/extra.md' }))
   })
+
+  test('onProgress fires per executed step in order, not in dry-run', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+
+    const seenOps: string[] = []
+    const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, onProgress })
+
+    expect(result.ok).toBe(true)
+    const resultOps = (result.steps ?? []).filter((s) => s.op !== 'synced').map((s) => s.op)
+    expect(seenOps).toEqual(resultOps)
+
+    // dry-run with onProgress should not fire the callback
+    const seenOpsDry: string[] = []
+    const onProgressDry = (step: { op: string; target: string }) => seenOpsDry.push(step.op)
+
+    const resultDry = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true, onProgress: onProgressDry })
+
+    expect(resultDry.ok).toBe(true)
+    expect(seenOpsDry.length).toBe(0)
+  })
 })

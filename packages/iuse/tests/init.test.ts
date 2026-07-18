@@ -380,4 +380,32 @@ describe('runInit', () => {
     const settingsStep = (result.steps ?? []).find((s) => s.op === 'copy-settings')
     expect(settingsStep?.note).toContain('skipped')
   })
+
+  test('onProgress fires per executed step in order, not in dry-run', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const seenOps: string[] = []
+    const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, onProgress })
+
+    expect(result.ok).toBe(true)
+    const resultOps = (result.steps ?? []).map((s) => s.op)
+    expect(seenOps).toEqual(resultOps)
+
+    // dry-run with onProgress should not fire the callback
+    const target2 = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const seenOpsDry: string[] = []
+    const onProgressDry = (step: { op: string; target: string }) => seenOpsDry.push(step.op)
+
+    const resultDry = await runInit(ctx, { source, profile: 'demo', target: target2, force: false, dryRun: true, onProgress: onProgressDry })
+
+    expect(resultDry.ok).toBe(true)
+    expect(seenOpsDry.length).toBe(0)
+  })
 })
