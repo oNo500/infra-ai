@@ -41,7 +41,9 @@ iuse 对中心源只读，不做构建/回写。
      modified 的跳过并警告，`--force` 才覆盖；模板不参与 update
      （实例化产物已项目化）
 
-4. **下游账 `<target>/.claude/infra-ai.lock.json`**（分发基线登记）：
+4. **下游账 `<target>/.claude/infra-ai.lock.json`**（分发基线登记；
+   `excluded` 字段与 excluded 状态由 `2026-07-18-iuse-selective-assembly-design.md`
+   叠加增补）：
    `{ source: { type: "local"|"remote", id: "<版本标识>", locator: "<路径|gh:...>" },
    profile, appliedAt, rules: { "<name>": "<sha256>" },
    templates: ["architecture", "claude-md"] }`。它是下游唯一事实入口，status/update 全部据此对账。

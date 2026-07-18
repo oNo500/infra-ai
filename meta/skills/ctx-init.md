@@ -36,9 +36,12 @@ description: >-
 5. 验证与后续：`iuse status` 应全 synced 退出 0；此后拉中心源更新用
    `iuse update`（本地改过的副本默认跳过，提示带回中心仓）
 
-退出码语义：status 有任何非 synced 退 1；init/update 成功退 0。
+退出码语义：status 有任何非 synced 退 1（excluded 除外——目标级显式排除
+不计漂移）；init/update 成功退 0。目标级偏差：`init --exclude` 排除、
+`update --include` 补回、`iuse diff [--rule <name>]` 看本地与源的差异。
 全命令支持 `--json`（单行对象，均含 ok；各命令数据字段不同：
-init/update 带 message/steps、status 带 rows/exitCode、profiles 带 profiles）。
+init/update 带 message/steps、status 带 rows/exitCode、profiles 带 profiles、
+diff 带 diffs）。
 
 降级流程（无 iuse 时）：
 
