@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 
 import { App } from '@/app'
 
@@ -17,6 +17,9 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  // bun:test 下 RTL 不会自动 cleanup；不卸载的话 React scheduler 的回调
+  // 会在 happy-dom unregister 之后再去摸 window
+  cleanup()
   globalThis.fetch = originalFetch
 })
 
