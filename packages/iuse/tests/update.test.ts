@@ -129,13 +129,17 @@ describe('runUpdate', () => {
     writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
     const lockBefore = loadDownstreamLock(target)
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false })
+    const collectedSteps: Array<{ op: string; target: string; note?: string }> = []
+    const result = await runUpdate(ctxWith(), { source, target, force: false, onProgress: (step) => collectedSteps.push(step) })
 
     expect(result.ok).toBe(true)
     expect(result.message).toContain('constitution: modified locally, skipped')
     expect(result.message).toContain('--force')
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n\nlocally edited\n')
     expect(loadDownstreamLock(target)?.rules.constitution).toBe(lockBefore?.rules.constitution)
+
+    // onProgress fires for skip-modified step
+    expect(collectedSteps.some((s) => s.op === 'skip-modified' && s.target === '.claude/rules/constitution.md')).toBe(true)
   })
 
   test('missing local rule is skipped by default with a warning', async () => {

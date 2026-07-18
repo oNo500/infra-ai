@@ -175,13 +175,19 @@ describe('runInit', () => {
     // rule content is byte-identical to the first run, so the force path's
     // `existsSync && same content` branch (init.ts:123) skips the rewrite —
     // observed indirectly via content staying correct with no write error.
+    const collectedSteps: Array<{ op: string; target: string; note?: string }> = []
     const secondCtx = ctxWith(claude, () => '2026-08-01T00:00:00Z')
-    const secondResult = await runInit(secondCtx, { source, profile: 'demo', target, force: true })
+    const secondResult = await runInit(secondCtx, { source, profile: 'demo', target, force: true, onProgress: (step) => collectedSteps.push(step) })
 
     expect(secondResult.ok).toBe(true)
     // instantiation is a write-time gate, not a standing invariant: --force
     // re-validates, so the fake claude is invoked again for both templates
     expect(calls()).toBe(4)
+
+    // onProgress fires for all steps including skips: copy-rule with note 'skipped: unchanged'
+    const skipSteps = collectedSteps.filter((s) => s.note?.startsWith('skipped:'))
+    expect(skipSteps.length).toBeGreaterThan(0)
+    expect(skipSteps.some((s) => s.op === 'copy-rule' && s.note === 'skipped: unchanged')).toBe(true)
 
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
     expect(readFileSync(join(target, '.claude/rules/markdown.md'), 'utf8')).toContain('# Markdown')
@@ -223,13 +229,17 @@ describe('runInit', () => {
     )
     const ctx = ctxWith(claude)
 
+    const collectedSteps: Array<{ op: string; target: string; note?: string }> = []
     // fresh target: no lock yet, so init proceeds even with force: false
-    const result = await runInit(ctx, { source, profile: 'demo', target, force: false })
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false, onProgress: (step) => collectedSteps.push(step) })
 
     expect(result.ok).toBe(true)
     expect(readFileSync(join(target, '.claude/settings.json'), 'utf8')).toBe(preExisting)
     expect(result.message).toContain('.claude/settings.json')
     expect(result.message).toContain('skipped')
+
+    // onProgress fires for skip-flavored copy-settings step
+    expect(collectedSteps.some((s) => s.op === 'copy-settings' && s.note === 'skipped: already present')).toBe(true)
   })
 
   test('unknown profile returns a clean ok:false instead of throwing', async () => {

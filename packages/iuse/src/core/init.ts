@@ -202,8 +202,8 @@ export async function runInit(
 
   for (const step of steps) {
     if (step.op === 'copy-rule') {
-      if (step.note !== undefined) continue
       opts.onProgress?.(step)
+      if (step.note !== undefined) continue
       const item = items.find((i) => i.targetRelPath === step.target)
       if (item === undefined) continue
       writeFileAtomic(join(opts.target, item.targetRelPath), item.content)
