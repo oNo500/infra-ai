@@ -92,11 +92,22 @@ function fakeRunGatedFromCall(gateFromCall: number): { run: IuseContext['run']; 
   return { run, release: releaseGate }
 }
 
+/** 超时诊断：waitFor 失败时带出最后一帧，CI 上无法交互式排障全靠它 */
+let lastFrameForDiag: (() => string | undefined) | undefined
+
+function bootApp(deps: TuiDeps): ReturnType<typeof render> {
+  const instance = render(<App deps={deps} />)
+  lastFrameForDiag = instance.lastFrame
+  return instance
+}
+
 /** Local polling helper -- no new dependency, per task brief. */
 async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   const start = Date.now()
   while (!predicate()) {
-    if (Date.now() - start > timeoutMs) throw new Error('waitFor: timed out')
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`waitFor: timed out; last frame:\n${lastFrameForDiag?.() ?? '<no frame>'}`)
+    }
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
@@ -150,7 +161,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = render(<App deps={deps} />)
+    const { lastFrame } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
     const frame = lastFrame() ?? ''
@@ -167,7 +178,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = render(<App deps={deps} />)
+    const { lastFrame } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
     // The status path never resolves a source itself (unlike profile-pick),
@@ -182,7 +193,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithExcludedRule(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = render(<App deps={deps} />)
+    const { lastFrame } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
     const frame = lastFrame() ?? ''
@@ -196,7 +207,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     stdin.write('u')
@@ -219,7 +230,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     stdin.write('u')
@@ -240,7 +251,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     stdin.write('u')
@@ -267,7 +278,7 @@ describe('TUI status flow', () => {
     const { run, release } = fakeRunGatedFromCall(7)
     const deps: TuiDeps = { ctx: fakeCtx({ run }), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     stdin.write('u')
@@ -289,7 +300,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     // Fix the "modified" drift out from under the TUI, then refresh and
@@ -309,7 +320,7 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin, unmount } = render(<App deps={deps} />)
+    const { lastFrame, stdin, unmount } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     stdin.write('q')
@@ -336,7 +347,7 @@ describe('TUI status flow', () => {
     // Re-use the existing passing test flow to verify the component still works
     // after the changes. This is a regression test more than a specific test
     // of the new behavior, but ensures we didn't break the flow.
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     // Verify we can navigate to update view
@@ -362,7 +373,7 @@ describe('TUI status flow', () => {
     writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     // Every keystroke below gets a short settle delay before the next one fires:
@@ -420,7 +431,7 @@ describe('TUI status flow', () => {
     writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
@@ -471,7 +482,7 @@ describe('TUI status flow', () => {
     writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
@@ -519,7 +530,7 @@ describe('TUI status flow', () => {
     writeFileSync(join(target, '.claude/rules/gone.md'), `${manyLines}\n`)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
     await waitFor(() => (lastFrame() ?? '').includes('constitution'))
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))

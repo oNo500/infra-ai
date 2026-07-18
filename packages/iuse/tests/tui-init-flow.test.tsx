@@ -92,11 +92,22 @@ function fakeCtx(overrides: Partial<IuseContext> = {}): IuseContext {
   }
 }
 
+/** 超时诊断：waitFor 失败时带出最后一帧，CI 上无法交互式排障全靠它 */
+let lastFrameForDiag: (() => string | undefined) | undefined
+
+function bootApp(deps: TuiDeps): ReturnType<typeof render> {
+  const instance = render(<App deps={deps} />)
+  lastFrameForDiag = instance.lastFrame
+  return instance
+}
+
 /** Local polling helper -- no new dependency, per task brief. */
 async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<void> {
   const start = Date.now()
   while (!predicate()) {
-    if (Date.now() - start > timeoutMs) throw new Error('waitFor: timed out')
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`waitFor: timed out; last frame:\n${lastFrameForDiag?.() ?? '<no frame>'}`)
+    }
     await new Promise((resolve) => setTimeout(resolve, 10))
   }
 }
@@ -107,7 +118,7 @@ describe('TUI init flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     expect(lastFrame()).toContain('node-web')
@@ -124,7 +135,7 @@ describe('TUI init flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     stdin.write('\r') // enter: confirm profile selection
@@ -143,7 +154,7 @@ describe('TUI init flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     stdin.write('\r') // enter: confirm profile selection
@@ -165,7 +176,7 @@ describe('TUI init flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     stdin.write('\r') // enter: confirm profile selection
@@ -184,7 +195,7 @@ describe('TUI init flow', () => {
     const { claude, release } = fakeClaudeGatedOnce()
     const deps: TuiDeps = { ctx: fakeCtx({ claude }), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     stdin.write('\r') // enter: confirm profile selection
@@ -213,7 +224,7 @@ describe('TUI init flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     // node-web sorts before python-cli in the picker, so move down to select python-cli first.
@@ -256,7 +267,7 @@ describe('TUI init flow', () => {
     const { claude, release } = fakeClaudeGatedOnce()
     const deps: TuiDeps = { ctx: fakeCtx({ claude }), target, source }
 
-    const { lastFrame, stdin } = render(<App deps={deps} />)
+    const { lastFrame, stdin } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     stdin.write('[B') // down arrow: select python-cli (constitution + extra)
@@ -296,7 +307,7 @@ describe('TUI init flow', () => {
     const badSource = mkdtempSync(join(tmpdir(), 'iuse-tui-badsrc-')) // no profiles.json
     const deps: TuiDeps = { ctx: fakeCtx(), target, source: badSource }
 
-    const { lastFrame } = render(<App deps={deps} />)
+    const { lastFrame } = bootApp(deps)
 
     await waitFor(() => (lastFrame() ?? '').includes('出错了'))
     const frame = (lastFrame() ?? '').replaceAll('\n', ' ')
