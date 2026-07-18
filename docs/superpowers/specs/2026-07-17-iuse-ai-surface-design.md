@@ -67,7 +67,8 @@ iuse 当前只达标幂等，本设计补齐前两项。
 
 ## Non-Goals
 
-- 交互式向导 / TUI（AI 与人都走命令式）
+- 交互式向导 / TUI（AI 与人都走命令式）——已被
+  `2026-07-18-iuse-tui-design.md` 推翻（人面走 TUI，子命令面不变）
 - profile 推荐算法（选型判断归 AI/人，工具只供事实）
 - status --json 之外的 watch/轮询
 - 回流通路（iuse diff/promote，另行立项）
