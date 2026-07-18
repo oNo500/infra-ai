@@ -1,13 +1,16 @@
 import { join } from 'node:path'
-import { loadCatalog, readTextIfExists } from '@infra-ai/meta-cli/core'
+import { loadCatalog, loadProfiles, readTextIfExists } from '@infra-ai/meta-cli/core'
 import type { CatalogRule } from '@infra-ai/meta-cli/core'
 import type { IuseContext } from './init'
+import { installStateFor } from './list'
+import type { InstallState } from './list'
+import { loadDownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
 export interface ShowResult {
   ok: boolean
   message?: string
-  entry?: CatalogRule & { name: string; state?: string }
+  entry?: CatalogRule & { name: string; state?: InstallState }
   content?: string
   exitCode: number
 }
@@ -50,18 +53,14 @@ export async function showReport(
   }
 
   const content = readTextIfExists(join(source.root, rule.path))
-  if (content === null) {
-    return {
-      ok: true,
-      entry: { ...rule, name: opts.name, state: 'broken' },
-      exitCode: 0,
-    }
-  }
+  const lock = loadDownstreamLock(opts.target)
+  const profiles = loadProfiles(source.root)
+  const state = installStateFor({ name: opts.name, target: opts.target, sourceContent: content, lock, profiles })
 
   return {
     ok: true,
-    entry: { ...rule, name: opts.name },
-    content,
+    entry: { ...rule, name: opts.name, state },
+    content: content ?? undefined,
     exitCode: 0,
   }
 }

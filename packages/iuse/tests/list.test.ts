@@ -142,6 +142,19 @@ describe('listReport', () => {
     expect(result.rows.map((r) => r.name)).toEqual(['beta'])
   })
 
+  test('--grep is case-insensitive across name/description/content', async () => {
+    const source = fixtureSource()
+    const uninitTarget = mkdtempSync(join(tmpdir(), 'iuse-list-uninit-'))
+
+    // 'BETA' (upper) matches rule name 'beta' (lower); 'aLpHa' (mixed) matches
+    // artifact content '# Alpha' (mixed differently) -- both directions covered.
+    const byName = await listReport(fakeCtx(), { source, target: uninitTarget, grep: 'BETA' })
+    expect(byName.rows.map((r) => r.name)).toEqual(['beta'])
+
+    const byContent = await listReport(fakeCtx(), { source, target: uninitTarget, grep: 'aLpHa' })
+    expect(byContent.rows.map((r) => r.name)).toEqual(['alpha'])
+  })
+
   test('initialized target annotates install states incl. uninstalled and excluded', async () => {
     const source = fixtureSource()
     const initializedTarget = await initializedTargetWith(source)

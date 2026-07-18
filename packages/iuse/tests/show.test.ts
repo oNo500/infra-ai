@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Catalog } from '@infra-ai/meta-cli/core'
+import { runInit } from '../src/core/init'
 import { showReport } from '../src/core/show'
 
 function fixtureSource(): string {
@@ -52,6 +53,29 @@ function fakeCtx(): import('../src/core/init').IuseContext {
   }
 }
 
+// runInit 需要 claude 真的落位 staging 文件（instantiateTemplate 校验产物存在），
+// 与 tests/list.test.ts 的 fakeClaudeWriting 同一惯用法
+function fakeCtxWithInit(): import('../src/core/init').IuseContext {
+  return {
+    ...fakeCtx(),
+    claude: async (opts) => {
+      const match = /(?:Write|Edit)\((.+)\)/u.exec(opts.allowedTools)
+      const rel = match?.[1]
+      if (rel === undefined) throw new Error('no target file in allowedTools')
+      const targetFile = join(opts.repoRoot, rel)
+      writeFileSync(targetFile, targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n')
+      return { code: 0, timedOut: false, stderr: '' }
+    },
+  }
+}
+
+async function initializedTargetWith(source: string): Promise<string> {
+  const target = mkdtempSync(join(tmpdir(), 'iuse-show-tgt-'))
+  const result = await runInit(fakeCtxWithInit(), { source, rules: ['alpha'], profile: '-', target, force: false })
+  if (!result.ok) throw new Error(`fixture init failed: ${result.message}`)
+  return target
+}
+
 describe('showReport', () => {
   test('show returns entry metadata and artifact content; unknown name exits 1', async () => {
     const source = fixtureSource()
@@ -80,6 +104,27 @@ describe('showReport', () => {
     expect(result.exitCode).toBe(0)
     expect(result.entry?.state).toBe('broken')
     expect(result.content).toBeUndefined()
+  })
+
+  test('initialized target with an untouched rule: entry.state is synced', async () => {
+    const source = fixtureSource()
+    const target = await initializedTargetWith(source)
+
+    const result = await showReport(fakeCtx(), { source, target, name: 'alpha' })
+
+    expect(result.ok).toBe(true)
+    expect(result.entry?.state).toBe('synced')
+  })
+
+  test('initialized target with a locally edited rule: entry.state is modified', async () => {
+    const source = fixtureSource()
+    const target = await initializedTargetWith(source)
+    writeFileSync(join(target, '.claude/rules/alpha.md'), '# Alpha\n\nlocally edited\n')
+
+    const result = await showReport(fakeCtx(), { source, target, name: 'alpha' })
+
+    expect(result.ok).toBe(true)
+    expect(result.entry?.state).toBe('modified')
   })
 
   test('missing catalog fails with imeta catalog hint', async () => {

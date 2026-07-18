@@ -223,7 +223,7 @@ const listCommand = defineCommand({
   args: {
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
     tag: { type: 'string', description: '按 tag 过滤（逗号分隔，取交集）' },
-    grep: { type: 'string', description: '按名称/描述/正文子串过滤' },
+    grep: { type: 'string', description: '按名称/描述/正文子串过滤（不区分大小写）' },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
