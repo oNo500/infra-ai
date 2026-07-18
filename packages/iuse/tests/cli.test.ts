@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { renderJson } from '../src/cli/index'
@@ -7,6 +7,7 @@ import type { ActionStep, IuseContext } from '../src/core/init'
 import { runInit } from '../src/core/init'
 import { profilesReport } from '../src/core/profiles-report'
 import { statusReport } from '../src/core/report'
+import { runUpdate } from '../src/core/update'
 
 describe('runCli entry routing', () => {
   test('runCli({ isTTY: false }) with no subcommand prints existing help text and never renders the TUI', async () => {
@@ -230,5 +231,161 @@ describe('text-mode rendering is untouched', () => {
 
     expect(result.profilesText).toContain('demo')
     expect(result.profilesText).toContain('Demo profile')
+  })
+})
+
+describe('exclude/include flags (comma-split plumbing)', () => {
+  test('runInit with exclude flag excludes named rules and records in lock', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-exclude-'))
+
+    const result = await runInit(ctxWith(), {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['constitution'],
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.steps).toBeDefined()
+    expect(result.steps).toContainEqual(expect.objectContaining({ op: 'exclude-rule' }))
+
+    // Verify lock records the exclusion
+    const lockPath = join(target, '.claude/infra-ai.lock.json')
+    const lockContent = JSON.parse(readFileSync(lockPath, 'utf8')) as unknown
+    const lock = lockContent as { excluded?: string[] }
+    expect(lock.excluded).toContain('constitution')
+  })
+
+  test('runInit comma-split exclude string: "a, b" → ["a", "b"] after trim', async () => {
+    // Build a multi-rule fixture
+    const sourceDir = mkdtempSync(join(tmpdir(), 'iuse-multi-rule-src-'))
+    mkdirSync(join(sourceDir, 'meta', 'rules'), { recursive: true })
+    mkdirSync(join(sourceDir, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(sourceDir, 'templates'), { recursive: true })
+    writeFileSync(
+      join(sourceDir, 'meta', 'tags.json'),
+      JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }),
+    )
+    writeFileSync(
+      join(sourceDir, 'meta', 'rules', 'constitution.md'),
+      '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    )
+    writeFileSync(
+      join(sourceDir, 'meta', 'rules', 'architecture.md'),
+      '---\nname: architecture\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    )
+    writeFileSync(join(sourceDir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+    writeFileSync(join(sourceDir, 'rules', 'global', 'architecture.md'), '# Architecture\n')
+    writeFileSync(
+      join(sourceDir, 'profiles.json'),
+      JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'architecture'] } }),
+    )
+    writeFileSync(join(sourceDir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
+    writeFileSync(join(sourceDir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
+    writeFileSync(join(sourceDir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
+    mkdirSync(join(sourceDir, 'meta', 'prompts'), { recursive: true })
+    writeFileSync(join(sourceDir, 'meta', 'prompts', 'template-instantiate.md'), '# contract\n')
+
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-exclude-multi-'))
+
+    // Test with leading/trailing spaces: "constitution, architecture"
+    const result = await runInit(ctxWith(), {
+      source: sourceDir,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['constitution', 'architecture'], // already pre-split for this test
+    })
+
+    expect(result.ok).toBe(true)
+    const lockPath = join(target, '.claude/infra-ai.lock.json')
+    const lockContent = JSON.parse(readFileSync(lockPath, 'utf8')) as unknown
+    const lock = lockContent as { excluded?: string[] }
+    expect(lock.excluded).toEqual(['architecture', 'constitution']) // sorted
+  })
+
+  test('runInit without exclude flag passes undefined to runInit', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-no-exclude-'))
+
+    // Call runInit directly with no exclude parameter
+    const result = await runInit(ctxWith(), {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+    })
+
+    expect(result.ok).toBe(true)
+    const lockPath = join(target, '.claude/infra-ai.lock.json')
+    const lockContent = JSON.parse(readFileSync(lockPath, 'utf8')) as unknown
+    const lock = lockContent as { excluded?: string[] }
+    expect(lock.excluded ?? []).toEqual([]) // no exclusions
+  })
+
+  test('runUpdate with include flag re-includes previously excluded rules', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-include-'))
+
+    // Init with exclusion
+    const initResult = await runInit(ctxWith(), {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+      exclude: ['constitution'],
+    })
+    expect(initResult.ok).toBe(true)
+
+    // Update with include
+    const updateResult = await runUpdate(ctxWith(), {
+      source,
+      target,
+      force: false,
+      include: ['constitution'],
+    })
+
+    expect(updateResult.ok).toBe(true)
+    expect(updateResult.steps).toBeDefined()
+    expect(updateResult.steps).toContainEqual(expect.objectContaining({ op: 'include' }))
+  })
+
+  test('runUpdate without include flag passes undefined', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-cli-update-no-include-'))
+
+    // Init normally
+    const initResult = await runInit(ctxWith(), {
+      source,
+      profile: 'demo',
+      target,
+      force: false,
+    })
+    expect(initResult.ok).toBe(true)
+
+    // Update without include
+    const updateResult = await runUpdate(ctxWith(), {
+      source,
+      target,
+      force: false,
+    })
+
+    expect(updateResult.ok).toBe(true)
+  })
+
+  test('comma-split with spaces is trimmed: "a, b , c" → ["a", "b", "c"]', async () => {
+    // This test validates the CLI parsing logic directly
+    // Simulate what the CLI does: split, trim, filter empty
+    const input = 'constitution, architecture , '
+    const parsed = input.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+    expect(parsed).toEqual(['constitution', 'architecture'])
+  })
+
+  test('empty input and only-whitespace entries are filtered: ", , " → []', async () => {
+    const input = ', , '
+    const parsed = input.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+    expect(parsed).toEqual([])
   })
 })

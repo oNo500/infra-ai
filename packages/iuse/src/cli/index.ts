@@ -41,16 +41,22 @@ const initCommand = defineCommand({
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
     force: { type: 'boolean', description: '重新初始化：覆盖已有内容并重新实例化模板' },
     'dry-run': { type: 'boolean', description: '只打印计划步骤，不写任何文件' },
+    exclude: { type: 'string', description: '排除的 rule 名（逗号分隔；记入下游账，之后 update --include 可补回）' },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
+    const exclude = args.exclude === undefined
+      ? undefined
+      : args.exclude.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+
     const result = await runInit(defaultContext(), {
       profile: args.profile,
       source: args.source,
       force: args.force ?? false,
       dryRun: args['dry-run'] ?? false,
       target: args.target ?? process.cwd(),
+      exclude,
     })
     if (args.json === true) {
       const payload = result.steps === undefined
@@ -129,15 +135,21 @@ const updateCommand = defineCommand({
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
     force: { type: 'boolean', description: '覆盖本地已修改或缺失的 rule 副本' },
     'dry-run': { type: 'boolean', description: '只打印计划步骤，不应用任何变更' },
+    include: { type: 'string', description: '补回此前排除的 rule 名（逗号分隔；本地有不同内容时默认跳过，--force 覆盖）' },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
+    const include = args.include === undefined
+      ? undefined
+      : args.include.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+
     const result = await runUpdate(defaultContext(), {
       source: args.source,
       force: args.force ?? false,
       dryRun: args['dry-run'] ?? false,
       target: args.target ?? process.cwd(),
+      include,
     })
     if (args.json === true) {
       const payload = result.steps === undefined
