@@ -172,10 +172,22 @@ function hasNoSubcommand(argv: string[]): boolean {
   return !argv.some((arg) => SUBCOMMAND_NAMES.includes(arg))
 }
 
+const HELP_VERSION_FLAGS = ['-h', '--help', '--version']
+
+/**
+ * True when argv carries a help/version flag. These must always fall through
+ * to citty, even on a bare TTY run with no subcommand -- otherwise `iuse
+ * --help` from an interactive terminal would launch the TUI instead of
+ * printing usage.
+ */
+function hasHelpOrVersionFlag(argv: string[]): boolean {
+  return argv.some((arg) => HELP_VERSION_FLAGS.includes(arg))
+}
+
 export async function runCli(opts?: { isTTY?: boolean }): Promise<void> {
   const argv = process.argv.slice(2)
   const isTTY = opts?.isTTY ?? process.stdout.isTTY === true
-  if (hasNoSubcommand(argv) && isTTY) {
+  if (hasNoSubcommand(argv) && isTTY && !hasHelpOrVersionFlag(argv)) {
     const { runTui } = await import('../tui/app')
     await runTui({ ctx: defaultContext(), target: process.cwd() })
     return

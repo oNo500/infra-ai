@@ -126,7 +126,11 @@ export function App({ deps }: { deps: TuiDeps }) {
       if (input === 'r') retry()
     }
     if (view.kind === 'result') {
-      setView({ kind: 'status' })
+      if (input === 'q') {
+        exit()
+      } else {
+        setView({ kind: 'status' })
+      }
     }
   })
 
@@ -265,5 +269,6 @@ export function App({ deps }: { deps: TuiDeps }) {
 
 export async function runTui(deps: TuiDeps): Promise<void> {
   const { render } = await import('ink')
-  render(<App deps={deps} />)
+  const instance = render(<App deps={deps} />)
+  await instance.waitUntilExit()
 }

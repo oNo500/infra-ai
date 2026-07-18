@@ -103,6 +103,45 @@ describe('TUI init flow', () => {
     expect(lastFrame()).toContain('initialized')
   })
 
+  test('pressing q on the result view exits instead of advancing to the status placeholder', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
+    stdin.write('\r') // enter: confirm profile selection
+    await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
+    stdin.write('\r') // enter: execute
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+
+    stdin.write('q')
+    // Give the exit path a tick to run; there is no further view transition
+    // to wait for, so a short delay stands in for "nothing happened".
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(lastFrame()).toContain('初始化完成')
+    expect(lastFrame()).not.toContain('Status 视图见下个任务')
+  })
+
+  test('pressing any other key on the result view advances to the status placeholder', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
+    stdin.write('\r') // enter: confirm profile selection
+    await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
+    stdin.write('\r') // enter: execute
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+
+    stdin.write('x')
+    await waitFor(() => (lastFrame() ?? '').includes('Status 视图见下个任务'))
+  })
+
   test('source resolution failure lands in error view with message', async () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const badSource = mkdtempSync(join(tmpdir(), 'iuse-tui-badsrc-')) // no profiles.json

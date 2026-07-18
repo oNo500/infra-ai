@@ -32,6 +32,28 @@ describe('runCli entry routing', () => {
     expect(stdout).not.toContain('选择 profile')
     expect(exitCode).toBe(1)
   })
+
+  test('runCli({ isTTY: true }) with argv ["--help"] prints usage and never renders the TUI', async () => {
+    // Out-of-process: a spurious TUI render would put stdin in raw mode and
+    // hang waiting for input, so this must not run in the test process.
+    const harness = join(import.meta.dir, 'fixtures/run-cli-tty-help.ts')
+    const proc = Bun.spawn(['bun', 'run', harness], {
+      cwd: join(import.meta.dir, '..'),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    })
+    const [stdout, , exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ])
+
+    expect(stdout).toContain('USAGE')
+    // TUI-only Chinese label from the profile picker must never appear --
+    // proof the dynamic import('../tui/app') branch did not run.
+    expect(stdout).not.toContain('选择 profile')
+    expect(exitCode).toBe(0)
+  })
 })
 
 function fixtureSource(): string {
