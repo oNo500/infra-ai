@@ -103,7 +103,7 @@ describe('TUI init flow', () => {
     expect(lastFrame()).toContain('initialized')
   })
 
-  test('pressing q on the result view exits instead of advancing to the status placeholder', async () => {
+  test('pressing q on the result view exits instead of advancing to status', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
@@ -122,10 +122,10 @@ describe('TUI init flow', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     expect(lastFrame()).toContain('初始化完成')
-    expect(lastFrame()).not.toContain('Status 视图见下个任务')
+    expect(lastFrame()).not.toContain('状态')
   })
 
-  test('pressing any other key on the result view advances to the status placeholder', async () => {
+  test('pressing any other key on the result view advances to the real status view', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
@@ -139,7 +139,8 @@ describe('TUI init flow', () => {
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
 
     stdin.write('x')
-    await waitFor(() => (lastFrame() ?? '').includes('Status 视图见下个任务'))
+    await waitFor(() => (lastFrame() ?? '').includes('状态'))
+    expect(lastFrame()).toContain('constitution')
   })
 
   test('source resolution failure lands in error view with message', async () => {

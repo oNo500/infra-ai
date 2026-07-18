@@ -1,42 +1,32 @@
 import { useEffect, useState } from 'react'
 import { Box, Text } from 'ink'
 import { Spinner } from '@inkjs/ui'
-import type { ActionStep, IuseContext } from '../core/init'
-import { runInit } from '../core/init'
+import type { ActionStep } from '../core/init'
 
 export interface ProgressViewProps {
-  ctx: IuseContext
-  profile: string
-  source: string | undefined
-  target: string
-  force: boolean
   steps: ActionStep[]
+  run: (onProgress: (step: ActionStep) => void) => Promise<{ ok: boolean; message: string }>
   onDone: (result: { ok: true; message: string }) => void
   onFail: (message: string) => void
 }
 
 /**
- * Runs the real (non-dry-run) init and ticks off the dry-run plan rows as
- * onProgress fires for each step. The in-flight 'instantiate' step (the one
- * onProgress most recently reported, still pending completion) gets a
- * spinner because claude instantiation is minute-scale and needs visible
- * liveness, unlike the near-instant file-copy steps around it.
+ * Runs a caller-supplied action (real init or real update) and ticks off the
+ * dry-run plan rows as onProgress fires for each step. The in-flight
+ * 'instantiate' step (the one onProgress most recently reported, still
+ * pending completion) gets a spinner because claude instantiation is
+ * minute-scale and needs visible liveness, unlike the near-instant
+ * file-copy steps around it.
  */
-export function ProgressView({ ctx, profile, source, target, force, steps, onDone, onFail }: ProgressViewProps) {
+export function ProgressView({ steps, run, onDone, onFail }: ProgressViewProps) {
   const [doneCount, setDoneCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     let ticked = 0
-    runInit(ctx, {
-      profile,
-      source,
-      target,
-      force,
-      onProgress: () => {
-        ticked += 1
-        if (!cancelled) setDoneCount(ticked)
-      },
+    run((_step) => {
+      ticked += 1
+      if (!cancelled) setDoneCount(ticked)
     }).then(
       (result) => {
         if (cancelled) return
@@ -54,7 +44,7 @@ export function ProgressView({ ctx, profile, source, target, force, steps, onDon
     return () => {
       cancelled = true
     }
-    // props 是挂载时的固化快照；重跑靠 app.tsx 换 key 强制重挂载，不靠这个 effect 重跑。
+    // props 是挂载时的固化快照；重跑靠 app.tsx/update-plan-view 换 key 强制重挂载，不靠这个 effect 重跑。
   }, [])
 
   return (

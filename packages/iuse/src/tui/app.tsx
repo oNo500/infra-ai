@@ -12,6 +12,8 @@ import { MessageBlock } from './message-block'
 import { PlanView } from './plan-view'
 import { ProfilePicker } from './profile-picker'
 import { ProgressView } from './progress-view'
+import { StatusView } from './status-view'
+import { UpdatePlanView } from './update-plan-view'
 
 export interface TuiDeps {
   ctx: IuseContext
@@ -24,9 +26,9 @@ type View =
   | { kind: 'profile-pick'; source: SourceRef; profiles: ProfileInfo[]; selected: number }
   | { kind: 'plan'; source: SourceRef; profile: string; steps: ActionStep[] }
   | { kind: 'running'; source: SourceRef; profile: string; steps: ActionStep[]; attempt: number }
-  | { kind: 'result'; message: string }
-  | { kind: 'status' }
-  | { kind: 'update-plan' }
+  | { kind: 'result'; message: string; profile: string }
+  | { kind: 'status'; profile: string; refreshKey: number }
+  | { kind: 'update-plan'; profile: string }
   | {
       kind: 'error'
       message: string
@@ -70,7 +72,7 @@ export function App({ deps }: { deps: TuiDeps }) {
 
     const lock = loadDownstreamLock(deps.target)
     if (lock !== null) {
-      if (!cancelled) setView({ kind: 'status' })
+      if (!cancelled) setView({ kind: 'status', profile: lock.profile, refreshKey: 0 })
       return
     }
 
@@ -120,7 +122,6 @@ export function App({ deps }: { deps: TuiDeps }) {
   }
 
   useInput((input) => {
-    if (view.kind === 'status' && input === 'q') exit()
     if (view.kind === 'error') {
       if (input === 'q') exit()
       if (input === 'r') retry()
@@ -129,7 +130,7 @@ export function App({ deps }: { deps: TuiDeps }) {
       if (input === 'q') {
         exit()
       } else {
-        setView({ kind: 'status' })
+        setView({ kind: 'status', profile: view.profile, refreshKey: 0 })
       }
     }
   })
@@ -146,13 +147,15 @@ export function App({ deps }: { deps: TuiDeps }) {
   if (view.kind === 'status') {
     return (
       <Box flexDirection="column">
-        <TopBar target={deps.target} profile={undefined} source={undefined} />
-        <Box borderStyle="single" paddingX={1}>
-          <Text>已初始化，Status 视图见下个任务</Text>
-        </Box>
-        <Box marginTop={1}>
-          <Text dimColor>q 退出</Text>
-        </Box>
+        <TopBar target={deps.target} profile={view.profile} source={undefined} />
+        <StatusView
+          key={view.refreshKey}
+          ctx={deps.ctx}
+          target={deps.target}
+          source={deps.source}
+          onUpdate={() => setView({ kind: 'update-plan', profile: view.profile })}
+          onQuit={exit}
+        />
       </Box>
     )
   }
@@ -220,13 +223,17 @@ export function App({ deps }: { deps: TuiDeps }) {
         <TopBar target={deps.target} profile={view.profile} source={view.source} />
         <ProgressView
           key={view.attempt}
-          ctx={deps.ctx}
-          profile={view.profile}
-          source={deps.source}
-          target={deps.target}
-          force={view.attempt > 0}
           steps={view.steps}
-          onDone={(result) => setView({ kind: 'result', message: result.message })}
+          run={(onProgress) =>
+            runInit(deps.ctx, {
+              profile: view.profile,
+              source: deps.source,
+              target: deps.target,
+              force: view.attempt > 0,
+              onProgress,
+            })
+          }
+          onDone={(result) => setView({ kind: 'result', message: result.message, profile: view.profile })}
           onFail={(message) =>
             setView({
               kind: 'error',
@@ -250,11 +257,17 @@ export function App({ deps }: { deps: TuiDeps }) {
   }
 
   if (view.kind === 'update-plan') {
-    // update 流本体属 Task 3；本任务只需状态机占位保持可合并。
     return (
       <Box flexDirection="column">
-        <TopBar target={deps.target} profile={undefined} source={undefined} />
-        <Text dimColor>update 流见下个任务</Text>
+        <TopBar target={deps.target} profile={view.profile} source={undefined} />
+        <UpdatePlanView
+          ctx={deps.ctx}
+          target={deps.target}
+          source={deps.source}
+          onDone={() => setView({ kind: 'status', profile: view.profile, refreshKey: Date.now() })}
+          onBack={() => setView({ kind: 'status', profile: view.profile, refreshKey: 0 })}
+          onQuit={exit}
+        />
       </Box>
     )
   }
