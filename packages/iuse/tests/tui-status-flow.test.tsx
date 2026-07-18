@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { render } from 'ink-testing-library'
@@ -7,6 +7,7 @@ import { App } from '../src/tui/app'
 import type { TuiDeps } from '../src/tui/app'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
+import { loadDownstreamLock } from '../src/core/manifest'
 
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-status-src-'))
@@ -102,6 +103,21 @@ async function initTargetWithAllStates(source: string): Promise<string> {
   return target
 }
 
+/**
+ * Builds an initialized target where 'gone' is recorded as excluded (permanent
+ * gate, per Decision 4) instead of being a plain drift state -- for exercising
+ * the update-plan-view's re-include/diff/adjudicate flow.
+ */
+async function initTargetWithExcludedRule(source: string): Promise<string> {
+  const target = mkdtempSync(join(tmpdir(), 'iuse-tui-status-tgt-'))
+  const result = await runInit(fakeCtx(), { source, profile: 'demo', target, force: false, exclude: ['gone'] })
+  if (!result.ok) throw new Error(`fixture init failed: ${result.message}`)
+
+  writeFileSync(join(target, '.claude/rules/edited.md'), '# Edited\n\nlocally edited\n')
+
+  return target
+}
+
 describe('TUI status flow', () => {
   test('initialized target lands on status rows with all four states rendered', async () => {
     const source = fixtureSource()
@@ -118,6 +134,20 @@ describe('TUI status flow', () => {
     expect(lineFor('edited')).toContain('modified')
     expect(lineFor('gone')).toContain('missing')
     expect(lineFor('extra')).toContain('outdated')
+  })
+
+  test('excluded rule renders as a dimmed "<rule> excluded" row in status', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithExcludedRule(source)
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    const frame = lastFrame() ?? ''
+    const goneLine = frame.split('\n').find((l) => l.includes('gone')) ?? ''
+    expect(goneLine).toContain('gone')
+    expect(goneLine).toContain('excluded')
   })
 
   test('u shows update plan with 默认跳过 annotation on the modified row', async () => {
@@ -164,7 +194,7 @@ describe('TUI status flow', () => {
     expect(editedLine).not.toContain('默认跳过')
   })
 
-  test('enter runs the update and returns to a refreshed status view', async () => {
+  test('e runs the update and returns to a refreshed status view', async () => {
     const source = fixtureSource()
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
@@ -175,7 +205,7 @@ describe('TUI status flow', () => {
     stdin.write('u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
-    stdin.write('\r') // enter: execute (force off -> edited stays modified, others resolve)
+    stdin.write('e') // execute (force off -> edited stays modified, others resolve)
     await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
     await waitFor(() => (lastFrame() ?? '').includes('extra'), 5000)
 
@@ -253,5 +283,146 @@ describe('TUI status flow', () => {
     // Verify we can escape back
     stdin.write('\x1b') // escape key
     await waitFor(() => (lastFrame() ?? '').includes('状态'))
+  })
+
+  test('re-include candidate with differing local content opens diff view, o marks 覆盖, e overwrites the file', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithExcludedRule(source)
+    // 'gone' is excluded and has no local copy; write one that differs from
+    // source so the re-include candidacy lands on the differing-content path.
+    writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+
+    // Every keystroke below gets a short settle delay before the next one fires:
+    // useInput's handler closes over render-time `rows`/state, so back-to-back
+    // writes in the same tick can race the effect-driven plan refetch and drop
+    // a step (this mirrors real typed input, which never arrives same-tick anyway).
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+
+    stdin.write('u')
+    await settle()
+    await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
+
+    // Rows: [0] constitution (synced), [1] edited (skip-modified), [2] gone (excluded).
+    // Two down-arrows land the cursor on gone; space marks it a re-include candidate,
+    // which re-fetches the plan and turns row 2 into a 'skip-include' step (still index 2,
+    // since it lands in the same slot the synthesized excluded row occupied).
+    stdin.write('[B')
+    await settle()
+    stdin.write('[B')
+    await settle()
+    stdin.write(' ') // space: mark gone as re-include candidate
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
+    await settle()
+
+    stdin.write('\r') // enter: gone row (still selected) is now diffable -> open diff view
+    await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
+    await settle()
+
+    const diffFrame = lastFrame() ?? ''
+    expect(diffFrame).toContain('+')
+    expect(diffFrame).toContain('-')
+
+    stdin.write('o') // adjudicate: overwrite
+    // ink wraps the long skip-include row across two printed lines, so the
+    // trailing [覆盖] suffix can land on its own line -- scan adjacent-line
+    // pairs rather than requiring 'gone' and the suffix on one physical line.
+    await waitFor(() => {
+      const lines = (lastFrame() ?? '').split('\n')
+      return lines.some((l, i) => l.includes('gone') && lines.slice(i, i + 2).join(' ').includes('[覆盖]'))
+    })
+    await settle()
+
+    stdin.write('e') // execute
+    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
+
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded ?? []).not.toContain('gone')
+    expect(readFileSync(join(target, '.claude/rules/gone.md'), 'utf8')).toBe('# Gone\n')
+  })
+
+  test('adjudicating a re-include candidate as 忽略 keeps the local file and the row shows [忽略]', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithExcludedRule(source)
+    writeFileSync(join(target, '.claude/rules/gone.md'), '# Gone\n\nlocally kept different content\n')
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+
+    stdin.write('u')
+    await settle()
+    await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
+
+    stdin.write('[B')
+    await settle()
+    stdin.write('[B')
+    await settle()
+    stdin.write(' ') // space: mark gone as re-include candidate
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
+    await settle()
+
+    stdin.write('\r') // enter: open diff view for gone
+    await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
+    await settle()
+
+    stdin.write('i') // adjudicate: ignore (skip this run, keep local)
+    // Same physical-line-wrap caveat as the overwrite path above.
+    await waitFor(() => {
+      const lines = (lastFrame() ?? '').split('\n')
+      return lines.some((l, i) => l.includes('gone') && lines.slice(i, i + 2).join(' ').includes('[忽略]'))
+    })
+    await settle()
+
+    stdin.write('e') // execute
+    await waitFor(() => (lastFrame() ?? '').includes('状态'), 5000)
+
+    // Ignored: local file untouched, rule stays excluded (not re-included this run).
+    expect(readFileSync(join(target, '.claude/rules/gone.md'), 'utf8')).toBe('# Gone\n\nlocally kept different content\n')
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded ?? []).toContain('gone')
+  })
+
+  test('diff view truncates patches beyond 200 lines and points at the CLI for the full diff', async () => {
+    const source = fixtureSource()
+    const target = await initTargetWithExcludedRule(source)
+    // Local content differs from source by 250+ lines so the unified patch exceeds
+    // diff-view's MAX_LINES truncation threshold.
+    const manyLines = Array.from({ length: 250 }, (_, i) => `local line ${i}`).join('\n')
+    writeFileSync(join(target, '.claude/rules/gone.md'), `${manyLines}\n`)
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
+
+    stdin.write('u')
+    await settle()
+    await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('excluded')))
+
+    stdin.write('[B')
+    await settle()
+    stdin.write('[B')
+    await settle()
+    stdin.write(' ') // space: mark gone as re-include candidate
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('gone') && l.includes('skip-include')))
+    await settle()
+
+    stdin.write('\r') // enter: open diff view for gone
+    await waitFor(() => (lastFrame() ?? '').includes('gone 差异'))
+
+    await waitFor(() => (lastFrame() ?? '').includes('完整差异'))
+    const diffFrame = lastFrame() ?? ''
+    expect(diffFrame).toContain('已截断')
+    expect(diffFrame).toContain('iuse diff --rule gone')
   })
 })

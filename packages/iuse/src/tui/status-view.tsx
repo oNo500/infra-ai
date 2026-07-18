@@ -5,12 +5,11 @@ import type { StatusRow } from '../core/report'
 import { statusReport } from '../core/report'
 import { MessageBlock } from './message-block'
 
-const STATE_COLOR: Record<StatusRow['state'], string> = {
+const STATE_COLOR: Record<Exclude<StatusRow['state'], 'excluded'>, string> = {
   synced: 'green',
   modified: 'yellow',
   outdated: 'blue',
   missing: 'red',
-  excluded: 'gray',
 }
 
 type FetchState =
@@ -77,11 +76,17 @@ export function StatusView({
     <Box flexDirection="column">
       <Text bold>状态</Text>
       <Box flexDirection="column" marginTop={1}>
-        {state.rows.map((row) => (
-          <Text key={row.rule}>
-            {row.rule} <Text color={STATE_COLOR[row.state]}>{row.state}</Text>
-          </Text>
-        ))}
+        {state.rows.map((row) =>
+          row.state === 'excluded' ? (
+            <Text key={row.rule} dimColor>
+              {row.rule} excluded
+            </Text>
+          ) : (
+            <Text key={row.rule}>
+              {row.rule} <Text color={STATE_COLOR[row.state]}>{row.state}</Text>
+            </Text>
+          ),
+        )}
         {state.rows.length === 0 && <Text dimColor>没有 rule 记录</Text>}
       </Box>
       <Box marginTop={1}>

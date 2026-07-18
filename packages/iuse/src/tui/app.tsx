@@ -25,7 +25,7 @@ type View =
   | { kind: 'loading' }
   | { kind: 'profile-pick'; source: SourceRef; profiles: ProfileInfo[]; selected: number }
   | { kind: 'plan'; source: SourceRef; profile: string; steps: ActionStep[] }
-  | { kind: 'running'; source: SourceRef; profile: string; steps: ActionStep[]; attempt: number }
+  | { kind: 'running'; source: SourceRef; profile: string; steps: ActionStep[]; attempt: number; exclude: string[] }
   | { kind: 'result'; message: string; profile: string }
   | { kind: 'status'; profile: string; refreshKey: number }
   | { kind: 'update-plan'; profile: string }
@@ -118,7 +118,7 @@ export function App({ deps }: { deps: TuiDeps }) {
       return
     }
     // view.retry === 'init': force retry re-enters the running view with force applied
-    setView({ kind: 'running', source, profile, steps, attempt: 1 })
+    setView({ kind: 'running', source, profile, steps, attempt: 1, exclude: [] })
   }
 
   useInput((input) => {
@@ -205,7 +205,9 @@ export function App({ deps }: { deps: TuiDeps }) {
         <TopBar target={deps.target} profile={view.profile} source={view.source} />
         <PlanView
           steps={view.steps}
-          onExecute={() => setView({ kind: 'running', source: view.source, profile: view.profile, steps: view.steps, attempt: 0 })}
+          onExecute={(exclude) =>
+            setView({ kind: 'running', source: view.source, profile: view.profile, steps: view.steps, attempt: 0, exclude })
+          }
           onBack={() => {
             const profiles = listProfiles(view.source.root)
             const idx = profiles.findIndex((p) => p.name === view.profile)
@@ -230,6 +232,7 @@ export function App({ deps }: { deps: TuiDeps }) {
               source: deps.source,
               target: deps.target,
               force: view.attempt > 0,
+              exclude: view.exclude,
               onProgress,
             })
           }

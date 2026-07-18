@@ -1,11 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { render } from 'ink-testing-library'
 import { App } from '../src/tui/app'
 import type { TuiDeps } from '../src/tui/app'
 import type { IuseContext } from '../src/core/init'
+import { loadDownstreamLock } from '../src/core/manifest'
 
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-src-'))
@@ -20,9 +21,14 @@ function fixtureSource(): string {
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(
+    join(dir, 'meta', 'rules', 'extra.md'),
+    '---\nname: extra\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+  )
+  writeFileSync(join(dir, 'rules', 'global', 'extra.md'), '# Extra\n')
+  writeFileSync(
     join(dir, 'profiles.json'),
     JSON.stringify({
-      'python-cli': { description: 'Python CLI profile', rules: ['constitution'] },
+      'python-cli': { description: 'Python CLI profile', rules: ['constitution', 'extra'] },
       'node-web': { description: 'Node web profile', rules: ['constitution'] },
     }),
   )
@@ -200,6 +206,48 @@ describe('TUI init flow', () => {
 
     await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
     expect(lastFrame()).toContain('initialized')
+  })
+
+  test('unchecking a copy-rule row in the plan excludes it from execution', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = render(<App deps={deps} />)
+
+    await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
+    // node-web sorts before python-cli in the picker, so move down to select python-cli first.
+    stdin.write('[B') // down arrow
+    await waitFor(() => {
+      const frame = lastFrame() ?? ''
+      const line = frame.split('\n').find((l) => l.includes('>'))
+      return line !== undefined && line.includes('python-cli')
+    })
+    stdin.write('\r') // enter: confirm python-cli (constitution + extra)
+
+    await waitFor(() => (lastFrame() ?? '').includes('计划预览'))
+    await waitFor(() => (lastFrame() ?? '').includes('extra.md'))
+    const planFrame = lastFrame() ?? ''
+    expect(planFrame).toContain('[x]')
+    // Both copy-rule rows start checked.
+    const constitutionLine = planFrame.split('\n').find((l) => l.includes('constitution.md') && l.includes('copy-rule'))
+    const extraLine = planFrame.split('\n').find((l) => l.includes('extra.md') && l.includes('copy-rule'))
+    expect(constitutionLine).toContain('[x]')
+    expect(extraLine).toContain('[x]')
+
+    // Cursor starts on the first row (constitution); move down once to extra, then uncheck it.
+    stdin.write('[B') // down arrow
+    stdin.write(' ') // space: uncheck extra
+    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.includes('extra.md') && l.includes('[ ]')))
+
+    stdin.write('\r') // enter: execute with extra excluded
+
+    await waitFor(() => (lastFrame() ?? '').includes('初始化完成'), 5000)
+
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded).toEqual(['extra'])
+    expect(existsSync(join(target, '.claude/rules/extra.md'))).toBe(false)
+    expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
   })
 
   test('source resolution failure lands in error view with message', async () => {
