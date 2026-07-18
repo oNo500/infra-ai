@@ -92,7 +92,7 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution'] } }))
@@ -284,7 +284,7 @@ describe('splitNames helper', () => {
   })
 })
 
-describe('exclude/include flags (comma-split plumbing)', () => {
+describe('exclude/add flags (comma-split plumbing)', () => {
   test('runInit with exclude flag excludes named rules and records in lock', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-cli-exclude-'))
@@ -320,11 +320,11 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     )
     writeFileSync(
       join(sourceDir, 'meta', 'rules', 'constitution.md'),
-      '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+      '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
     )
     writeFileSync(
       join(sourceDir, 'meta', 'rules', 'architecture.md'),
-      '---\nname: architecture\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+      '---\nname: architecture\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
     )
     writeFileSync(join(sourceDir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
     writeFileSync(join(sourceDir, 'rules', 'global', 'architecture.md'), '# Architecture\n')
@@ -375,7 +375,7 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     expect(lock.excluded ?? []).toEqual([]) // no exclusions
   })
 
-  test('runUpdate with include flag re-includes previously excluded rules', async () => {
+  test('runUpdate with add flag re-includes previously excluded rules', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-cli-include-'))
 
@@ -389,12 +389,12 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     })
     expect(initResult.ok).toBe(true)
 
-    // Update with include
+    // Update with add (re-include, since 'constitution' is currently excluded)
     const updateResult = await runUpdate(ctxWith(), {
       source,
       target,
       force: false,
-      include: ['constitution'],
+      add: ['constitution'],
     })
 
     expect(updateResult.ok).toBe(true)
@@ -402,7 +402,7 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     expect(updateResult.steps).toContainEqual(expect.objectContaining({ op: 'include' }))
   })
 
-  test('runUpdate without include flag passes undefined', async () => {
+  test('runUpdate without add flag passes undefined', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-cli-update-no-include-'))
 
@@ -452,7 +452,7 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     for (const name of ['constitution', 'architecture', 'pattern']) {
       writeFileSync(
         join(sourceDir, 'meta', 'rules', `${name}.md`),
-        `---\nname: ${name}\nstatus: ready\nscope: global\ntags: [core]\n---\nbody`,
+        `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody`,
       )
       writeFileSync(join(sourceDir, 'rules', 'global', `${name}.md`), `# ${name}\n`)
     }
@@ -485,7 +485,7 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     expect(lock.excluded).toEqual(['architecture', 'constitution'])
   })
 
-  test('runUpdate with repeated --include flags (array input) merges and re-includes all', async () => {
+  test('runUpdate with repeated --add flags (array input) merges and re-includes all', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-cli-repeated-include-'))
 
@@ -499,13 +499,13 @@ describe('exclude/include flags (comma-split plumbing)', () => {
     })
     expect(initResult.ok).toBe(true)
 
-    // Simulate citty passing array when flag repeats: --include constitution
+    // Simulate citty passing array when flag repeats: --add constitution
     // (In reality this would be multiple flags, but the array form is the issue)
     const updateResult = await runUpdate(ctxWith(), {
       source,
       target,
       force: false,
-      include: ['constitution'], // citty array form
+      add: ['constitution'], // citty array form
     })
 
     expect(updateResult.ok).toBe(true)

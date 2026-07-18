@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { planAssembly } from '../src/core/assemble'
+import { assembleRules, planAssembly } from '../src/core/assemble'
 
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-asm-'))
@@ -10,8 +10,8 @@ function fixtureSource(): string {
   mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
   mkdirSync(join(dir, 'rules', 'scoped'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x', docs: 'x' } } }))
-  writeFileSync(join(dir, 'meta', 'rules', 'constitution.md'), '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody')
-  writeFileSync(join(dir, 'meta', 'rules', 'markdown.md'), '---\nname: markdown\nstatus: ready\nscope: "**/*.md"\ntags: [docs]\n---\nbody')
+  writeFileSync(join(dir, 'meta', 'rules', 'constitution.md'), '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody')
+  writeFileSync(join(dir, 'meta', 'rules', 'markdown.md'), '---\nname: markdown\nstatus: ready\ndescription: x\nscope: "**/*.md"\ntags: [docs]\n---\nbody')
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'rules', 'scoped', 'markdown.md'), '---\npaths:\n  - "**/*.md"\n---\n# Markdown\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'markdown'] } }))
@@ -36,5 +36,15 @@ describe('planAssembly', () => {
     writeFileSync(join(src, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'markdown', 'ghost'] } }))
     const { violations } = planAssembly(src, 'demo')
     expect(violations.some((v) => v.includes('ghost'))).toBe(true)
+  })
+})
+
+describe('assembleRules', () => {
+  test('resolves explicit names; unknown names land in missing', () => {
+    const root = fixtureSource() // 含 constitution
+    const { items, missing, violations } = assembleRules(root, ['constitution', 'ghost'])
+    expect(items.map((i) => i.rule)).toEqual(['constitution'])
+    expect(missing).toEqual(['ghost'])
+    expect(violations).toEqual([])
   })
 })

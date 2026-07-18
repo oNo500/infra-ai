@@ -38,7 +38,7 @@ export function saveDownstreamLock(targetRoot: string, lock: DownstreamLock): vo
   writeFileAtomic(join(targetRoot, LOCK_PATH), `${JSON.stringify(serializable, null, 2)}\n`)
 }
 
-export type DriftState = 'synced' | 'modified' | 'outdated' | 'missing' | 'excluded'
+export type DriftState = 'synced' | 'modified' | 'outdated' | 'missing' | 'excluded' | 'available'
 
 export function computeDrift(
   localHash: string | null,

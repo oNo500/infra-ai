@@ -1,5 +1,6 @@
 import { join } from 'node:path'
-import { planAssembly } from './assemble'
+import { loadProfiles } from '@infra-ai/meta-cli/core'
+import { assembleRules } from './assemble'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DriftState } from './manifest'
@@ -45,22 +46,10 @@ export async function statusReport(
     return { ok: false, message: error instanceof Error ? error.message : String(error), rows: [], exitCode: 1 }
   }
 
-  let items: ReturnType<typeof planAssembly>['items']
-  let violations: ReturnType<typeof planAssembly>['violations']
-  try {
-    ;({ items, violations } = planAssembly(source.root, lock.profile))
-  } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : String(error), rows: [], exitCode: 1 }
-  }
-  if (violations.length > 0) {
-    return {
-      ok: false,
-      message: `composition violations for profile '${lock.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`,
-      rows: [],
-      exitCode: 1,
-    }
-  }
-
+  const locked = Object.keys(lock.rules)
+  const { items } = assembleRules(source.root, locked)
+  // missing 的 rule（源端资产整个消失）落 sourceHash=null，走下面同一套 computeDrift
+  // 循环，呈现为 outdated/missing——与现状行为一致，这里不需要特殊分支。
   const sourceHashByRule = new Map(items.map((i) => [i.rule, i.hash]))
 
   const rows: StatusRow[] = []
@@ -73,24 +62,27 @@ export async function statusReport(
   const excluded = lock.excluded ?? []
   const excludedSet = new Set(excluded)
 
-  // Rules that the profile gained in the source since the lock was last applied
-  // have no baseline to diff against yet -- they need to be pulled in, so we
-  // surface them as 'outdated' (the same state 'iuse update' will resolve by
-  // copying them in and registering them in the lock). A rule the downstream
-  // explicitly excluded is a permanent gate, not a pending pull -- it reports
-  // 'excluded' instead and never reverts to 'outdated'.
-  for (const rule of sourceHashByRule.keys()) {
-    if (Object.hasOwn(lock.rules, rule)) continue
-    if (excludedSet.has(rule)) continue
-    rows.push({ rule, state: 'outdated' })
-  }
-
   for (const rule of excluded) {
     rows.push({ rule, state: 'excluded' })
   }
 
+  // lock.rules is the SSoT for what's installed; the profile is only an init
+  // seed. A rule the source profile carries that isn't in lock.rules yet (and
+  // isn't excluded) is merely on offer -- surfaced as 'available' so status
+  // never auto-implies it should be pulled. If the profile itself has since
+  // vanished upstream, this section is simply empty -- the seed reference was
+  // informational, not a standing dependency.
+  if (lock.profile !== '-') {
+    const profileRules = loadProfiles(source.root)[lock.profile]?.rules ?? []
+    for (const rule of profileRules) {
+      if (Object.hasOwn(lock.rules, rule)) continue
+      if (excludedSet.has(rule)) continue
+      rows.push({ rule, state: 'available' })
+    }
+  }
+
   rows.sort((a, b) => a.rule.localeCompare(b.rule))
 
-  const exitCode = rows.some((r) => r.state !== 'synced' && r.state !== 'excluded') ? 1 : 0
+  const exitCode = rows.some((r) => r.state !== 'synced' && r.state !== 'excluded' && r.state !== 'available') ? 1 : 0
   return { ok: true, rows, exitCode }
 }

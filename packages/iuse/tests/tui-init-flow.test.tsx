@@ -17,12 +17,12 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'extra.md'),
-    '---\nname: extra\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'extra.md'), '# Extra\n')
   writeFileSync(

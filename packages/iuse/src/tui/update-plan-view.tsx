@@ -100,7 +100,7 @@ export function UpdatePlanView({
   useEffect(() => {
     let cancelled = false
     setState({ kind: 'loading' })
-    runUpdate(ctx, { source, target, force, include: [...includeCandidates], dryRun: true }).then((result) => {
+    runUpdate(ctx, { source, target, force, add: [...includeCandidates], dryRun: true }).then((result) => {
       if (cancelled) return
       if (result.ok && result.steps !== undefined) {
         setState({ kind: 'plan', steps: result.steps })
@@ -215,12 +215,12 @@ export function UpdatePlanView({
 
   if (state.kind === 'running') {
     const overwrite = [...decisions.entries()].filter(([, decision]) => decision === 'overwrite').map(([rule]) => rule)
-    const include = [...includeCandidates]
+    const add = [...includeCandidates]
     return (
       <ProgressView
         key={state.attempt}
         steps={state.steps}
-        run={(onProgress) => runUpdate(ctx, { source, target, force, include, overwrite, onProgress })}
+        run={(onProgress) => runUpdate(ctx, { source, target, force, add, overwrite, onProgress })}
         onDone={() => onDone()}
         onFail={(message) => setState((prev) => ({ kind: 'run-error', steps: prev.kind === 'running' ? prev.steps : [], message }))}
       />

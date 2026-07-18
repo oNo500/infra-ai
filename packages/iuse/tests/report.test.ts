@@ -15,7 +15,7 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
@@ -30,7 +30,7 @@ function fixtureSource(): string {
 function addRule(source: string, name: string, ruleBody: string, tags: string[] = ['core']): void {
   writeFileSync(
     join(source, 'meta', 'rules', `${name}.md`),
-    `---\nname: ${name}\nstatus: ready\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
+    `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
   writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
 }
@@ -156,7 +156,7 @@ describe('statusReport', () => {
     expect(result.exitCode).toBe(1)
   })
 
-  test('rule newly added to the profile in source surfaces as outdated', async () => {
+  test('profile-new rule reports available, not outdated, and does not affect exit code', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     addRule(source, 'extra', '# Extra\n')
@@ -164,14 +164,34 @@ describe('statusReport', () => {
 
     const result = await statusReport(ctxWith(), { source, target })
 
+    expect(result.ok).toBe(true)
+    const extra = result.rows.find((r) => r.rule === 'extra')
+    expect(extra?.state).toBe('available')
     expect(result.rows).toEqual([
       { rule: 'constitution', state: 'synced' },
-      { rule: 'extra', state: 'outdated' },
+      { rule: 'extra', state: 'available' },
     ])
-    expect(result.exitCode).toBe(1)
+    // 其余行全 synced 时 available 不把退出码顶成 1
+    expect(result.exitCode).toBe(0)
   })
 
-  test('rule removed from source profile still reports (as outdated) rather than vanishing', async () => {
+  test('rules-only target (profile "-") reports locked rules without consulting profiles', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-report-tgt-'))
+    const initResult = await runInit(ctxWith(), { source, rules: ['constitution'], profile: '-', target, force: false })
+    if (!initResult.ok) throw new Error(`fixture init failed: ${initResult.message}`)
+    // profile 未消费种子——即便源端 profile 之后新增了 rule，也不出现 available 段
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+
+    const result = await statusReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(true)
+    expect(result.rows).toEqual([{ rule: 'constitution', state: 'synced' }])
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('rule still in lock.rules after being dropped from the source profile keeps reporting its normal drift state', async () => {
     const source = fixtureSource()
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
@@ -181,11 +201,13 @@ describe('statusReport', () => {
 
     const result = await statusReport(ctxWith(), { source, target })
 
+    // lock.rules 是 SSoT：'extra' 的底层资产仍在源端存在（只是不在 profile 里了），
+    // assembleRules 按名找回它，继续走正常 drift 判定——不再有 profile 一说。
     expect(result.rows).toEqual([
       { rule: 'constitution', state: 'synced' },
-      { rule: 'extra', state: 'outdated' },
+      { rule: 'extra', state: 'synced' },
     ])
-    expect(result.exitCode).toBe(1)
+    expect(result.exitCode).toBe(0)
   })
 
   test('excluded rule reports state excluded, merged sorted with the rest, and never flips exitCode', async () => {
@@ -208,7 +230,7 @@ describe('statusReport', () => {
     expect(result.exitCode).toBe(0)
   })
 
-  test('source profile gains a rule that is neither in lock.rules nor excluded -> stays outdated', async () => {
+  test('source profile gains a rule that is neither in lock.rules nor excluded -> reports available', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     addRule(source, 'extra', '# Extra\n')
@@ -221,10 +243,10 @@ describe('statusReport', () => {
 
     expect(result.rows).toEqual([
       { rule: 'constitution', state: 'synced' },
-      { rule: 'extra', state: 'outdated' },
+      { rule: 'extra', state: 'available' },
       { rule: 'unrelated-excluded-name', state: 'excluded' },
     ])
-    expect(result.exitCode).toBe(1) // 'extra' outdated still drives exit 1
+    expect(result.exitCode).toBe(0) // 'extra' available does not drive exit 1
   })
 
   test('all synced plus an excluded rule -> exitCode stays 0', async () => {
@@ -244,15 +266,30 @@ describe('statusReport', () => {
     expect(result.exitCode).toBe(0)
   })
 
-  test('composition violations fail the report', async () => {
+  test('status no longer runs composition validation; a bogus profile rule surfaces as available, not a failure', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(source, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'ghost'] } }))
 
     const result = await statusReport(ctxWith(), { source, target })
 
-    expect(result.ok).toBe(false)
-    expect(result.message).toContain('ghost')
-    expect(result.exitCode).toBe(1)
+    expect(result.ok).toBe(true)
+    expect(result.rows).toEqual([
+      { rule: 'constitution', state: 'synced' },
+      { rule: 'ghost', state: 'available' },
+    ])
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('upstream profile deleted entirely -> available section is empty, no error', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    writeFileSync(join(source, 'profiles.json'), JSON.stringify({}))
+
+    const result = await statusReport(ctxWith(), { source, target })
+
+    expect(result.ok).toBe(true)
+    expect(result.rows).toEqual([{ rule: 'constitution', state: 'synced' }])
+    expect(result.exitCode).toBe(0)
   })
 })

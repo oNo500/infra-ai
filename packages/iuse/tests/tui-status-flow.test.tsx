@@ -18,17 +18,17 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'edited.md'),
-    '---\nname: edited\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: edited\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'edited.md'), '# Edited\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'gone.md'),
-    '---\nname: gone\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: gone\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'gone.md'), '# Gone\n')
   writeFileSync(
@@ -123,11 +123,11 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<voi
 }
 
 /**
- * Builds an initialized target with all four drift states present:
+ * Builds an initialized target with all five status states present:
  * - constitution: untouched -> synced
  * - edited: locally modified -> modified
  * - gone: locally deleted -> missing
- * - extra (added to source profile after init, not yet pulled) -> outdated
+ * - extra (added to source profile after init, not yet installed) -> available
  */
 async function initTargetWithAllStates(source: string): Promise<string> {
   const target = mkdtempSync(join(tmpdir(), 'iuse-tui-status-tgt-'))
@@ -139,7 +139,7 @@ async function initTargetWithAllStates(source: string): Promise<string> {
 
   writeFileSync(
     join(source, 'meta', 'rules', 'extra.md'),
-    '---\nname: extra\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(source, 'rules', 'global', 'extra.md'), '# Extra\n')
   writeFileSync(
@@ -166,7 +166,7 @@ async function initTargetWithExcludedRule(source: string): Promise<string> {
 }
 
 describe('TUI status flow', () => {
-  test('initialized target lands on status rows with all four states rendered', async () => {
+  test('initialized target lands on status rows with all four drift states plus available rendered', async () => {
     const source = fixtureSource()
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
@@ -180,7 +180,7 @@ describe('TUI status flow', () => {
     expect(lineFor('constitution')).toContain('synced')
     expect(lineFor('edited')).toContain('modified')
     expect(lineFor('gone')).toContain('missing')
-    expect(lineFor('extra')).toContain('outdated')
+    expect(lineFor('extra')).toContain('available')
   })
 
   test('initialized target backfills the TopBar source locator instead of leaving it at "-"', async () => {
@@ -278,7 +278,9 @@ describe('TUI status flow', () => {
 
     const frame = lastFrame() ?? ''
     const lineFor = (rule: string) => frame.split('\n').find((l) => l.includes(rule)) ?? ''
-    expect(lineFor('extra')).toContain('synced')
+    // 'extra' is only profile-new (available), never auto-pulled by update --
+    // it stays 'available' through the run; explicit --add is Task 5's surface.
+    expect(lineFor('extra')).toContain('available')
     expect(lineFor('edited')).toContain('modified') // still skipped, force was off
   })
 
@@ -369,11 +371,12 @@ describe('TUI status flow', () => {
     await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
 
-    // Verify the plan steps are visible
+    // Verify the plan steps are visible. 'extra' is profile-new (available,
+    // not in lock.rules) and never surfaces in the update plan on its own --
+    // only explicit --add would pull it in (Task 5's surface for that).
     const planFrame = lastFrame() ?? ''
     expect(planFrame).toContain('edited.md')
     expect(planFrame).toContain('gone.md')
-    expect(planFrame).toContain('extra')
 
     // Verify we can escape back
     await press(stdin, '\x1b') // escape key

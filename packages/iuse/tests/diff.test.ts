@@ -15,7 +15,7 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
@@ -30,7 +30,7 @@ function fixtureSource(): string {
 function addRule(source: string, name: string, ruleBody: string, tags: string[] = ['core']): void {
   writeFileSync(
     join(source, 'meta', 'rules', `${name}.md`),
-    `---\nname: ${name}\nstatus: ready\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
+    `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
   writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
 }

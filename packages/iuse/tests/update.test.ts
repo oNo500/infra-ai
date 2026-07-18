@@ -16,7 +16,7 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
@@ -31,7 +31,7 @@ function fixtureSource(): string {
 function addRule(source: string, name: string, ruleBody: string, tags: string[] = ['core']): void {
   writeFileSync(
     join(source, 'meta', 'rules', `${name}.md`),
-    `---\nname: ${name}\nstatus: ready\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
+    `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
   writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
 }
@@ -179,27 +179,59 @@ describe('runUpdate', () => {
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
   })
 
-  test('rule newly added to source profile is copied in and registered in the lock', async () => {
+  test('profile-new rule is NOT auto-added by update; --add pulls it in', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
+
+    const plain = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true })
+    expect(plain.ok).toBe(true)
+    expect(plain.steps?.some((s) => s.op === 'add')).toBe(false)
+
+    const added = await runUpdate(ctxWith(), { source, target, force: false, add: ['extra'] })
+    expect(added.ok).toBe(true)
+    expect(added.message).toContain('extra: added')
+    expect(readFileSync(join(target, '.claude/rules/extra.md'), 'utf8')).toBe('# Extra\n')
+    const lock = loadDownstreamLock(target)
+    expect(Object.keys(lock?.rules ?? {})).toContain('extra')
+  })
+
+  test('rule dropped from the source profile (but still present at source) keeps syncing normally, not "removed"', async () => {
+    const source = fixtureSource()
+    addRule(source, 'extra', '# Extra\n')
+    setProfileRules(source, ['constitution', 'extra'])
+    const target = await initTarget(source)
+
+    setProfileRules(source, ['constitution'])
 
     const result = await runUpdate(ctxWith(), { source, target, force: false })
 
+    // lock.rules is the SSoT: the profile dropping 'extra' has no bearing on
+    // an already-installed rule whose underlying asset is still present at
+    // the source -- it just stays in sync, no drop step at all.
     expect(result.ok).toBe(true)
-    expect(result.message).toContain('extra: added')
-    expect(readFileSync(join(target, '.claude/rules/extra.md'), 'utf8')).toBe('# Extra\n')
-    const lock = loadDownstreamLock(target)
-    expect(Object.keys(lock?.rules ?? {}).toSorted()).toEqual(['constitution', 'extra'])
+    expect(result.message).toBe('already up to date')
+    expect(existsSync(join(target, '.claude/rules/extra.md'))).toBe(true)
+    expect(loadDownstreamLock(target)?.rules.extra).not.toBeUndefined()
+
+    const statusAfter = await statusReport(ctxWith(), { source, target })
+    expect(statusAfter.ok).toBe(true)
+    expect(statusAfter.rows).toContainEqual({ rule: 'extra', state: 'synced' })
+    expect(statusAfter.exitCode).toBe(0)
   })
 
-  test('rule removed from source profile drops the lock entry but keeps the local copy', async () => {
+  test('rule whose underlying asset vanishes from the source entirely is dropped from the lock, local copy kept', async () => {
     const source = fixtureSource()
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
     const target = await initTarget(source)
 
+    // The asset itself disappears from the source (not merely from the
+    // profile) -- assembleRules resolves this as 'missing', which is the only
+    // condition that still triggers a drop.
+    rmSync(join(source, 'meta', 'rules', 'extra.md'))
+    rmSync(join(source, 'rules', 'global', 'extra.md'))
     setProfileRules(source, ['constitution'])
 
     const result = await runUpdate(ctxWith(), { source, target, force: false })
@@ -210,8 +242,6 @@ describe('runUpdate', () => {
     expect(existsSync(join(target, '.claude/rules/extra.md'))).toBe(true)
     expect(loadDownstreamLock(target)?.rules.extra).toBe(undefined)
 
-    // Follow-through: status no longer flags the removed rule at all, and the
-    // rest of the target is in sync, so the overall report is a clean exit 0.
     const statusAfter = await statusReport(ctxWith(), { source, target })
     expect(statusAfter.ok).toBe(true)
     expect(statusAfter.rows.some((r) => r.rule === 'extra')).toBe(false)
@@ -230,17 +260,6 @@ describe('runUpdate', () => {
     expect(lockAfter?.appliedAt).toBe('2026-09-01T00:00:00Z')
     expect(lockAfter?.source.locator).toBe(source)
     expect(lockAfter?.templates).toEqual(lockBefore?.templates)
-  })
-
-  test('composition violations fail the update', async () => {
-    const source = fixtureSource()
-    const target = await initTarget(source)
-    writeFileSync(join(source, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'ghost'] } }))
-
-    const result = await runUpdate(ctxWith(), { source, target, force: false })
-
-    expect(result.ok).toBe(false)
-    expect(result.message).toContain('ghost')
   })
 
   test('already in sync reports up to date and leaves the lock hash unchanged', async () => {
@@ -263,7 +282,7 @@ describe('runUpdate', () => {
     // modified: also add another rule locally-edited to prove skip-modified
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
-    const preUpdateResult = await runUpdate(ctxWith(), { source, target, force: false })
+    const preUpdateResult = await runUpdate(ctxWith(), { source, target, force: false, add: ['extra'] })
     expect(preUpdateResult.ok).toBe(true) // extra gets added, constitution gets updated to v2
 
     // now make local edits + a new source change to create modified + outdated together
@@ -291,15 +310,15 @@ describe('runUpdate', () => {
     expect(lines.some((l) => l.startsWith('skip-modified .claude/rules/extra.md'))).toBe(true)
   })
 
-  test('update --dry-run still fails on composition violations', async () => {
+  test('update no longer runs composition validation; a bogus profile rule has no bearing on the plan', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(source, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'ghost'] } }))
 
     const result = await runUpdate(ctxWith(), { source, target, force: false, dryRun: true })
 
-    expect(result.ok).toBe(false)
-    expect(result.message).toContain('ghost')
+    expect(result.ok).toBe(true)
+    expect(result.steps).toContainEqual(expect.objectContaining({ op: 'synced', target: '.claude/rules/constitution.md' }))
   })
 
   test('update --dry-run reports synced when already up to date', async () => {
@@ -322,7 +341,7 @@ describe('runUpdate', () => {
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['extra'] })
 
     expect(result.ok).toBe(true)
     const steps = result.steps ?? []
@@ -339,7 +358,7 @@ describe('runUpdate', () => {
     saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
     rmSync(join(target, '.claude/rules/constitution.md'))
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
 
     expect(result.ok).toBe(true)
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
@@ -358,7 +377,7 @@ describe('runUpdate', () => {
     saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
     // local file untouched, content identical to source -- still "clean"
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
 
     expect(result.ok).toBe(true)
     const lock = loadDownstreamLock(target)
@@ -376,7 +395,7 @@ describe('runUpdate', () => {
     saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
     writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
 
     expect(result.ok).toBe(true)
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n\nlocal divergent\n')
@@ -399,7 +418,7 @@ describe('runUpdate', () => {
     saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
     writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocal divergent\n')
 
-    const result = await runUpdate(ctxWith(), { source, target, force: true, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: true, add: ['constitution'] })
 
     expect(result.ok).toBe(true)
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
@@ -422,7 +441,7 @@ describe('runUpdate', () => {
       source,
       target,
       force: false,
-      include: ['constitution'],
+      add: ['constitution'],
       overwrite: ['constitution'],
     })
 
@@ -434,30 +453,31 @@ describe('runUpdate', () => {
     expect(result.steps).toContainEqual({ op: 'include', target: '.claude/rules/constitution.md', note: '(overwrite)' })
   })
 
-  test('--include with a rule not in lock.excluded fails, listing currently excluded rules', async () => {
+  test('--add an already-installed, non-excluded rule fails with "already installed"', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     const initialLock = loadDownstreamLock(target)
     if (initialLock === null) throw new Error('fixture lock missing')
     saveDownstreamLock(target, { ...initialLock, excluded: ['other-rule'] })
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
 
     expect(result.ok).toBe(false)
-    expect(result.message).toBe('not excluded: constitution (currently excluded: other-rule)')
+    expect(result.message).toContain('already installed')
+    expect(result.message).toContain('constitution')
   })
 
-  test('--include with a rule not in lock.excluded fails, reporting none when nothing is excluded', async () => {
+  test('--add unknown name fails with the unknown list', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['nope'] })
 
     expect(result.ok).toBe(false)
-    expect(result.message).toBe('not excluded: constitution (currently excluded: none)')
+    expect(result.message).toContain('nope')
   })
 
-  test('excluded rule not named in --include produces zero steps (permanent gate) and status still reports excluded', async () => {
+  test('excluded rule not named in --add produces zero steps (permanent gate) and status still reports excluded', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     const initialLock = loadDownstreamLock(target)
@@ -505,7 +525,7 @@ describe('runUpdate', () => {
     await runUpdate(ctxWith(), { source, target, force: false })
     expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
 
-    await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'] })
+    await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
     expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
   })
 
@@ -519,7 +539,7 @@ describe('runUpdate', () => {
     const seenOps: string[] = []
     const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, onProgress })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['extra'], onProgress })
 
     expect(result.ok).toBe(true)
     const resultOps = (result.steps ?? []).filter((s) => s.op !== 'synced').map((s) => s.op)
@@ -547,7 +567,7 @@ describe('runUpdate', () => {
     const seenOps: string[] = []
     const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'], onProgress })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'], onProgress })
 
     expect(result.ok).toBe(true)
     expect(seenOps).toContain('include')
@@ -567,11 +587,54 @@ describe('runUpdate', () => {
     const seenOps: string[] = []
     const onProgress = (step: { op: string; target: string }) => seenOps.push(step.op)
 
-    const result = await runUpdate(ctxWith(), { source, target, force: false, include: ['constitution'], onProgress })
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'], onProgress })
 
     expect(result.ok).toBe(true)
     expect(seenOps).toContain('skip-include')
     const resultOps = (result.steps ?? []).filter((s) => s.op !== 'synced').map((s) => s.op)
     expect(seenOps).toEqual(resultOps)
+  })
+
+  test('--add re-includes an excluded rule (former --include semantics)', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const initialLock = loadDownstreamLock(target)
+    if (initialLock === null) throw new Error('fixture lock missing')
+    const { constitution: _c, ...restRules } = initialLock.rules
+    saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['constitution'] })
+
+    expect(result.ok).toBe(true)
+    const lock = loadDownstreamLock(target)
+    expect(lock?.excluded ?? []).not.toContain('constitution')
+    expect(Object.keys(lock?.rules ?? {})).toContain('constitution')
+  })
+
+  test('--remove deletes the copy, drops the lock entry, records exclusion', async () => {
+    const source = fixtureSource()
+    addRule(source, 'edited', '# Edited\n')
+    setProfileRules(source, ['constitution', 'edited'])
+    const target = mkdtempSync(join(tmpdir(), 'iuse-update-tgt-'))
+    const initResult = await runInit(ctxWith(), { source, profile: 'demo', target, force: false })
+    if (!initResult.ok) throw new Error(`fixture init failed: ${initResult.message}`)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, remove: ['edited'] })
+
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(target, '.claude/rules/edited.md'))).toBe(false)
+    const lock = loadDownstreamLock(target)
+    expect(Object.keys(lock?.rules ?? {})).not.toContain('edited')
+    expect(lock?.excluded ?? []).toContain('edited')
+  })
+
+  test('--remove a rule not in lock.rules fails', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+
+    const result = await runUpdate(ctxWith(), { source, target, force: false, remove: ['nope'] })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('nope')
   })
 })

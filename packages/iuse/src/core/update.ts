@@ -1,6 +1,7 @@
+import { rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { writeFileAtomic } from '@infra-ai/meta-cli/core'
-import { planAssembly } from './assemble'
+import { assembleRules } from './assemble'
 import type { ActionStep, IuseContext } from './init'
 import { formatSteps } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor, ruleTargetRelPath, saveDownstreamLock } from './manifest'
@@ -14,7 +15,7 @@ function fail(message: string): { ok: false; message: string } {
 interface UpdatePlan {
   source: Awaited<ReturnType<typeof resolveSource>>
   lock: DownstreamLock
-  items: ReturnType<typeof planAssembly>['items']
+  items: ReturnType<typeof assembleRules>['items']
   steps: ActionStep[]
   nextRules: Record<string, string>
   nextExcluded: string[]
@@ -22,7 +23,7 @@ interface UpdatePlan {
 
 async function planUpdate(
   ctx: IuseContext,
-  opts: { source?: string; target: string; force: boolean; include?: string[]; overwrite?: string[] },
+  opts: { source?: string; target: string; force: boolean; add?: string[]; remove?: string[]; overwrite?: string[] },
 ): Promise<{ ok: true; plan: UpdatePlan } | { ok: false; message: string }> {
   const lock = loadDownstreamLock(opts.target)
   if (lock === null) {
@@ -31,16 +32,10 @@ async function planUpdate(
 
   const currentlyExcluded = lock.excluded ?? []
   const currentlyExcludedSet = new Set(currentlyExcluded)
-  const include = [...new Set(opts.include ?? [])]
-  if (include.length > 0) {
-    const unknown = include.filter((rule) => !currentlyExcludedSet.has(rule))
-    if (unknown.length > 0) {
-      const list = currentlyExcluded.length > 0 ? currentlyExcluded.toSorted().join(', ') : 'none'
-      return fail(`not excluded: ${unknown.join(', ')} (currently excluded: ${list})`)
-    }
-  }
-  const includeSet = new Set(include)
-  const overwriteSet = new Set(opts.overwrite ?? [])
+  const locked = Object.keys(lock.rules)
+
+  const add = [...new Set(opts.add ?? [])]
+  const remove = [...new Set(opts.remove ?? [])]
 
   let source: Awaited<ReturnType<typeof resolveSource>>
   try {
@@ -56,29 +51,53 @@ async function planUpdate(
     return fail(error instanceof Error ? error.message : String(error))
   }
 
-  let items: ReturnType<typeof planAssembly>['items']
-  let violations: ReturnType<typeof planAssembly>['violations']
-  try {
-    ;({ items, violations } = planAssembly(source.root, lock.profile))
-  } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error))
+  const { items, missing } = assembleRules(source.root, [...locked, ...add])
+  const missingSet = new Set(missing)
+
+  if (add.length > 0) {
+    const unknown = add.filter((rule) => missingSet.has(rule))
+    if (unknown.length > 0) {
+      return fail(`unknown rules in --add: ${unknown.join(', ')}`)
+    }
+    const alreadyInstalled = add.filter((rule) => Object.hasOwn(lock.rules, rule) && !currentlyExcludedSet.has(rule))
+    if (alreadyInstalled.length > 0) {
+      return fail(`already installed: ${alreadyInstalled.join(', ')}`)
+    }
   }
-  if (violations.length > 0) {
-    return fail(`composition violations for profile '${lock.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
+
+  if (remove.length > 0) {
+    const notInstalled = remove.filter((rule) => !Object.hasOwn(lock.rules, rule))
+    if (notInstalled.length > 0) {
+      return fail(`not installed: ${notInstalled.join(', ')}`)
+    }
   }
+
+  const addSet = new Set(add)
+  const removeSet = new Set(remove)
+  // add ∩ excluded 走 re-include 路径（op 仍叫 include）；add − excluded 走 add 路径。
+  const includeSet = new Set([...addSet].filter((rule) => currentlyExcludedSet.has(rule)))
+  const freshAddSet = new Set([...addSet].filter((rule) => !currentlyExcludedSet.has(rule)))
+  const overwriteSet = new Set(opts.overwrite ?? [])
 
   const sourceByRule = new Map(items.map((i) => [i.rule, i]))
   const steps: ActionStep[] = []
   const nextRules: Record<string, string> = { ...lock.rules }
 
   for (const [rule, baselineHash] of Object.entries(lock.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
-    const item = sourceByRule.get(rule)
     const targetRelPath = ruleTargetRelPath(rule)
+
+    if (removeSet.has(rule)) {
+      steps.push({ op: 'remove', target: targetRelPath, note: 'removed and excluded' })
+      continue
+    }
+
+    const item = sourceByRule.get(rule)
     if (item === undefined) {
-      // Removed from the profile/source: the lock entry is dropped so `status`
-      // stops flagging a rule that will never sync again, but the local file
-      // is left alone -- manual cleanup, per spec ("报告但不删除本地副本" protects
-      // the file, not the lock bookkeeping).
+      // The underlying asset itself is gone from the source (assembleRules
+      // 'missing'), not merely dropped from a profile -- the lock entry is
+      // dropped so `status` stops flagging a rule that will never sync again,
+      // but the local file is left alone -- manual cleanup, per spec
+      // ("报告但不删除本地副本" protects the file, not the lock bookkeeping).
       delete nextRules[rule]
       steps.push({ op: 'drop', target: targetRelPath, note: 'removed from source profile, local copy kept (manual cleanup)' })
       continue
@@ -111,16 +130,15 @@ async function planUpdate(
 
   const nextExcluded = [...currentlyExcluded]
 
-  for (const rule of [...sourceByRule.keys()].toSorted()) {
-    if (Object.hasOwn(lock.rules, rule)) continue
-    if (currentlyExcludedSet.has(rule)) continue // handled by the include gate below
+  // add − excluded: explicit additions, not previously excluded.
+  for (const rule of [...freshAddSet].toSorted()) {
     const item = sourceByRule.get(rule)
     if (item === undefined) continue
     steps.push({ op: 'add', target: item.targetRelPath })
   }
 
   // Excluded rules are a permanent gate: they produce zero steps unless the
-  // caller names them in --include, at which point re-inclusion is itself a
+  // caller names them in --add, at which point re-inclusion is itself a
   // clean-copy vs. differing-content decision (mirrors the modified/outdated split above).
   for (const rule of [...currentlyExcludedSet].toSorted()) {
     const targetRelPath = ruleTargetRelPath(rule)
@@ -154,7 +172,8 @@ export async function runUpdate(
     target: string
     force: boolean
     dryRun?: boolean
-    include?: string[]
+    add?: string[]
+    remove?: string[]
     overwrite?: string[]
     onProgress?: (step: ActionStep) => void
   },
@@ -182,6 +201,15 @@ export async function runUpdate(
     if (step.op === 'drop') {
       const rule = ruleFromTargetRelPath(step.target)
       delete nextRules[rule]
+      notes.push(`${rule}: ${step.note}`)
+      continue
+    }
+
+    if (step.op === 'remove') {
+      const rule = ruleFromTargetRelPath(step.target)
+      rmSync(join(opts.target, step.target), { force: true })
+      delete nextRules[rule]
+      excludedAfter.add(rule)
       notes.push(`${rule}: ${step.note}`)
       continue
     }

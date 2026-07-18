@@ -10,6 +10,7 @@ const STATE_COLOR: Record<Exclude<StatusRow['state'], 'excluded'>, string> = {
   modified: 'yellow',
   outdated: 'blue',
   missing: 'red',
+  available: 'cyan',
 }
 
 type FetchState =

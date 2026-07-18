@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { readTextIfExists, runClaude, writeFileAtomic } from '@infra-ai/meta-cli/core'
 import type { CommandRunner } from '@infra-ai/meta-cli/core'
-import { planAssembly } from './assemble'
+import { assembleRules, planAssembly } from './assemble'
 import { LOCK_PATH, loadDownstreamLock, saveDownstreamLock } from './manifest'
 import { resolveSource } from './source'
 
@@ -120,13 +120,17 @@ interface InitPlan {
 
 async function planInit(
   ctx: IuseContext,
-  opts: { source?: string; profile: string; target: string; force: boolean; exclude?: string[] },
+  opts: { source?: string; profile: string; target: string; force: boolean; exclude?: string[]; rules?: string[] },
 ): Promise<{ ok: true; plan: InitPlan } | { ok: false; message: string }> {
   const existingLock = loadDownstreamLock(opts.target)
   if (existingLock !== null && !opts.force) {
     return fail(
       `${opts.target}: already initialized (profile '${existingLock.profile}'). Run 'iuse update' to refresh, or pass --force to reinitialize.`,
     )
+  }
+
+  if (opts.rules !== undefined && opts.exclude !== undefined && opts.exclude.length > 0) {
+    return fail('--exclude is only valid with a profile, not with explicit --rules')
   }
 
   let source: Awaited<ReturnType<typeof resolveSource>>
@@ -144,14 +148,22 @@ async function planInit(
   }
 
   let items: ReturnType<typeof planAssembly>['items']
-  let violations: ReturnType<typeof planAssembly>['violations']
-  try {
-    ;({ items, violations } = planAssembly(source.root, opts.profile))
-  } catch (error) {
-    return fail(error instanceof Error ? error.message : String(error))
-  }
-  if (violations.length > 0) {
-    return fail(`composition violations for profile '${opts.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
+  if (opts.rules !== undefined) {
+    const { items: assembled, missing } = assembleRules(source.root, opts.rules)
+    if (missing.length > 0) {
+      return fail(`unknown rules: ${missing.join(', ')}`)
+    }
+    items = assembled
+  } else {
+    let violations: ReturnType<typeof planAssembly>['violations']
+    try {
+      ;({ items, violations } = planAssembly(source.root, opts.profile))
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : String(error))
+    }
+    if (violations.length > 0) {
+      return fail(`composition violations for profile '${opts.profile}':\n${violations.map((v) => `  - ${v}`).join('\n')}`)
+    }
   }
 
   const excluded = [...new Set(opts.exclude ?? [])].toSorted()
@@ -209,6 +221,7 @@ export async function runInit(
     force: boolean
     dryRun?: boolean
     exclude?: string[]
+    rules?: string[]
     onProgress?: (step: ActionStep) => void
   },
 ): Promise<{ ok: boolean; message: string; steps?: ActionStep[] }> {

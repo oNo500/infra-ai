@@ -12,6 +12,32 @@ export interface AssemblyItem {
   hash: string
 }
 
+export function assembleRules(
+  sourceRoot: string,
+  rules: string[],
+): { items: AssemblyItem[]; missing: string[]; violations: string[] } {
+  const assets = discoverAssets(sourceRoot)
+  const byName = new Map(assets.filter((a) => a.kind === 'rule').map((a) => [a.name, a]))
+  const items: AssemblyItem[] = []
+  const missing: string[] = []
+  const violations: string[] = []
+  for (const rule of [...rules].toSorted()) {
+    const asset = byName.get(rule)
+    if (asset === undefined) {
+      missing.push(rule)
+      continue
+    }
+    const sourcePath = join(sourceRoot, asset.artifactPath)
+    const content = readTextIfExists(sourcePath)
+    if (content === null) {
+      violations.push(`${rule}: built artifact missing at ${asset.artifactPath} (run imeta build in the source)`)
+      continue
+    }
+    items.push({ rule, sourcePath, targetRelPath: ruleTargetRelPath(rule), content, hash: sha256(content) })
+  }
+  return { items, missing, violations }
+}
+
 export function planAssembly(
   sourceRoot: string,
   profileName: string,
@@ -22,19 +48,7 @@ export function planAssembly(
     throw new Error(`unknown profile '${profileName}' (available: ${Object.keys(profiles).toSorted().join(', ')})`)
   }
   const assets = discoverAssets(sourceRoot)
-  const violations = validateComposition(assets, loadTagVocabulary(sourceRoot), profiles)
-  const byName = new Map(assets.filter((a) => a.kind === 'rule').map((a) => [a.name, a]))
-  const items: AssemblyItem[] = []
-  for (const rule of [...profile.rules].toSorted()) {
-    const asset = byName.get(rule)
-    if (asset === undefined) continue // validateComposition 已计入 violations
-    const sourcePath = join(sourceRoot, asset.artifactPath)
-    const content = readTextIfExists(sourcePath)
-    if (content === null) {
-      violations.push(`${rule}: built artifact missing at ${asset.artifactPath} (run imeta build in the source)`)
-      continue
-    }
-    items.push({ rule, sourcePath, targetRelPath: ruleTargetRelPath(rule), content, hash: sha256(content) })
-  }
-  return { items, violations }
+  const compositionViolations = validateComposition(assets, loadTagVocabulary(sourceRoot), profiles)
+  const { items, violations: assemblyViolations } = assembleRules(sourceRoot, profile.rules)
+  return { items, violations: [...compositionViolations, ...assemblyViolations] }
 }

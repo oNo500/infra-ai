@@ -18,11 +18,11 @@ function fixtureSource(): string {
   )
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
-    '---\nname: constitution\nstatus: ready\nscope: global\ntags: [core]\n---\nbody',
+    '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
   writeFileSync(
     join(dir, 'meta', 'rules', 'markdown.md'),
-    '---\nname: markdown\nstatus: ready\nscope: "**/*.md"\ntags: [docs]\n---\nbody',
+    '---\nname: markdown\nstatus: ready\ndescription: x\nscope: "**/*.md"\ntags: [docs]\n---\nbody',
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'rules', 'scoped', 'markdown.md'), '---\npaths:\n  - "**/*.md"\n---\n# Markdown\n')
@@ -487,5 +487,52 @@ describe('runInit', () => {
     expect(seenOps).toContain('exclude-rule')
     const resultOps = (result.steps ?? []).map((s) => s.op)
     expect(seenOps).toEqual(resultOps)
+  })
+
+  test('init with explicit rules writes lock.profile "-" and only those rules', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const claude = fakeClaudeWriting((targetFile) =>
+      targetFile.endsWith('architecture.md') ? '# demo - Architecture\n\nbody\n' : '# demo\n\nbody\n',
+    )
+    const ctx = ctxWith(claude)
+
+    const result = await runInit(ctx, { source, profile: '-', rules: ['constitution'], target, force: false })
+
+    expect(result.ok).toBe(true)
+    const lock = loadDownstreamLock(target)
+    expect(lock?.profile).toBe('-')
+    expect(Object.keys(lock?.rules ?? {})).toEqual(['constitution'])
+    expect(existsSync(join(target, '.claude/rules/markdown.md'))).toBe(false)
+  })
+
+  test('init with explicit rules and an unknown name fails listing unknown rules', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, { source, profile: '-', rules: ['constitution', 'ghost'], target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('unknown rules: ghost')
+    expect(loadDownstreamLock(target)).toBeNull()
+  })
+
+  test('init with explicit rules rejects --exclude (profile-only option)', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    const ctx = ctxWith(fakeClaudeWriting(() => '# demo\n'))
+
+    const result = await runInit(ctx, {
+      source,
+      profile: '-',
+      rules: ['constitution'],
+      target,
+      force: false,
+      exclude: ['constitution'],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(loadDownstreamLock(target)).toBeNull()
   })
 })
