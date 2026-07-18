@@ -10,7 +10,7 @@ type PlanState =
   | { kind: 'plan'; steps: ActionStep[] }
   | { kind: 'plan-error'; message: string }
   | { kind: 'running'; steps: ActionStep[]; attempt: number }
-  | { kind: 'run-error'; message: string }
+  | { kind: 'run-error'; steps: ActionStep[]; message: string }
 
 function formatStep(step: ActionStep): string {
   const base = step.note === undefined ? `${step.op} ${step.target}` : `${step.op} ${step.target} (${step.note})`
@@ -75,7 +75,7 @@ export function UpdatePlanView({
     }
     if (state.kind === 'run-error') {
       if (input === 'r') {
-        setState({ kind: 'running', steps: [], attempt: 0 })
+        setState((prev) => ({ kind: 'running', steps: prev.kind === 'run-error' ? prev.steps : [], attempt: 0 }))
       } else if (key.escape) {
         onBack()
       }
@@ -93,7 +93,7 @@ export function UpdatePlanView({
         steps={state.steps}
         run={(onProgress) => runUpdate(ctx, { source, target, force, onProgress })}
         onDone={() => onDone()}
-        onFail={(message) => setState({ kind: 'run-error', message })}
+        onFail={(message) => setState((prev) => ({ kind: 'run-error', steps: prev.kind === 'running' ? prev.steps : [], message }))}
       />
     )
   }
