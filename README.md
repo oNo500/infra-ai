@@ -46,6 +46,7 @@ pnpx skills add oNo500/infra-ai --all
 pnpx skills add <owner>/<repo> -s <name>
 
 # 规则与模板：使用端 CLI 按 profile 拼装（packages/iuse 内 pnpm link --global）
+iuse                                   # TTY 裸跑进 TUI（选 profile → 预演 → 执行 / 对账更新）
 iuse profiles                          # 列出可选 profile 及其 rules
 iuse init --profile <name> --dry-run <project>   # 预演拼装计划，零写入（远程源拉快照到缓存属读侧）
 iuse init --profile <name> <project>   # 新项目初始化（rules + settings + CLAUDE.md/architecture 实例化）
