@@ -285,6 +285,50 @@ describe('splitNames helper', () => {
   })
 })
 
+/**
+ * Exercises the real citty run() handler's mutual-exclusion branch for
+ * `<subcommand> --global --target ...` end-to-end (not a hand-reconstructed
+ * copy of its logic). Runs out-of-process like the other runCli fixtures in
+ * this file: the handler sets process.exitCode = 2 as a genuine side effect,
+ * and once set, Node/Bun's process.exitCode cannot be reliably unset again
+ * in-process afterward (assigning undefined does not un-ratchet it) --
+ * running each case in its own subprocess sidesteps that entirely.
+ */
+async function runGlobalMutexHarness(subcommand: 'status' | 'diff' | 'list') {
+  const harness = join(import.meta.dir, 'fixtures/run-cli-global-mutex.ts')
+  const proc = Bun.spawn(['bun', 'run', harness, subcommand], {
+    cwd: join(import.meta.dir, '..'),
+    stdout: 'pipe',
+    stderr: 'pipe',
+  })
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ])
+  return { stdout, stderr, exitCode }
+}
+
+describe('--global mutual exclusion via the real command run() handlers', () => {
+  test('status --global with a target positional is rejected with exit 2', async () => {
+    const { stderr, exitCode } = await runGlobalMutexHarness('status')
+    expect(exitCode).toBe(2)
+    expect(stderr).toContain('--global')
+  })
+
+  test('diff --global with a target positional is rejected with exit 2', async () => {
+    const { stderr, exitCode } = await runGlobalMutexHarness('diff')
+    expect(exitCode).toBe(2)
+    expect(stderr).toContain('--global')
+  })
+
+  test('list --global with a target positional is rejected with exit 2', async () => {
+    const { stderr, exitCode } = await runGlobalMutexHarness('list')
+    expect(exitCode).toBe(2)
+    expect(stderr).toContain('--global')
+  })
+})
+
 describe('validateGlobalArgs', () => {
   test('global + target both set is rejected with a mutual-exclusion message', () => {
     const message = validateGlobalArgs({ global: true, target: '/tmp/x' })
