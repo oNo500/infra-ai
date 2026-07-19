@@ -77,19 +77,9 @@ const initCommand = defineCommand({
     const exclude = splitNames(args.exclude)
     const rules = splitNames(args.rules)
 
+    // 子命令面必须 100% 命令式：同一条命令在 pipe 与 PTY 下行为一致，
+    // AI/脚本才有稳定契约。交互式的唯一入口是裸 iuse，这里只报错并指路。
     if ((args.profile === undefined) === (rules === undefined)) {
-      // TTY 下裸 iuse init 分流进交互式 TUI（与裸 iuse 同一入口）；
-      // 两者都给、非 TTY、--json/--dry-run 维持命令式报错
-      const interactive =
-        args.profile === undefined &&
-        process.stdout.isTTY === true &&
-        args.json !== true &&
-        args['dry-run'] !== true
-      if (interactive) {
-        const { runTui } = await import('../tui/app')
-        await runTui({ ctx: defaultContext(), target: args.target ?? process.cwd() })
-        return
-      }
       console.error(
         [
           'exactly one of --profile / --rules is required',
@@ -408,13 +398,15 @@ export function buildMainCommand() {
 
 /**
  * The TUI is only for a bare `iuse` invocation on an interactive terminal --
- * zero argv and a TTY. Anything else (a subcommand, a typo, --help, --json,
- * a stray flag) falls through to citty, which already knows how to error or
- * handle each of those cases correctly.
+ * zero argv and BOTH stdin/stdout are TTYs (an output-only PTY with piped
+ * stdin would hang ink's raw-mode input). Anything else (a subcommand, a
+ * typo, --help, --json, a stray flag) falls through to citty -- the
+ * subcommand surface stays 100% imperative so AI/scripts get a stable
+ * contract regardless of terminal allocation.
  */
 export async function runCli(opts?: { isTTY?: boolean }): Promise<void> {
   const argv = process.argv.slice(2)
-  const isTTY = opts?.isTTY ?? process.stdout.isTTY === true
+  const isTTY = opts?.isTTY ?? (process.stdout.isTTY === true && process.stdin.isTTY === true)
   if (argv.length === 0 && isTTY) {
     const { runTui } = await import('../tui/app')
     await runTui({ ctx: defaultContext(), target: process.cwd() })
