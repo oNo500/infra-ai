@@ -19,7 +19,8 @@ import type { FetchJson } from './kinds'
 import { discoverAssets } from './meta'
 import type { MetaAsset } from './meta'
 import { loadOverview } from './overview'
-import { loadLock, loadSkills, saveLock } from './registry'
+import { loadLock, loadSkills, RegistryError, saveLock } from './registry'
+import type { SkillEntry } from './registry'
 import { createRunLog } from './run-log'
 import type { RunLog } from './run-log'
 import {
@@ -43,6 +44,7 @@ export interface ActionContext {
   claude: typeof runClaude
   download: DownloadFn
   fetchJson: FetchJson
+  fetchStatus: (url: string) => Promise<{ status: number; location?: string }>
   spawnDetached: typeof spawnDetached
 }
 
@@ -107,6 +109,11 @@ export function defaultContext(repoRoot: string): ActionContext {
       const res = await fetch(url)
       if (!res.ok) throw new Error(`fetch ${url} failed: ${res.status}`)
       return res.json()
+    },
+    fetchStatus: async (url) => {
+      const res = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })
+      const location = res.headers.get('location')
+      return location === null ? { status: res.status } : { status: res.status, location }
     },
     spawnDetached,
   }
@@ -517,6 +524,69 @@ const skillsUpdateAction: ActionDef = {
   },
 }
 
+export type LinkVerdict = 'ok' | 'broken' | 'moved' | 'unreachable'
+
+export interface LinkRow {
+  asset: string
+  refUrl: string
+  verdict: LinkVerdict
+  location?: string
+}
+
+export function classifyLinkStatus(status: number): 'ok' | 'broken' | 'moved' {
+  if (status === 404 || status === 410) return 'broken'
+  if (status === 301 || status === 308) return 'moved'
+  return 'ok'
+}
+
+const linksAction: ActionDef = {
+  id: 'links',
+  summary: 'Check refUrl health for all assets (network)',
+  kind: 'query',
+  args: [],
+  async execute(ctx) {
+    const targets: { asset: string; refUrl: string }[] = []
+    let skills: SkillEntry[]
+    try {
+      skills = loadSkills(ctx.repoRoot)
+    } catch (error) {
+      if (error instanceof RegistryError && error.message === 'skills.json: file not found') skills = []
+      else throw error
+    }
+    for (const entry of skills) {
+      if (entry.refUrl !== undefined) targets.push({ asset: `skill:${entry.name}`, refUrl: entry.refUrl })
+    }
+    for (const asset of discoverAssets(ctx.repoRoot)) {
+      if (asset.refUrl !== '') targets.push({ asset: `${asset.kind}:${asset.name}`, refUrl: asset.refUrl })
+    }
+    const rows: LinkRow[] = []
+    for (const t of targets) {
+      try {
+        const res = await ctx.fetchStatus(t.refUrl)
+        const verdict = classifyLinkStatus(res.status)
+        rows.push(verdict === 'moved' && res.location !== undefined
+          ? { ...t, verdict, location: res.location }
+          : { ...t, verdict })
+      } catch {
+        rows.push({ ...t, verdict: 'unreachable' })
+      }
+    }
+    const needsUpdate = rows.filter((r) => r.verdict === 'broken' || r.verdict === 'moved')
+    const lines = rows.map((r) => {
+      if (r.verdict === 'broken') return `${r.asset}: 参考来源需更新 (404/410) ${r.refUrl}`
+      if (r.verdict === 'moved') return `${r.asset}: 参考来源需更新 (moved) ${r.refUrl} -> ${r.location ?? '?'}`
+      if (r.verdict === 'unreachable') return `${r.asset}: unreachable (network), skipped ${r.refUrl}`
+      return `${r.asset}: ok`
+    })
+    return {
+      ok: true,
+      message: lines.length > 0 ? lines.join('\n') : 'no refUrl recorded yet',
+      data: { rows },
+      exitCode: needsUpdate.length > 0 ? 1 : 0,
+    }
+  },
+}
+
 export const ACTIONS: ActionDef[] = [
   statusAction,
   adoptAction,
@@ -527,6 +597,7 @@ export const ACTIONS: ActionDef[] = [
   skillsStatusAction,
   skillsFixAction,
   skillsUpdateAction,
+  linksAction,
 ]
 
 export function getAction(id: string): ActionDef {

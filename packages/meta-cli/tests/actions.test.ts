@@ -26,6 +26,7 @@ export function testContext(root: string, overrides: Partial<ActionContext> = {}
     claude: async () => ({ code: 0, timedOut: false, stderr: '' }),
     download: async () => ({}),
     fetchJson: async () => ({ files: [] }),
+    fetchStatus: async () => ({ status: 200 }),
     spawnDetached: () => {},
     ...overrides,
   }
