@@ -78,7 +78,28 @@ const initCommand = defineCommand({
     const rules = splitNames(args.rules)
 
     if ((args.profile === undefined) === (rules === undefined)) {
-      console.error('exactly one of --profile / --rules is required')
+      // TTY 下裸 iuse init 分流进交互式 TUI（与裸 iuse 同一入口）；
+      // 两者都给、非 TTY、--json/--dry-run 维持命令式报错
+      const interactive =
+        args.profile === undefined &&
+        process.stdout.isTTY === true &&
+        args.json !== true &&
+        args['dry-run'] !== true
+      if (interactive) {
+        const { runTui } = await import('../tui/app')
+        await runTui({ ctx: defaultContext(), target: args.target ?? process.cwd() })
+        return
+      }
+      console.error(
+        [
+          'exactly one of --profile / --rules is required',
+          '',
+          '选装内容二选一：',
+          '  iuse init --profile <名>       用预设组合（iuse profiles 列出可选）',
+          '  iuse init --rules a,b,c        直选 rule（iuse list 浏览全部）',
+          '也可裸跑 iuse 进入交互式 TUI 边看边选。',
+        ].join('\n'),
+      )
       process.exitCode = 2
       return
     }
