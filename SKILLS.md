@@ -8,7 +8,9 @@
 - `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到 `skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
 - `official` — 符合 skills.sh 标准，不入仓，只记 `repo`；同时是 Anthropic 官方插件的另带 `plugin`
 
-任何条目均可带 `url`：来源文档链接（上游官方文档、发布页等），溯源用——repo 只回答「装的是什么」，url 回答「这东西的权威出处在哪」。
+溯源分两层：实际来源回答「装的是什么」——mirror 是 `repo`/`path`/`commit`，
+实际来源为命令或目录时用 `install` 记录（仅记录不执行）；`refUrl` 回答「参考来源在哪」——
+官方权威指导页，任何条目均可带，`imeta links` 检查其健康。
 
 清单记目标态，允许比实装超前：`custom` 条目可以先于产物存在。`imeta` 的 `s` 视图查全量（ledger、mirror、已安装、推荐）。
 

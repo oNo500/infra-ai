@@ -14,6 +14,7 @@ status: stub | ready
 scope: global | "<glob>"        # 仅 rule
 tags: [<tag>, ...]              # 仅 rule；ready 必填，词表见 meta/tags.json
 requires: [<rule-name>, ...]    # 仅 rule，可选；只写任何组合下都成立的固有依赖
+refUrl: <url>                   # 可选，参考来源链接，管理元数据不进 hash；人读来源叙述仍写正文首段
 ---
 ```
 

@@ -18,6 +18,7 @@ export interface MetaAsset {
   metaPath: string
   artifactPath: string
   description: string
+  refUrl: string
 }
 
 export function artifactPathFor(kind: AssetKind, name: string, scope: string | null): string {
@@ -50,6 +51,7 @@ export function parseMetaFile(content: string, filename: string, kind: AssetKind
     metaPath: `${KINDS[kind].metaDir}/${filename}`,
     artifactPath: artifactPathFor(kind, name, scope),
     description: typeof data.description === 'string' ? data.description.trim() : '',
+    refUrl: typeof data.refUrl === 'string' ? data.refUrl.trim() : '',
   }
 }
 

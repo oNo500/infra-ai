@@ -36,6 +36,7 @@ describe('parseMetaFile', () => {
       metaPath: 'meta/rules/constitution.md',
       artifactPath: 'rules/global/constitution.md',
       description: '',
+      refUrl: '',
     })
   })
   test('missing status defaults to stub, missing name falls back to filename', () => {
@@ -138,6 +139,23 @@ describe('parseMetaFile description', () => {
 
     const without = parseMetaFile('---\nname: demo2\nstatus: ready\n---\nbody', 'demo2.md', 'rule')
     expect(without.description).toBe('')
+  })
+})
+
+describe('parseMetaFile refUrl', () => {
+  test('parseMetaFile reads refUrl as management metadata outside the content hash', () => {
+    const withRef = parseMetaFile(
+      '---\nname: demo\nstatus: ready\nscope: global\ndescription: x\nrefUrl: https://example.com/doc\ntags: [core]\n---\nbody',
+      'demo.md',
+      'rule',
+    )
+    expect(withRef.refUrl).toBe('https://example.com/doc')
+    const without = parseMetaFile('---\nname: demo2\nstatus: ready\n---\nbody', 'demo2.md', 'rule')
+    expect(without.refUrl).toBe('')
+
+    const a = metaContentHash('---\nname: d\nstatus: ready\nscope: global\n---\nbody')
+    const b = metaContentHash('---\nname: d\nstatus: ready\nscope: global\nrefUrl: https://x\n---\nbody')
+    expect(a).toBe(b)
   })
 })
 
