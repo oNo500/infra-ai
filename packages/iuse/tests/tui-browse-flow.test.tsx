@@ -197,15 +197,40 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<voi
   }
 }
 
+/**
+ * The TUI now always lands on the home menu first (Task: home menu as the
+ * interactive entry) -- an uninitialized target no longer routes straight to
+ * browse. This navigates the uninitialized menu's second item
+ * ('初始化(自选 rules) / 浏览资产') down to browse, landing on the same
+ * catalog-loaded state the old direct-boot tests asserted on.
+ */
+async function enterBrowseFromHome(stdin: { write: (data: string) => void }, lastFrame: () => string | undefined): Promise<void> {
+  await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+  await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+  await press(stdin, '\r') // enter: browse
+  await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+}
+
+/**
+ * Home's cursor defaults to '状态对账' (the first item) on an initialized
+ * target, so a bare enter reaches status -- from there, browse's own 'b' key
+ * (asserted by the tests below) is unaffected by the home menu change.
+ */
+async function enterStatusFromHome(stdin: { write: (data: string) => void }, lastFrame: () => string | undefined): Promise<void> {
+  await waitFor(() => (lastFrame() ?? '').includes('状态对账'))
+  await press(stdin, '\r') // enter: status (default cursor)
+  await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+}
+
 describe('TUI browse flow', () => {
   test('bare run on uninitialized target lands on browse with rows and right-pane content', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     expect(lastFrame()).toContain('浏览')
     expect(lastFrame()).toContain('# Constitution')
   })
@@ -217,7 +242,7 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, ' ')
     await waitFor(() => (lastFrame() ?? '').includes('[x]'))
     await press(stdin, '\r')
@@ -233,7 +258,7 @@ describe('TUI browse flow', () => {
     const { lastFrame, stdin } = bootApp(deps)
 
     // No filter: both rows visible.
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     expect(lastFrame()).toContain('extra')
     expect(lastFrame()).not.toContain('tag:')
 
@@ -264,7 +289,7 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     await press(stdin, 'b')
     await waitFor(() => (lastFrame() ?? '').includes('浏览'))
 
@@ -287,7 +312,7 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     await press(stdin, 'b')
     await waitFor(() => (lastFrame() ?? '').includes('浏览'))
 
@@ -297,19 +322,19 @@ describe('TUI browse flow', () => {
     expect(lastFrame()).toContain('remove')
   })
 
-  test('esc from browse on an initialized target returns to status', async () => {
+  test('esc from browse on an initialized target returns to home', async () => {
     const source = fixtureSource()
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     await press(stdin, 'b')
     await waitFor(() => (lastFrame() ?? '').includes('浏览'))
 
     await press(stdin, '\x1b') // escape
-    await waitFor(() => (lastFrame() ?? '').includes('状态'))
+    await waitFor(() => (lastFrame() ?? '').includes('状态对账'))
   })
 
   test('p from browse enters profile-picker', async () => {
@@ -319,7 +344,7 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     expect(lastFrame()).toContain('选择 profile')
@@ -337,7 +362,13 @@ describe('TUI browse flow', () => {
     const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
+
+    // Bootstrap no longer eagerly loads browse data -- home renders first
+    // regardless, and the missing catalog only surfaces once browse is selected.
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
 
     await waitFor(() => (lastFrame() ?? '').includes('出错了'))
     expect(lastFrame()).toContain('imeta catalog')
@@ -352,6 +383,9 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
     await waitFor(() => (lastFrame() ?? '').includes('line-1'))
     expect(lastFrame()).not.toContain('line-80')
 
@@ -373,6 +407,9 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
     await waitFor(() => (lastFrame() ?? '').includes('line-1'))
 
     await press(stdin, 'G')
@@ -389,6 +426,9 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
     await waitFor(() => (lastFrame() ?? '').includes('line-1'))
     const before = lastFrame() ?? ''
 
@@ -410,6 +450,9 @@ describe('TUI browse flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
     await waitFor(() => (lastFrame() ?? '').includes('rule-00'))
     expect(lastFrame()).not.toContain('rule-29')
 

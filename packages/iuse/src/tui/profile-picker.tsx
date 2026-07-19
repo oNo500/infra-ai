@@ -6,17 +6,23 @@ export function ProfilePicker({
   selected,
   onMove,
   onConfirm,
+  onBack,
   onQuit,
 }: {
   profiles: ProfileInfo[]
   selected: number
   onMove: (next: number) => void
   onConfirm: () => void
+  onBack: () => void
   onQuit: () => void
 }) {
   useInput((input, key) => {
     if (input === 'q') {
       onQuit()
+      return
+    }
+    if (key.escape) {
+      onBack()
       return
     }
     if (key.upArrow) onMove(Math.max(0, selected - 1))
@@ -46,7 +52,7 @@ export function ProfilePicker({
         </Box>
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>上下 移动  Enter 确认  q 退出</Text>
+        <Text dimColor>上下 移动  Enter 确认  esc 返回主菜单  q 退出</Text>
       </Box>
     </Box>
   )

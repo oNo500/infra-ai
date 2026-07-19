@@ -13,6 +13,9 @@ import type { ProfileInfo } from '../core/profiles'
 import { resolveSource } from '../core/source'
 import type { SourceRef } from '../core/source'
 import { BrowseView } from './browse-view'
+import { GlobalStatusView } from './global-status-view'
+import type { HomeMenuItemId } from './home-view'
+import { HomeView } from './home-view'
 import { MessageBlock } from './message-block'
 import { PlanView } from './plan-view'
 import { ProfilePicker } from './profile-picker'
@@ -35,6 +38,7 @@ interface BrowseData {
 
 type View =
   | { kind: 'loading' }
+  | { kind: 'home'; initialized: boolean; profile: string | undefined }
   | { kind: 'browse'; data: BrowseData; initialized: boolean; profile: string | undefined }
   | { kind: 'profile-pick'; source: SourceRef; profiles: ProfileInfo[]; selected: number }
   | { kind: 'plan'; source: SourceRef; profile: string; steps: ActionStep[] }
@@ -42,10 +46,11 @@ type View =
   | { kind: 'result'; message: string; profile: string }
   | { kind: 'status'; profile: string; refreshKey: number; source: SourceRef | undefined }
   | { kind: 'update-plan'; profile: string; initialAdd?: string[]; initialRemove?: string[] }
+  | { kind: 'global-status'; initialized: boolean; profile: string | undefined }
   | {
       kind: 'error'
       message: string
-      retry: 'source' | 'plan' | 'init'
+      retry: 'source' | 'plan' | 'init' | 'home'
       context?: { source: SourceRef; profile: string; steps: ActionStep[] }
     }
 
@@ -174,19 +179,7 @@ export function App({ deps }: { deps: TuiDeps }) {
     let cancelled = false
 
     const lock = loadDownstreamLock(deps.target)
-    if (lock !== null) {
-      if (!cancelled) setView({ kind: 'status', profile: lock.profile, refreshKey: 0, source: undefined })
-      return
-    }
-
-    loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
-      if (cancelled) return
-      if (!result.ok) {
-        setView({ kind: 'error', message: result.message, retry: 'source' })
-        return
-      }
-      setView({ kind: 'browse', data: result.data, initialized: false, profile: undefined })
-    })
+    if (!cancelled) setView({ kind: 'home', initialized: lock !== null, profile: lock?.profile })
 
     return () => {
       cancelled = true
@@ -215,6 +208,11 @@ export function App({ deps }: { deps: TuiDeps }) {
 
   const retry = () => {
     if (view.kind !== 'error') return
+    if (view.retry === 'home') {
+      const lock = loadDownstreamLock(deps.target)
+      setView({ kind: 'home', initialized: lock !== null, profile: lock?.profile })
+      return
+    }
     if (view.retry === 'source') {
       setView({ kind: 'loading' })
       loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
@@ -266,6 +264,66 @@ export function App({ deps }: { deps: TuiDeps }) {
     )
   }
 
+  if (view.kind === 'home') {
+    const handleSelect = (id: HomeMenuItemId) => {
+      if (id === 'status') {
+        if (view.profile === undefined) return
+        setView({ kind: 'status', profile: view.profile, refreshKey: 0, source: undefined })
+        return
+      }
+      if (id === 'update') {
+        if (view.profile === undefined) return
+        setView({ kind: 'update-plan', profile: view.profile })
+        return
+      }
+      if (id === 'browse') {
+        loadBrowseData(deps.ctx, { source: deps.source, target: deps.target }).then((result) => {
+          if (!result.ok) {
+            setView({ kind: 'error', message: result.message, retry: 'home' })
+            return
+          }
+          setView({ kind: 'browse', data: result.data, initialized: view.initialized, profile: view.profile })
+        })
+        return
+      }
+      if (id === 'global-status') {
+        setView({ kind: 'global-status', initialized: view.initialized, profile: view.profile })
+        return
+      }
+      // id === 'init-profile'
+      resolveSourceRef(deps).then((resolved) => {
+        if (!resolved.ok) {
+          setView({ kind: 'error', message: resolved.message, retry: 'home' })
+          return
+        }
+        const profiles = listProfiles(resolved.source.root)
+        setView({ kind: 'profile-pick', source: resolved.source, profiles, selected: 0 })
+      })
+    }
+
+    return (
+      <Box flexDirection="column">
+        <TopBar target={deps.target} profile={view.profile} source={undefined} />
+        <HomeView initialized={view.initialized} onSelect={handleSelect} onQuit={exit} />
+      </Box>
+    )
+  }
+
+  if (view.kind === 'global-status') {
+    return (
+      <Box flexDirection="column">
+        <TopBar target={deps.target} profile={view.profile} source={undefined} />
+        <GlobalStatusView
+          ctx={deps.ctx}
+          source={deps.source}
+          target={deps.target}
+          onBack={() => setView({ kind: 'home', initialized: view.initialized, profile: view.profile })}
+          onQuit={exit}
+        />
+      </Box>
+    )
+  }
+
   if (view.kind === 'status') {
     return (
       <Box flexDirection="column">
@@ -286,6 +344,7 @@ export function App({ deps }: { deps: TuiDeps }) {
               setView({ kind: 'browse', data: result.data, initialized: true, profile })
             })
           }}
+          onHome={() => setView({ kind: 'home', initialized: true, profile: view.profile })}
           onQuit={exit}
         />
       </Box>
@@ -322,13 +381,7 @@ export function App({ deps }: { deps: TuiDeps }) {
             const profiles = listProfiles(view.data.source.root)
             setView({ kind: 'profile-pick', source: view.data.source, profiles, selected: 0 })
           }}
-          onBack={() => {
-            if (view.initialized) {
-              setView({ kind: 'status', profile: view.profile ?? '-', refreshKey: 0, source: view.data.source })
-              return
-            }
-            exit()
-          }}
+          onBack={() => setView({ kind: 'home', initialized: view.initialized, profile: view.profile })}
           onQuit={exit}
         />
       </Box>
@@ -368,6 +421,7 @@ export function App({ deps }: { deps: TuiDeps }) {
                 })
               })
           }}
+          onBack={() => setView({ kind: 'home', initialized: false, profile: undefined })}
           onQuit={exit}
         />
       </Box>
@@ -446,7 +500,7 @@ export function App({ deps }: { deps: TuiDeps }) {
           initialAdd={view.initialAdd}
           initialRemove={view.initialRemove}
           onDone={() => setView({ kind: 'status', profile: view.profile, refreshKey: Date.now(), source: undefined })}
-          onBack={() => setView({ kind: 'status', profile: view.profile, refreshKey: 0, source: undefined })}
+          onBack={() => setView({ kind: 'home', initialized: true, profile: view.profile })}
           onQuit={exit}
         />
       </Box>

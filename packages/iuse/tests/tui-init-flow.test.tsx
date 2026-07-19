@@ -148,6 +148,20 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<voi
   }
 }
 
+/**
+ * The TUI now always lands on the home menu first (Task: home menu as the
+ * interactive entry) -- bare entry no longer routes straight to browse. This
+ * navigates the uninitialized menu's second item ('初始化(自选 rules) / 浏览资产')
+ * down to browse, landing on the same catalog-loaded state the old direct-boot
+ * tests asserted on.
+ */
+async function enterBrowseFromHome(stdin: { write: (data: string) => void }, lastFrame: () => string | undefined): Promise<void> {
+  await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+  await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+  await press(stdin, '\r') // enter: browse
+  await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+}
+
 describe('TUI init flow', () => {
   test('bare TTY run without lock lands on browse, and p enters profile picker with rules switching on down-arrow', async () => {
     const source = fixtureSource()
@@ -156,7 +170,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     expect(lastFrame()).toContain('浏览')
 
     await press(stdin, 'p')
@@ -177,7 +191,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
@@ -198,7 +212,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
@@ -222,7 +236,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
@@ -243,7 +257,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '\r') // enter: confirm profile selection
@@ -274,7 +288,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     // node-web sorts before python-cli in the picker, so move down to select python-cli first.
@@ -319,7 +333,7 @@ describe('TUI init flow', () => {
 
     const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterBrowseFromHome(stdin, lastFrame)
     await press(stdin, 'p')
     await waitFor(() => (lastFrame() ?? '').includes('python-cli'))
     await press(stdin, '[B') // down arrow: select python-cli (constitution + extra)
@@ -359,7 +373,14 @@ describe('TUI init flow', () => {
     const badSource = mkdtempSync(join(tmpdir(), 'iuse-tui-badsrc-')) // no profiles.json
     const deps: TuiDeps = { ctx: fakeCtx(), target, source: badSource }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
+
+    // Bootstrap no longer eagerly resolves the source -- home renders first
+    // regardless, and the bad source only surfaces once a menu item that needs
+    // it is selected (here: '初始化(自选 rules) / 浏览资产').
+    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
+    await press(stdin, '\x1b[B') // down arrow to '初始化(自选 rules) / 浏览资产'
+    await press(stdin, '\r') // enter: browse
 
     await waitFor(() => (lastFrame() ?? '').includes('出错了'))
     const frame = (lastFrame() ?? '').replaceAll('\n', ' ')

@@ -138,6 +138,19 @@ async function waitFor(predicate: () => boolean, timeoutMs = 15000): Promise<voi
 }
 
 /**
+ * The TUI now always lands on the home menu first (Task: home menu as the
+ * interactive entry) -- an initialized target no longer routes straight to
+ * status. Home's cursor defaults to '状态对账' (the first item) on an
+ * initialized target, so a bare enter reaches the same status-rows state the
+ * old direct-boot tests asserted on.
+ */
+async function enterStatusFromHome(stdin: { write: (data: string) => void }, lastFrame: () => string | undefined): Promise<void> {
+  await waitFor(() => (lastFrame() ?? '').includes('状态对账'))
+  await press(stdin, '\r') // enter: status (default cursor)
+  await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+}
+
+/**
  * Builds an initialized target with all five status states present:
  * - constitution: untouched -> synced
  * - edited: locally modified -> modified
@@ -186,9 +199,9 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     const frame = lastFrame() ?? ''
 
     const lineFor = (rule: string) => frame.split('\n').find((l) => l.includes(rule)) ?? ''
@@ -203,9 +216,9 @@ describe('TUI status flow', () => {
     const target = await initTargetWithAllStates(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     // The status path never resolves a source itself (unlike profile-pick),
     // so the TopBar backfills it during bootstrap via the same resolveSource
     // wiring the picker path uses -- locator@version.id, from the fixture's
@@ -219,9 +232,9 @@ describe('TUI status flow', () => {
     const target = await initTargetWithExcludedRule(source)
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
-    const { lastFrame } = bootApp(deps)
+    const { lastFrame, stdin } = bootApp(deps)
 
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
     const frame = lastFrame() ?? ''
     const goneLine = frame.split('\n').find((l) => l.includes('gone')) ?? ''
     expect(goneLine).toContain('gone')
@@ -234,7 +247,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
@@ -257,7 +270,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
@@ -282,7 +295,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
@@ -311,7 +324,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx({ run }), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     await press(stdin, 'u')
     await waitFor(() => (lastFrame() ?? '').includes('update 计划预览'))
@@ -333,7 +346,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     // Fix the "modified" drift out from under the TUI, then refresh and
     // confirm the view re-fetches instead of showing stale rows.
@@ -353,7 +366,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin, unmount } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     await press(stdin, 'q')
     await new Promise((resolve) => setTimeout(resolve, 50))
@@ -380,7 +393,7 @@ describe('TUI status flow', () => {
     // after the changes. This is a regression test more than a specific test
     // of the new behavior, but ensures we didn't break the flow.
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     // Verify we can navigate to update view
     await press(stdin, 'u')
@@ -393,9 +406,10 @@ describe('TUI status flow', () => {
     expect(planFrame).toContain('edited.md')
     expect(planFrame).toContain('gone.md')
 
-    // Verify we can escape back
+    // Verify we can escape back -- update-plan is a top-level view reached
+    // from home, so esc returns to home (not status).
     await press(stdin, '\x1b') // escape key
-    await waitFor(() => (lastFrame() ?? '').includes('状态'))
+    await waitFor(() => (lastFrame() ?? '').includes('状态对账'))
   })
 
   test('re-include candidate with differing local content opens diff view, o marks 覆盖, e overwrites the file', async () => {
@@ -407,7 +421,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     // Every keystroke below gets a short settle delay before the next one fires:
     // useInput's handler closes over render-time `rows`/state, so back-to-back
@@ -465,7 +479,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
@@ -516,7 +530,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 
@@ -564,7 +578,7 @@ describe('TUI status flow', () => {
     const deps: TuiDeps = { ctx: fakeCtx(), target, source }
 
     const { lastFrame, stdin } = bootApp(deps)
-    await waitFor(() => (lastFrame() ?? '').includes('constitution'))
+    await enterStatusFromHome(stdin, lastFrame)
 
     const settle = () => new Promise((resolve) => setTimeout(resolve, 30))
 

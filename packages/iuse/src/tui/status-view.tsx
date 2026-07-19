@@ -24,6 +24,7 @@ export function StatusView({
   source,
   onUpdate,
   onBrowse,
+  onHome,
   onQuit,
 }: {
   ctx: IuseContext
@@ -31,6 +32,7 @@ export function StatusView({
   source: string | undefined
   onUpdate: () => void
   onBrowse: () => void
+  onHome: () => void
   onQuit: () => void
 }) {
   const [state, setState] = useState<FetchState>({ kind: 'loading' })
@@ -53,9 +55,13 @@ export function StatusView({
     // ctx/target/source 是挂载时的固化快照；刷新靠 attempt 换值强制重跑本 effect。
   }, [attempt])
 
-  useInput((input) => {
+  useInput((input, key) => {
     if (input === 'q') {
       onQuit()
+      return
+    }
+    if (key.escape) {
+      onHome()
       return
     }
     if (input === 'r') {
@@ -97,7 +103,7 @@ export function StatusView({
         {state.rows.length === 0 && <Text dimColor>没有 rule 记录</Text>}
       </Box>
       <Box marginTop={1}>
-        <Text dimColor>u 进入 update  b 浏览  r 刷新  q 退出</Text>
+        <Text dimColor>u 进入 update  b 浏览  r 刷新  esc 返回主菜单  q 退出</Text>
       </Box>
     </Box>
   )
