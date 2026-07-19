@@ -8,7 +8,7 @@ export interface CatalogRule {
   description: string
   tags: string[]
   scope: string
-  path: string // 产物相对路径，如 rules/global/constitution.md
+  path: string // 产物相对路径，如 rules/constitution.md
   profiles: string[] // 按名排序
 }
 

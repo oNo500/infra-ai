@@ -35,8 +35,8 @@ export function testContext(root: string, overrides: Partial<ActionContext> = {}
 export function syncLock(root: string): void {
   const meta = '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\n---\nbody\n'
   const artifact = '# foo\n'
-  mkdirSync(join(root, 'rules/global'), { recursive: true })
-  writeFileSync(join(root, 'rules/global/foo.md'), artifact)
+  mkdirSync(join(root, 'rules'), { recursive: true })
+  writeFileSync(join(root, 'rules/foo.md'), artifact)
   writeFileSync(
     join(root, 'artifacts.lock.json'),
     `${JSON.stringify({ 'rule:foo': { metaHash: metaContentHash(meta), artifactHash: sha256(artifact), builtAt: '2026-07-11T00:00:00.000Z' } })}\n`,
@@ -60,8 +60,8 @@ describe('status action', () => {
   test('untracked asset (artifact present, no lock) yields exitCode 1', async () => {
     const root = fixtureRepo()
     try {
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/foo.md'), '# foo\n')
       const result = await getAction('status').execute(testContext(root), { positionals: [], flags: {} })
       expect(result.exitCode).toBe(1)
       const data = result.data as StatusData
@@ -174,8 +174,8 @@ describe('adopt action', () => {
   test('records lock baseline for untracked asset; rejects non-untracked', async () => {
     const root = fixtureRepo()
     try {
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/foo.md'), '# foo\n')
       const ok = await getAction('adopt').execute(testContext(root), { positionals: ['foo'], flags: {} })
       expect(ok.ok).toBe(true)
       const lock = JSON.parse(readFileSync(join(root, 'artifacts.lock.json'), 'utf8')) as Record<string, unknown>
@@ -215,8 +215,8 @@ describe('build action', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async (opts) => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         opts.onText?.('building')
         return { code: 0, timedOut: false, stderr: '' }
       }
@@ -260,8 +260,8 @@ describe('build action', () => {
       )
       const claude: ActionContext['claude'] = async (opts) => {
         if (opts.prompt.includes('foo')) {
-          mkdirSync(join(root, 'rules/global'), { recursive: true })
-          writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+          mkdirSync(join(root, 'rules'), { recursive: true })
+          writeFileSync(join(root, 'rules/foo.md'), '# built\n')
           return { code: 0, timedOut: false, stderr: '' }
         }
         return { code: 1, timedOut: false, stderr: 'boom' }
@@ -304,8 +304,8 @@ describe('build action', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async () => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         return { code: 0, timedOut: false, stderr: '' }
       }
       const steps: [string, Record<string, unknown> | undefined][] = []
@@ -333,8 +333,8 @@ describe('build action', () => {
         '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\ndescription: built rule\n---\nbody\n',
       )
       const claude: ActionContext['claude'] = async () => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         return { code: 0, timedOut: false, stderr: '' }
       }
       const result = await getAction('build').execute(testContext(root, { claude }), {
@@ -407,11 +407,11 @@ describe('build changeset guard', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async () => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         return { code: 0, timedOut: false, stderr: '' }
       }
-      const run = seqRunner(['', ' M rules/global/foo.md\n?? evil.txt\n'])
+      const run = seqRunner(['', ' M rules/foo.md\n?? evil.txt\n'])
       const result = await getAction('build').execute(testContext(root, { claude, run }), {
         positionals: ['foo'],
         flags: {},
@@ -428,11 +428,11 @@ describe('build changeset guard', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async () => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         return { code: 0, timedOut: false, stderr: '' }
       }
-      const run = seqRunner([' M unrelated.md\n', ' M unrelated.md\n?? rules/global/foo.md\n'])
+      const run = seqRunner([' M unrelated.md\n', ' M unrelated.md\n?? rules/foo.md\n'])
       const result = await getAction('build').execute(testContext(root, { claude, run }), {
         positionals: ['foo'],
         flags: {},
@@ -489,13 +489,13 @@ describe('build changeset guard', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async () => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         // an unrelated in-scope file with a space in its name; git quotes such paths in porcelain
-        writeFileSync(join(root, 'rules/global/foo with space.md'), '# built\n')
+        writeFileSync(join(root, 'rules/foo with space.md'), '# built\n')
         return { code: 0, timedOut: false, stderr: '' }
       }
-      const run = seqRunner(['', ' M rules/global/foo.md\n?? "rules/global/foo with space.md"\n'])
+      const run = seqRunner(['', ' M rules/foo.md\n?? "rules/foo with space.md"\n'])
       const result = await getAction('build').execute(testContext(root, { claude, run }), {
         positionals: ['foo'],
         flags: {},
@@ -515,7 +515,7 @@ describe('writeback action', () => {
       const notDirty = await getAction('writeback').execute(testContext(root), { positionals: ['foo'], flags: {} })
       expect(notDirty.ok).toBe(false)
       expect(notDirty.message).toMatch(/not dirty/u)
-      writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
+      writeFileSync(join(root, 'rules/foo.md'), '# edited\n')
       const metaPath = join(root, 'meta/rules/foo.md')
       const claude: ActionContext['claude'] = async () => {
         writeFileSync(metaPath, '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\n---\nbody updated\n')
@@ -532,7 +532,7 @@ describe('writeback action', () => {
     const root = fixtureRepo()
     try {
       syncLock(root)
-      writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
+      writeFileSync(join(root, 'rules/foo.md'), '# edited\n')
       const metaPath = join(root, 'meta/rules/foo.md')
       const goodMeta = '---\nname: foo\ntarget: rule\nstatus: ready\nscope: global\n---\nbody\n'
 
@@ -577,7 +577,7 @@ describe('writeback action', () => {
     const root = fixtureRepo()
     try {
       syncLock(root)
-      writeFileSync(join(root, 'rules/global/foo.md'), '# edited\n')
+      writeFileSync(join(root, 'rules/foo.md'), '# edited\n')
       const metaPath = join(root, 'meta/rules/foo.md')
       const claude: ActionContext['claude'] = async () => {
         writeFileSync(metaPath, '---\nname: [broken\n---\nbody\n')
@@ -756,8 +756,8 @@ describe('runAction', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async (opts) => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         opts.onEvent?.({ type: 'assistant', message: { content: [{ type: 'text', text: 'hi' }] } })
         opts.onText?.('hi')
         return { code: 0, timedOut: false, stderr: '' }
@@ -832,8 +832,8 @@ describe('runAction', () => {
   test('createRunLog failure does not block the action; result has no logPath', async () => {
     const root = fixtureRepo()
     try {
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/foo.md'), '# foo\n')
       // a file named .imeta makes mkdirSync inside createRunLog throw ENOTDIR
       writeFileSync(join(root, '.imeta'), '')
       const result = await runAction(testContext(root), 'adopt', { positionals: ['foo'], flags: {} })
@@ -847,8 +847,8 @@ describe('runAction', () => {
     const root = fixtureRepo()
     try {
       const claude: ActionContext['claude'] = async (opts) => {
-        mkdirSync(join(root, 'rules/global'), { recursive: true })
-        writeFileSync(join(root, 'rules/global/foo.md'), '# built\n')
+        mkdirSync(join(root, 'rules'), { recursive: true })
+        writeFileSync(join(root, 'rules/foo.md'), '# built\n')
         opts.onText?.('streamed line')
         return { code: 0, timedOut: false, stderr: '' }
       }

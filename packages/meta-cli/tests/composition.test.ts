@@ -6,7 +6,7 @@ import { loadProfiles, loadTagVocabulary, validateComposition } from '../src/cor
 import type { MetaAsset } from '../src/core/meta'
 
 function rule(name: string, tags: string[], requires: string[] = [], status: 'ready' | 'stub' = 'ready'): MetaAsset {
-  return { name, kind: 'rule', status, scope: 'global', tags, requires, metaPath: `meta/rules/${name}.md`, artifactPath: `rules/global/${name}.md`, description: 'desc', refUrl: '' }
+  return { name, kind: 'rule', status, scope: 'global', tags, requires, metaPath: `meta/rules/${name}.md`, artifactPath: `rules/${name}.md`, description: 'desc', refUrl: '' }
 }
 
 const VOCAB = {
@@ -57,8 +57,8 @@ describe('validateComposition', () => {
   })
   test('ready rule without description is a violation; stub without is fine', () => {
     const assets: MetaAsset[] = [
-      { name: 'a', kind: 'rule', status: 'ready', scope: 'global', tags: ['core'], requires: [], metaPath: 'meta/rules/a.md', artifactPath: 'rules/global/a.md', description: '', refUrl: '' },
-      { name: 'b', kind: 'rule', status: 'stub', scope: 'global', tags: ['core'], requires: [], metaPath: 'meta/rules/b.md', artifactPath: 'rules/global/b.md', description: '', refUrl: '' },
+      { name: 'a', kind: 'rule', status: 'ready', scope: 'global', tags: ['core'], requires: [], metaPath: 'meta/rules/a.md', artifactPath: 'rules/a.md', description: '', refUrl: '' },
+      { name: 'b', kind: 'rule', status: 'stub', scope: 'global', tags: ['core'], requires: [], metaPath: 'meta/rules/b.md', artifactPath: 'rules/b.md', description: '', refUrl: '' },
     ]
     const violations = validateComposition(assets, VOCAB, {})
     expect(violations).toContain('a: ready rule missing description')

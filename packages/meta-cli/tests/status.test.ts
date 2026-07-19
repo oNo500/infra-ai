@@ -50,7 +50,7 @@ const ruleAsset: MetaAsset = {
   tags: [],
   requires: [],
   metaPath: 'meta/rules/constitution.md',
-  artifactPath: 'rules/global/constitution.md',
+  artifactPath: 'rules/constitution.md',
   description: '',
   refUrl: '',
 }
@@ -60,11 +60,11 @@ describe('gatherFacts', () => {
     const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
     try {
       mkdirSync(join(root, 'meta/rules'), { recursive: true })
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
+      mkdirSync(join(root, 'rules'), { recursive: true })
       const metaContent = '---\nname: constitution\nstatus: ready\n---\nbody\n'
       const artifactContent = '# Constitution\n'
       writeFileSync(join(root, 'meta/rules/constitution.md'), metaContent)
-      writeFileSync(join(root, 'rules/global/constitution.md'), artifactContent)
+      writeFileSync(join(root, 'rules/constitution.md'), artifactContent)
 
       const noLockFacts = gatherFacts(root, ruleAsset, {})
       expect(noLockFacts.metaHash).toBe(metaContentHash(metaContent))

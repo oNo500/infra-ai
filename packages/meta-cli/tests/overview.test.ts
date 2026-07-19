@@ -9,12 +9,12 @@ describe('loadOverview', () => {
     const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
     try {
       mkdirSync(join(root, 'meta/rules'), { recursive: true })
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
+      mkdirSync(join(root, 'rules'), { recursive: true })
       writeFileSync(
         join(root, 'meta/rules/constitution.md'),
         '---\nname: constitution\ntarget: rule\nstatus: ready\nscope: global\n---\n',
       )
-      writeFileSync(join(root, 'rules/global/constitution.md'), '# C\n')
+      writeFileSync(join(root, 'rules/constitution.md'), '# C\n')
       const rows = loadOverview(root)
       expect(rows).toHaveLength(1)
       expect(rows[0]?.status).toBe('untracked')

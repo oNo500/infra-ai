@@ -20,7 +20,7 @@ const ruleAsset: MetaAsset = {
   tags: [],
   requires: [],
   metaPath: 'meta/rules/constitution.md',
-  artifactPath: 'rules/global/constitution.md',
+  artifactPath: 'rules/constitution.md',
   description: '',
   refUrl: '',
 }
@@ -63,7 +63,7 @@ describe('prompts', () => {
     const p = buildPromptFor(ruleAsset)
     expect(p).toContain('meta/rules/constitution.md')
     expect(p).toContain('meta/prompts/rule-build.md')
-    expect(p).toContain('rules/global/constitution.md')
+    expect(p).toContain('rules/constitution.md')
   })
   test('writeback prompt is a pointer to the writeback doc', () => {
     const p = writebackPromptFor(ruleAsset)
@@ -103,8 +103,8 @@ describe('verifyBuild and recordBuild', () => {
       writeFileSync(join(root, 'meta/rules/constitution.md'), '---\nname: constitution\n---\n')
       expect(verifyBuild(root, ruleAsset)).toMatch(/missing/u)
 
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/constitution.md'), '# Constitution\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/constitution.md'), '# Constitution\n')
       expect(verifyBuild(root, ruleAsset)).toBeNull()
 
       recordBuild(root, ruleAsset, '2026-07-11T00:00:00Z')

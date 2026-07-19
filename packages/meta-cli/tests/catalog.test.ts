@@ -21,7 +21,7 @@ describe('catalog', () => {
     expect(Object.keys(catalog.rules)).toEqual(['alpha', 'beta'])
     expect(catalog.rules.alpha).toEqual({
       description: '甲说明', tags: ['core'], scope: 'global',
-      path: 'rules/global/alpha.md', profiles: ['demo'],
+      path: 'rules/alpha.md', profiles: ['demo'],
     })
     expect(catalog.rules.beta?.profiles).toEqual([])
     expect(catalog.tags.concern?.values.core).toBe('核心')

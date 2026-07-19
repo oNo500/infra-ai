@@ -18,9 +18,9 @@ describe('kind registry', () => {
     }
   })
   test('artifact paths and sandbox globs match established contracts', () => {
-    expect(KINDS.rule.artifactPath('constitution', 'global')).toBe('rules/global/constitution.md')
-    expect(KINDS.rule.artifactPath('api', 'src/api/**')).toBe('rules/scoped/api.md')
-    expect(KINDS.rule.artifactPath('python', null)).toBe('rules/global/python.md')
+    expect(KINDS.rule.artifactPath('constitution', 'global')).toBe('rules/constitution.md')
+    expect(KINDS.rule.artifactPath('api', 'src/api/**')).toBe('rules/api.md')
+    expect(KINDS.rule.artifactPath('python', null)).toBe('rules/python.md')
     expect(KINDS.skill.artifactPath('commit-lite', null)).toBe('skills/commit-lite/SKILL.md')
     expect(KINDS.template.artifactPath('architecture', null)).toBe('templates/architecture.md')
     expect(KINDS.rule.writableGlob('constitution')).toBe('rules/**')
@@ -56,30 +56,26 @@ describe('skill preBuildCheck', () => {
 })
 
 describe('rule verifyArtifact', () => {
-  test('scoped rule requires paths frontmatter matching scope', () => {
+  test('rule artifact with paths frontmatter is a violation regardless of scope', () => {
     const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
     try {
-      mkdirSync(join(root, 'rules/scoped'), { recursive: true })
-      const asset = { name: 'api', artifactPath: 'rules/scoped/api.md', scope: 'src/api/**' }
-      writeFileSync(join(root, asset.artifactPath), '---\npaths:\n  - "src/api/**"\n---\nbody\n')
-      expect(KINDS.rule.verifyArtifact(root, asset)).toBeNull()
-      writeFileSync(join(root, asset.artifactPath), 'no frontmatter\n')
-      expect(KINDS.rule.verifyArtifact(root, asset)).toMatch(/paths/u)
-      writeFileSync(join(root, asset.artifactPath), '---\npaths:\n  - "src/other/**"\n---\n')
-      expect(KINDS.rule.verifyArtifact(root, asset)).toMatch(/paths/u)
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/api.md'), '---\npaths:\n  - "src/api/**"\n---\n\n# api\n')
+      const scoped = { name: 'api', artifactPath: 'rules/api.md', scope: 'src/api/**' }
+      expect(KINDS.rule.verifyArtifact(root, scoped)).toMatch(/must not carry paths frontmatter/u)
+      const global = { name: 'api', artifactPath: 'rules/api.md', scope: 'global' }
+      expect(KINDS.rule.verifyArtifact(root, global)).toMatch(/must not carry paths frontmatter/u)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  test('global rule must not carry paths frontmatter', () => {
+  test('rule artifact without frontmatter passes for any scope', () => {
     const root = mkdtempSync(join(tmpdir(), 'meta-cli-'))
     try {
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      const asset = { name: 'constitution', artifactPath: 'rules/global/constitution.md', scope: 'global' }
-      writeFileSync(join(root, asset.artifactPath), '# Constitution\n')
-      expect(KINDS.rule.verifyArtifact(root, asset)).toBeNull()
-      writeFileSync(join(root, asset.artifactPath), '---\npaths:\n  - "x/**"\n---\n')
-      expect(KINDS.rule.verifyArtifact(root, asset)).toMatch(/global/u)
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/api.md'), '# api\n')
+      expect(KINDS.rule.verifyArtifact(root, { name: 'api', artifactPath: 'rules/api.md', scope: 'src/api/**' })).toBeNull()
+      expect(KINDS.rule.verifyArtifact(root, { name: 'api', artifactPath: 'rules/api.md', scope: 'global' })).toBeNull()
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

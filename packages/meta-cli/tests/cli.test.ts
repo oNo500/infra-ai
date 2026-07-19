@@ -33,7 +33,7 @@ describe('renderers', () => {
           tags: [],
           requires: [],
           metaPath: 'meta/rules/foo.md',
-          artifactPath: 'rules/global/foo.md',
+          artifactPath: 'rules/foo.md',
         },
       ],
       violations: [],
@@ -81,8 +81,8 @@ describe('cli end-to-end', () => {
       )
       writeFileSync(join(root, 'meta/tags.json'), '{"lang":{"exclusive":true,"values":{"ts":"x"}}}')
       const meta = readFileSync(join(root, 'meta/rules/foo.md'), 'utf8')
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/foo.md'), '# foo\n')
       writeFileSync(
         join(root, 'artifacts.lock.json'),
         `${JSON.stringify({ 'rule:foo': { metaHash: metaContentHash(meta), artifactHash: sha256('# foo\n'), builtAt: 't' } })}\n`,
@@ -98,8 +98,8 @@ describe('cli end-to-end', () => {
   test('adopt via subcommand writes the lock; failure paths exit 1 with stderr', async () => {
     const root = cliFixture()
     try {
-      mkdirSync(join(root, 'rules/global'), { recursive: true })
-      writeFileSync(join(root, 'rules/global/foo.md'), '# foo\n')
+      mkdirSync(join(root, 'rules'), { recursive: true })
+      writeFileSync(join(root, 'rules/foo.md'), '# foo\n')
       const ok = await runCommand('bun', ['run', INDEX, 'adopt', 'foo'], { cwd: root })
       expect(ok.code).toBe(0)
       const lock = JSON.parse(readFileSync(join(root, 'artifacts.lock.json'), 'utf8')) as Record<string, unknown>

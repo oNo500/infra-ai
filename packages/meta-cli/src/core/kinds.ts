@@ -25,10 +25,7 @@ export const KIND_ORDER: readonly AssetKind[] = ['rule', 'skill', 'template']
 export const KINDS: Record<AssetKind, KindDef> = {
   rule: {
     metaDir: 'meta/rules',
-    artifactPath: (name, scope) => {
-      const sub = scope !== null && scope !== 'global' ? 'scoped' : 'global'
-      return `rules/${sub}/${name}.md`
-    },
+    artifactPath: (name) => `rules/${name}.md`,
     buildPrompt: 'meta/prompts/rule-build.md',
     writebackPrompt: 'meta/prompts/rule-writeback.md',
     writableGlob: () => 'rules/**',
@@ -42,15 +39,9 @@ export const KINDS: Record<AssetKind, KindDef> = {
       } catch (error) {
         return `rule frontmatter unparseable: ${String(error)}`
       }
-      const scoped = asset.scope !== null && asset.scope !== 'global'
-      const paths = data.paths
-      if (scoped) {
-        if (!Array.isArray(paths) || !paths.includes(asset.scope)) {
-          return `scoped rule must carry paths frontmatter matching scope '${asset.scope}'`
-        }
-        return null
+      if (data.paths !== undefined) {
+        return 'rule artifact must not carry paths frontmatter (scope renders at assembly time)'
       }
-      if (paths !== undefined) return 'global rule must not carry paths frontmatter'
       return null
     },
   },

@@ -6,13 +6,13 @@ import { artifactPathFor, discoverAssets, metaContentHash, parseMetaFile } from 
 
 describe('artifactPathFor', () => {
   test('rule global', () => {
-    expect(artifactPathFor('rule', 'constitution', 'global')).toBe('rules/global/constitution.md')
+    expect(artifactPathFor('rule', 'constitution', 'global')).toBe('rules/constitution.md')
   })
   test('rule scoped', () => {
-    expect(artifactPathFor('rule', 'api', 'src/api/**/*.ts')).toBe('rules/scoped/api.md')
+    expect(artifactPathFor('rule', 'api', 'src/api/**/*.ts')).toBe('rules/api.md')
   })
   test('rule without scope defaults to global', () => {
-    expect(artifactPathFor('rule', 'python', null)).toBe('rules/global/python.md')
+    expect(artifactPathFor('rule', 'python', null)).toBe('rules/python.md')
   })
   test('skill', () => {
     expect(artifactPathFor('skill', 'commit-lite', null)).toBe('skills/commit-lite/SKILL.md')
@@ -34,7 +34,7 @@ describe('parseMetaFile', () => {
       tags: [],
       requires: [],
       metaPath: 'meta/rules/constitution.md',
-      artifactPath: 'rules/global/constitution.md',
+      artifactPath: 'rules/constitution.md',
       description: '',
       refUrl: '',
     })
