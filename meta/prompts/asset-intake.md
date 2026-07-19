@@ -55,7 +55,8 @@
 示例（真实案例）：ai-sdk 的 coding-agents 页面
 `https://ai-sdk.dev/docs/getting-started/coding-agents` 是 refUrl；
 页面实际推荐的资产在 `vercel/ai` 这个 repo 里，落 `repo: vercel/ai`
-（配 `path`/`commit`），两个字段并存，缺一不成立。
+（ai-sdk 是 official 类只记 repo；mirror 类才另配 `path`/`commit`）。
+参考来源与实际来源并存，缺一不成立。
 
 ## 人审
 
