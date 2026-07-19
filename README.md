@@ -11,12 +11,16 @@
   - `official` — 符合 skills.sh 标准的上游 skill，只记 repo，不放进本仓
 
   清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
-  专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
+  溯源分两层：`refUrl` 参考来源（官方权威页，`imeta links` 检查健康）+
+  实际来源（repo 或 `install`）。专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
+- [`catalog.json`](catalog.json) — 构建产物：资产查询视图（描述/tags/profile 隶属），`imeta catalog` 生成，供 `iuse list/show` 与 TUI 浏览消费
+- [`globals.json`](globals.json) — 全局层账：`~/.claude`（Claude 的 user scope）应装的 rule 清单，`iuse status --global` 只读对账
 - [`rules/`](rules/) — 可分发 rule 的构建产物：`global/`（无条件加载，含 constitution）+ `scoped/`（按 `paths` 动态加载）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
 - [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；AI 构建契约在 [`meta/prompts/`](meta/prompts/)，每类两份（build/writeback）
 - [`packages/meta-cli/`](packages/meta-cli/) — 维护端 CLI/TUI（bun + ink + citty）：对账、构建（claude headless）、回写；动作注册表保证两种界面功能同步
+- [`packages/iuse/`](packages/iuse/) — 使用端 CLI/TUI（bin: `iuse`）：查询（list/show/browse）、拼装（profile 或直选 rules）、对账更新（含 `--global` 全局层只读对账）
 - [`packages/preview/`](packages/preview/) — 产物 web 预览（元指令|产物对照，imeta preview / TUI v 拉起，端口 4412）
 - `artifacts.lock.json` — 构建登记（meta/产物 hash 基线，键 `<kind>:<name>`），由 meta-cli 维护
 
@@ -26,8 +30,10 @@
 
 ```bash
 imeta                     # TUI
-imeta status [--json]     # 对账查询；有待收敛项时退出码为 1
-imeta build <name>        # claude headless 构建；完整命令面 imeta --help
+imeta status [--json]     # 对账查询（含 catalog/globals 校验）；有待收敛项时退出码为 1
+imeta build <name>        # claude headless 构建（成功后自动重建 catalog）；完整命令面 imeta --help
+imeta catalog             # 重建 catalog.json（资产查询视图）
+imeta links               # 检查各资产 refUrl 参考来源健康（网络；404/迁移报「需更新」退 1）
 imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server，常驻 4412）
                           # 停止：pkill -f 'preview.*server.ts'（日志 .imeta/preview-server.log）
 ```
@@ -45,15 +51,19 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则与模板：使用端 CLI 按 profile 拼装（packages/iuse 内 pnpm link --global）
-iuse                                   # TTY 裸跑进 TUI（选 profile → 预演 → 执行 / 对账更新）
+# 规则与模板：使用端 CLI（packages/iuse 内 pnpm link --global）
+iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
+iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
+iuse show <name>                       # 单条资产元数据 + 产物全文
 iuse profiles                          # 列出可选 profile 及其 rules
-iuse init --profile <name> --dry-run <project>   # 预演拼装计划，零写入（远程源拉快照到缓存属读侧）
-iuse init --profile <name> <project>   # 新项目初始化（rules + settings + CLAUDE.md/architecture 实例化）
-iuse status <project>                  # 下游对账：synced / modified / outdated / excluded
-iuse diff [--rule <name>] <project>    # 本地副本 vs 中心源差异（裸跑不含 excluded）
+iuse init --profile <name> <project>   # 按预设组合初始化（--dry-run 预演；--exclude 排除个别）
+iuse init --rules a,b,c <project>      # 不经 profile 直选拼装（查询完自选）
+iuse status <project>                  # 下游对账：synced / modified / outdated / missing / available / excluded
+iuse diff [--rule <name>] <project>    # 本地副本 vs 中心源差异
 iuse update <project>                  # 拉中心源新版（本地被改的默认跳过，--force 覆盖）
-# init --exclude / update --include 管理目标级排除；全命令支持 --json（AI/脚本消费）
+iuse update --add x --remove y <project>   # 显式增装（含回补排除）/ 移除（删副本并记入排除）
+iuse status|diff|list --global         # 全局层（~/.claude，即 Claude 的 user scope）只读对账，输出建议命令
+# 子命令面 100% 命令式（AI/脚本稳定契约），全命令支持 --json
 ```
 
 本仓 push 后，其他设备 `git pull` 再 `iuse update` 各项目，skill 用 `pnpx skills update` 更新。
