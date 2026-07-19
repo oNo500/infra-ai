@@ -55,7 +55,16 @@ export async function globalStatusReport(
     }
   }
 
-  const { items, violations } = assembleRules(source.root, globals.rules)
+  const { items, missing, violations } = assembleRules(source.root, globals.rules)
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      message: `globals.json declares unknown rules: ${missing.toSorted().join(', ')} (fix globals.json at the source, see 'imeta status')`,
+      rows: [],
+      duplicates: [],
+      exitCode: 1,
+    }
+  }
   if (violations.length > 0) {
     return {
       ok: false,

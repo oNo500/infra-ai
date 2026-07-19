@@ -168,6 +168,20 @@ describe('globalStatusReport', () => {
     expect(result.message).toContain('globals.json')
   })
 
+  test('globals.json declares a rule absent from the source fails fast', async () => {
+    const source = fixtureSource()
+    writeFileSync(join(source, 'globals.json'), JSON.stringify({ rules: ['alpha', 'ghost'] }))
+    const fakeHome = fakeHomeFixture()
+
+    const result = await globalStatusReport(fakeCtx({ home: fakeHome }), { source })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('ghost')
+    expect(result.message).toContain('globals.json')
+    expect(result.rows).toEqual([])
+    expect(result.exitCode).toBe(1)
+  })
+
   test('duplicate: rule in project lock and global file both present', async () => {
     const source = fixtureSource()
     const fakeHome = fakeHomeFixture()

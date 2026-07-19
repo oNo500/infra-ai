@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { loadCatalog, loadGlobals, loadProfiles, readTextIfExists, sha256 } from '@infra-ai/meta-cli/core'
-import type { CatalogRule, Profiles } from '@infra-ai/meta-cli/core'
+import type { Catalog, CatalogRule, Profiles } from '@infra-ai/meta-cli/core'
 import { ruleTargetRelPath } from './manifest'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
@@ -58,6 +58,32 @@ export function installStateFor(opts: {
 function matchesGrep(name: string, rule: CatalogRule, content: string | null, grepLower: string): boolean {
   if (name.toLowerCase().includes(grepLower) || rule.description.toLowerCase().includes(grepLower)) return true
   return content !== null && content.toLowerCase().includes(grepLower)
+}
+
+/**
+ * Shared tags/grep filter + row-building loop for global and non-global list
+ * branches -- the two differ only in how a row's install state is computed,
+ * so that's the one thing left as a caller-supplied callback.
+ */
+function buildFilteredRows(opts: {
+  sourceRoot: string
+  catalogRules: Catalog['rules']
+  tags?: string[]
+  grepLower?: string
+  computeState: (name: string, rule: CatalogRule, sourceContent: string | null) => ListRow['state']
+}): ListRow[] {
+  const { sourceRoot, catalogRules, tags, grepLower, computeState } = opts
+  const rows: ListRow[] = []
+  for (const [name, rule] of Object.entries(catalogRules).toSorted(([a], [b]) => a.localeCompare(b))) {
+    if (tags !== undefined && !tags.every((t) => rule.tags.includes(t))) continue
+
+    const sourceContent = readTextIfExists(join(sourceRoot, rule.path))
+    if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
+
+    const state = computeState(name, rule, sourceContent)
+    rows.push({ name, description: rule.description, tags: rule.tags, scope: rule.scope, state })
+  }
+  return rows
 }
 
 /**
@@ -123,18 +149,23 @@ export async function listReport(
       }
     }
     const declared = new Set(globals.rules)
-
-    const rows: ListRow[] = []
-    for (const [name, rule] of Object.entries(catalog.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
-      if (opts.tags !== undefined && !opts.tags.every((t) => rule.tags.includes(t))) continue
-
-      const sourceContent = readTextIfExists(join(source.root, rule.path))
-      if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
-
-      const state = globalInstallStateFor({ name, home: opts.target, sourceContent, declared })
-
-      rows.push({ name, description: rule.description, tags: rule.tags, scope: rule.scope, state })
+    const unknown = [...declared].filter((rule) => !Object.hasOwn(catalog.rules, rule))
+    if (unknown.length > 0) {
+      return {
+        ok: false,
+        message: `globals.json declares unknown rules: ${unknown.toSorted().join(', ')} (fix globals.json at the source, see 'imeta status')`,
+        rows: [],
+        exitCode: 1,
+      }
     }
+
+    const rows = buildFilteredRows({
+      sourceRoot: source.root,
+      catalogRules: catalog.rules,
+      tags: opts.tags,
+      grepLower,
+      computeState: (name, _rule, sourceContent) => globalInstallStateFor({ name, home: opts.target, sourceContent, declared }),
+    })
 
     return { ok: true, rows, exitCode: 0 }
   }
@@ -142,17 +173,13 @@ export async function listReport(
   const lock = loadDownstreamLock(opts.target)
   const profiles = loadProfiles(source.root)
 
-  const rows: ListRow[] = []
-  for (const [name, rule] of Object.entries(catalog.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
-    if (opts.tags !== undefined && !opts.tags.every((t) => rule.tags.includes(t))) continue
-
-    const sourceContent = readTextIfExists(join(source.root, rule.path))
-    if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
-
-    const state = installStateFor({ name, target: opts.target, sourceContent, lock, profiles })
-
-    rows.push({ name, description: rule.description, tags: rule.tags, scope: rule.scope, state })
-  }
+  const rows = buildFilteredRows({
+    sourceRoot: source.root,
+    catalogRules: catalog.rules,
+    tags: opts.tags,
+    grepLower,
+    computeState: (name, _rule, sourceContent) => installStateFor({ name, target: opts.target, sourceContent, lock, profiles }),
+  })
 
   return { ok: true, rows, exitCode: 0 }
 }

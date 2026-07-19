@@ -267,4 +267,19 @@ describe('listReport', () => {
     expect(state('beta')).toBe('missing')
     expect(state('gamma')).toBe('uninstalled')
   })
+
+  test('globals.json declares a rule absent from the source fails fast', async () => {
+    const source = fixtureSource()
+    writeFileSync(join(source, 'globals.json'), JSON.stringify({ rules: ['alpha', 'ghost'] }))
+    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-list-home-'))
+    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
+
+    const result = await listReport(fakeCtx({ home: fakeHome }), { target: fakeHome, source, global: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('ghost')
+    expect(result.message).toContain('globals.json')
+    expect(result.rows).toEqual([])
+    expect(result.exitCode).toBe(1)
+  })
 })
