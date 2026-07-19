@@ -16,6 +16,7 @@ export interface SkillEntry {
   path?: string
   commit?: string
   updated?: string
+  url?: string
 }
 
 export class RegistryError extends Error {}

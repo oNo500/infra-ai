@@ -76,7 +76,8 @@
   {
     "name": "ai-sdk",
     "source": "official",
-    "repo": "vercel/ai"
+    "repo": "vercel/ai",
+    "url": "https://ai-sdk.dev/docs/getting-started/coding-agents"
   },
   {
     "name": "shadcn",
