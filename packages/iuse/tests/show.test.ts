@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Catalog } from '@infra-ai/meta-cli/core'
 import { runInit } from '../src/core/init'
-import { showReport } from '../src/core/show'
+import { catReport, showReport } from '../src/core/show'
 
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-show-src-'))
@@ -27,10 +27,18 @@ function fixtureSource(): string {
         path: 'rules/alpha.md',
         profiles: ['demo'],
       },
+      sigma: {
+        description: 'scoped 规则',
+        tags: ['core'],
+        scope: '**/*.md',
+        path: 'rules/sigma.md',
+        profiles: [],
+      },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
   writeFileSync(join(dir, 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'sigma.md'), '# Sigma\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo', rules: ['alpha'] } }))
   return dir
 }
@@ -125,6 +133,35 @@ describe('showReport', () => {
 
     expect(result.ok).toBe(true)
     expect(result.entry?.state).toBe('modified')
+  })
+
+  test('scoped rule content is rendered with paths frontmatter', async () => {
+    const source = fixtureSource()
+    const uninitTarget = mkdtempSync(join(tmpdir(), 'iuse-show-uninit-'))
+
+    const result = await showReport(fakeCtx(), { source, target: uninitTarget, name: 'sigma' })
+
+    expect(result.ok).toBe(true)
+    expect(result.content).toBe('---\npaths:\n  - "**/*.md"\n---\n\n# Sigma\n')
+  })
+
+  test('catReport returns rendered content only', async () => {
+    const source = fixtureSource()
+
+    const result = await catReport(fakeCtx(), { source, name: 'sigma' })
+
+    expect(result.ok).toBe(true)
+    expect(result.content).toBe('---\npaths:\n  - "**/*.md"\n---\n\n# Sigma\n')
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('catReport unknown rule exits 1', async () => {
+    const source = fixtureSource()
+
+    const result = await catReport(fakeCtx(), { source, name: 'nope' })
+
+    expect(result.ok).toBe(false)
+    expect(result.exitCode).toBe(1)
   })
 
   test('missing catalog fails with imeta catalog hint', async () => {

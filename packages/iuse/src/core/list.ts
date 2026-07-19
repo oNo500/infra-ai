@@ -5,6 +5,7 @@ import { ruleTargetRelPath } from './manifest'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DownstreamLock, DriftState } from './manifest'
+import { renderRule } from './render'
 import { resolveSource } from './source'
 
 export type InstallState = DriftState | 'uninstalled' | 'broken'
@@ -77,7 +78,8 @@ function buildFilteredRows(opts: {
   for (const [name, rule] of Object.entries(catalogRules).toSorted(([a], [b]) => a.localeCompare(b))) {
     if (tags !== undefined && !tags.every((t) => rule.tags.includes(t))) continue
 
-    const sourceContent = readTextIfExists(join(sourceRoot, rule.path))
+    const raw = readTextIfExists(join(sourceRoot, rule.path))
+    const sourceContent = raw === null ? null : renderRule(rule.scope, raw)
     if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
 
     const state = computeState(name, rule, sourceContent)

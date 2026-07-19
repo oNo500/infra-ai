@@ -243,7 +243,7 @@ describe('TUI home menu flow', () => {
     const frame = lastFrame() ?? ''
     const line = frame.split('\n').find((l) => l.includes('constitution')) ?? ''
     expect(line).toContain('missing')
-    expect(frame).toContain('cp ')
+    expect(frame).toContain('iuse cat constitution')
 
     await press(stdin, '\x1b') // escape
     await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))

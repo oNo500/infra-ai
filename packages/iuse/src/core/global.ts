@@ -84,7 +84,7 @@ export async function globalStatusReport(
       rows.push({
         rule,
         state: 'missing',
-        suggestion: item === undefined ? undefined : `cp ${item.sourcePath} ${globalRulePath(ctx.home, rule)}`,
+        suggestion: item === undefined ? undefined : `iuse cat ${rule} > ${globalRulePath(ctx.home, rule)}`,
       })
       continue
     }
@@ -98,7 +98,7 @@ export async function globalStatusReport(
       suggestion:
         item === undefined
           ? `iuse diff --global --rule ${rule} 查看差异`
-          : `iuse diff --global --rule ${rule} 查看差异; 采纳源版本: cp ${item.sourcePath} ${globalRulePath(ctx.home, rule)}`,
+          : `iuse diff --global --rule ${rule} 查看差异; 采纳源版本: iuse cat ${rule} > ${globalRulePath(ctx.home, rule)}`,
     })
   }
 

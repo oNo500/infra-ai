@@ -5,6 +5,7 @@ import type { IuseContext } from './init'
 import { installStateFor } from './list'
 import type { InstallState } from './list'
 import { loadDownstreamLock } from './manifest'
+import { renderRule } from './render'
 import { resolveSource } from './source'
 
 export interface ShowResult {
@@ -52,7 +53,8 @@ export async function showReport(
     }
   }
 
-  const content = readTextIfExists(join(source.root, rule.path))
+  const raw = readTextIfExists(join(source.root, rule.path))
+  const content = raw === null ? null : renderRule(rule.scope, raw)
   const lock = loadDownstreamLock(opts.target)
   const profiles = loadProfiles(source.root)
   const state = installStateFor({ name: opts.name, target: opts.target, sourceContent: content, lock, profiles })
@@ -63,4 +65,19 @@ export async function showReport(
     content: content ?? undefined,
     exitCode: 0,
   }
+}
+
+/**
+ * cat 是 show 的管道原语形态：只返回渲染后的安装内容，供重定向落盘
+ * （--global 的建议命令依赖它取代对产物的直接 cp——产物不再是安装形态）。
+ */
+export async function catReport(
+  ctx: IuseContext,
+  opts: { source?: string; name: string },
+): Promise<{ ok: boolean; message?: string; content?: string; exitCode: number }> {
+  const result = await showReport(ctx, { source: opts.source, target: process.cwd(), name: opts.name })
+  if (!result.ok || result.content === undefined) {
+    return { ok: false, message: result.message ?? `rule '${opts.name}' has no built artifact`, exitCode: 1 }
+  }
+  return { ok: true, content: result.content, exitCode: 0 }
 }

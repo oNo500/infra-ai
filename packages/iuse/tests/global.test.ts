@@ -120,7 +120,7 @@ describe('globalStatusReport', () => {
     const byRule = new Map(result.rows.map((r) => [r.rule, r]))
     expect(byRule.get('alpha')?.state).toBe('synced')
     expect(byRule.get('beta')?.state).toBe('missing')
-    expect(byRule.get('beta')?.suggestion).toContain('cp ')
+    expect(byRule.get('beta')?.suggestion).toContain('iuse cat beta > ')
     expect(byRule.get('beta')?.suggestion).toContain('.claude/rules/beta.md')
     expect(byRule.get('stray')?.state).toBe('unmanaged')
     expect(result.exitCode).toBe(1) // missing present

@@ -10,7 +10,7 @@ import { runInit } from '../core/init'
 import { listReport } from '../core/list'
 import { profilesReport } from '../core/profiles-report'
 import { statusReport } from '../core/report'
-import { showReport } from '../core/show'
+import { catReport, showReport } from '../core/show'
 import { runUpdate } from '../core/update'
 
 /**
@@ -376,12 +376,35 @@ const showCommand = defineCommand({
   },
 })
 
+const catCommand = defineCommand({
+  meta: {
+    name: 'cat',
+    description: '输出单条 rule 渲染后的安装形态（纯内容到 stdout，可重定向落盘）。名不存在退 1。',
+  },
+  args: {
+    source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
+    name: { type: 'positional', required: true, description: 'rule 名（见 iuse list）' },
+  },
+  async run({ args }) {
+    const result = await catReport(defaultContext(), { source: args.source, name: args.name })
+    if (args.json === true) {
+      console.log(renderJson({ ok: result.ok, message: result.message, content: result.content }))
+    } else if (result.ok && result.content !== undefined) {
+      process.stdout.write(result.content)
+    } else if (result.message !== undefined) {
+      console.error(result.message)
+    }
+    process.exitCode = result.exitCode
+  },
+})
+
 export function buildMainCommand() {
   return defineCommand({
     meta: {
       name: 'iuse',
       description:
-        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：list/show 查阅 -> profiles -> init --dry-run -> init -> status/update。'
+        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：list/show/cat 查阅 -> profiles -> init --dry-run -> init -> status/update。'
         + 'status/diff/list 支持 --global：对账 ~/.claude（Claude 的 user scope）而非某个项目，与 target 互斥，只读。',
     },
     subCommands: {
@@ -392,6 +415,7 @@ export function buildMainCommand() {
       diff: diffCommand,
       list: listCommand,
       show: showCommand,
+      cat: catCommand,
     },
   })
 }

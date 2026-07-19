@@ -85,6 +85,23 @@ function fixtureSource(): string {
   return dir
 }
 
+/**
+ * Adds a scoped catalog rule 'sigma' (plain-body artifact, scope glob in
+ * catalog only) -- exercises the render-aware install-state comparison:
+ * the installed copy carries rendered paths frontmatter, the source artifact
+ * does not.
+ */
+function addSigmaRule(source: string): void {
+  writeFileSync(
+    join(source, 'meta', 'rules', 'sigma.md'),
+    '---\nname: sigma\nstatus: ready\ndescription: scoped rule\nscope: "**/*.md"\ntags: [extra]\n---\nbody',
+  )
+  writeFileSync(join(source, 'rules', 'sigma.md'), '# Sigma\n')
+  const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
+  catalog.rules.sigma = { description: 'scoped rule', tags: ['extra'], scope: '**/*.md', path: 'rules/sigma.md', profiles: [] }
+  writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
+}
+
 function bareSourceFixture(): string {
   // A valid infra-ai source (has profiles.json) but never ran `imeta catalog`.
   const dir = mkdtempSync(join(tmpdir(), 'iuse-list-bare-src-'))
@@ -266,6 +283,19 @@ describe('listReport', () => {
     expect(state('alpha')).toBe('synced')
     expect(state('beta')).toBe('missing')
     expect(state('gamma')).toBe('uninstalled')
+  })
+
+  test('scoped rule installed via init reports synced (render-aware comparison)', async () => {
+    const source = fixtureSource()
+    addSigmaRule(source)
+    const target = mkdtempSync(join(tmpdir(), 'iuse-list-tgt-'))
+    const init = await runInit(fakeCtx(), { source, rules: ['sigma'], profile: '-', target, force: false })
+    if (!init.ok) throw new Error(`fixture init failed: ${init.message}`)
+
+    const result = await listReport(fakeCtx(), { source, target })
+
+    const sigma = result.rows.find((r) => r.name === 'sigma')
+    expect(sigma?.state).toBe('synced')
   })
 
   test('globals.json declares a rule absent from the source fails fast', async () => {
