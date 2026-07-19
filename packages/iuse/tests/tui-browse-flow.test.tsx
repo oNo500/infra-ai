@@ -77,6 +77,51 @@ function fixtureSource(): string {
   return dir
 }
 
+/**
+ * Scroll tests need a right-pane body long enough to overflow the terminal
+ * height (24 rows, per the fallback used when ink-testing-library's fake
+ * stdout leaves `rows` undefined) -- 80 numbered lines guarantees that no
+ * matter the viewport's exact height, some lines start out off-screen.
+ */
+function fixtureSourceWithLongBody(): string {
+  const dir = fixtureSource()
+  const lines = Array.from({ length: 80 }, (_, i) => `line-${i + 1}`)
+  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), `${lines.join('\n')}\n`)
+  return dir
+}
+
+/**
+ * Left-column windowing test needs a rule count that overflows the visible
+ * list height -- 30 rules generated on a single facet-free tag so every row
+ * stays visible under the (absent) 't' filter.
+ */
+function fixtureSourceWithManyRules(count: number): string {
+  const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-src-'))
+  mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
+  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'templates'), { recursive: true })
+  mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
+  writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({}))
+  writeFileSync(join(dir, 'profiles.json'), JSON.stringify({}))
+  writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
+  writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
+  writeFileSync(join(dir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
+  writeFileSync(join(dir, 'meta', 'prompts', 'template-instantiate.md'), '# contract\n')
+
+  const rules: Catalog['rules'] = {}
+  // Zero-padded names so lexicographic (localeCompare) sort matches numeric order.
+  for (let i = 0; i < count; i += 1) {
+    const name = `rule-${String(i).padStart(2, '0')}`
+    writeFileSync(join(dir, 'meta', 'rules', `${name}.md`), `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: []\n---\nbody`)
+    writeFileSync(join(dir, 'rules', 'global', `${name}.md`), `# ${name}\n`)
+    rules[name] = { description: 'x', tags: [], scope: 'global', path: `rules/global/${name}.md`, profiles: [] }
+  }
+  const catalog: Catalog = { generatedAt: '2026-07-18T00:00:00Z', tags: {}, rules }
+  writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
+
+  return dir
+}
+
 function fakeClaudeInstant(): IuseContext['claude'] {
   return async (opts) => {
     const match = /(?:Write|Edit)\((.+)\)/u.exec(opts.allowedTools)
@@ -298,5 +343,80 @@ describe('TUI browse flow', () => {
     expect(lastFrame()).toContain('imeta catalog')
 
     rmSync(source, { recursive: true, force: true })
+  })
+
+  test('j scrolls the preview pane down revealing lines past the fold; k scrolls back to reveal the top line', async () => {
+    const source = fixtureSourceWithLongBody()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = bootApp(deps)
+
+    await waitFor(() => (lastFrame() ?? '').includes('line-1'))
+    expect(lastFrame()).not.toContain('line-80')
+
+    for (let i = 0; i < 40; i += 1) {
+      await press(stdin, 'j')
+    }
+    await waitFor(() => !(lastFrame() ?? '').includes('line-1\n') && (lastFrame() ?? '').includes('line-4'))
+
+    for (let i = 0; i < 40; i += 1) {
+      await press(stdin, 'k')
+    }
+    await waitFor(() => (lastFrame() ?? '').includes('line-1'))
+  })
+
+  test('g jumps the preview pane to the top; G jumps to the bottom', async () => {
+    const source = fixtureSourceWithLongBody()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = bootApp(deps)
+
+    await waitFor(() => (lastFrame() ?? '').includes('line-1'))
+
+    await press(stdin, 'G')
+    await waitFor(() => (lastFrame() ?? '').includes('line-80'))
+
+    await press(stdin, 'g')
+    await waitFor(() => (lastFrame() ?? '').includes('line-1'))
+  })
+
+  test('the position indicator changes as the preview pane scrolls', async () => {
+    const source = fixtureSourceWithLongBody()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = bootApp(deps)
+
+    await waitFor(() => (lastFrame() ?? '').includes('line-1'))
+    const before = lastFrame() ?? ''
+
+    await press(stdin, 'G')
+    await waitFor(() => (lastFrame() ?? '').includes('line-80'))
+    const after = lastFrame() ?? ''
+
+    expect(before).not.toEqual(after)
+    // Position indicator format: <起始行>-<结束行>/<总行数>. Total is 81, not 80:
+    // the fixture's body ends with a trailing newline, so split('\n') yields
+    // one trailing empty line after line-80.
+    expect(after).toMatch(/\d+-\d+\/81/u)
+  })
+
+  test('left list windows around the cursor: moving to the bottom hides the first rule and shows the last', async () => {
+    const source = fixtureSourceWithManyRules(30)
+    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-tgt-'))
+    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
+
+    const { lastFrame, stdin } = bootApp(deps)
+
+    await waitFor(() => (lastFrame() ?? '').includes('rule-00'))
+    expect(lastFrame()).not.toContain('rule-29')
+
+    for (let i = 0; i < 29; i += 1) {
+      await press(stdin, '\x1b[B') // down arrow
+    }
+    await waitFor(() => (lastFrame() ?? '').includes('rule-29'))
+    expect(lastFrame()).not.toContain('rule-00')
   })
 })

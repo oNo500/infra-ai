@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Text, useApp, useInput } from 'ink'
+import { Box, Text, useApp, useInput, useStdout } from 'ink'
 import { join } from 'node:path'
 import { loadCatalog, readTextIfExists } from '@infra-ai/meta-cli/core'
 import type { TagVocabulary } from '@infra-ai/meta-cli/core'
@@ -130,6 +130,29 @@ function stepsForExecution(steps: ActionStep[], exclude: string[]): ActionStep[]
   })
 }
 
+/** Fallback terminal height when stdout.rows is unknown (e.g. ink-testing-library's fake stdout). */
+const FALLBACK_ROWS = 24
+
+const ALT_SCREEN_ENTER = '\x1b[?1049h'
+const ALT_SCREEN_LEAVE = '\x1b[?1049l'
+
+export interface AltScreenWritable {
+  isTTY?: boolean
+  write: (data: string) => void
+}
+
+/** Enters the alternate screen buffer -- a no-op outside a real TTY (e.g. ink-testing-library's fake stdout). */
+export function enterAltScreen(stdout: AltScreenWritable): void {
+  if (stdout.isTTY !== true) return
+  stdout.write(ALT_SCREEN_ENTER)
+}
+
+/** Restores the primary screen buffer -- a no-op outside a real TTY. */
+export function leaveAltScreen(stdout: AltScreenWritable): void {
+  if (stdout.isTTY !== true) return
+  stdout.write(ALT_SCREEN_LEAVE)
+}
+
 function TopBar({ target, profile, source }: { target: string; profile: string | undefined; source: SourceRef | undefined }) {
   const sourceText = source === undefined ? '-' : `${source.locator}@${source.version.id}`
   return (
@@ -144,6 +167,8 @@ function TopBar({ target, profile, source }: { target: string; profile: string |
 export function App({ deps }: { deps: TuiDeps }) {
   const { exit } = useApp()
   const [view, setView] = useState<View>({ kind: 'loading' })
+  const { stdout } = useStdout()
+  const rows = stdout.rows ?? FALLBACK_ROWS
 
   useEffect(() => {
     let cancelled = false
@@ -269,10 +294,11 @@ export function App({ deps }: { deps: TuiDeps }) {
 
   if (view.kind === 'browse') {
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" height={rows}>
         <TopBar target={deps.target} profile={view.profile} source={view.data.source} />
         <BrowseView
           rows={view.data.rows}
+          terminalRows={rows}
           contentFor={(name) => view.data.contentByName[name] ?? ''}
           tags={view.data.tags}
           initialized={view.initialized}
@@ -437,6 +463,11 @@ export function App({ deps }: { deps: TuiDeps }) {
 
 export async function runTui(deps: TuiDeps): Promise<void> {
   const { render } = await import('ink')
-  const instance = render(<App deps={deps} />)
-  await instance.waitUntilExit()
+  enterAltScreen(process.stdout)
+  try {
+    const instance = render(<App deps={deps} />)
+    await instance.waitUntilExit()
+  } finally {
+    leaveAltScreen(process.stdout)
+  }
 }
