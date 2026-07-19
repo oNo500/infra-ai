@@ -4,8 +4,8 @@
 
 `skills.json`（仓库根）是全部 skill 的清单：一个 skill 是否存在、来自哪里、如何安装，以它为准。每条按 `source` 分三类：
 
-- `custom` — 自建。内容源是开发仓 `meta/skills/<name>.md` 元指令，`skills/<name>/` 是构建产物，可重新构建。字段只有 `name`
-- `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到 `skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
+- `custom` — 自建。内容源是开发仓 `meta/skills/<name>.md` 元指令，开发仓 `artifacts/skills/<name>/` 是构建产物，可重新构建。字段只有 `name`
+- `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到开发仓 `artifacts/skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
 - `official` — 符合 skills.sh 标准，不入仓，只记 `repo`；同时是 Anthropic 官方插件的另带 `plugin`
 
 溯源分两层：实际来源回答「装的是什么」——mirror 是 `repo`/`path`/`commit`，
@@ -26,11 +26,11 @@
 `imeta` 打开 TUI，`s` 进 skills 视图：进入即核对 ledger 与 mirror 上游差异，`f` 补账 unledgered，`u` 更新过期 mirror。
 
 - 改 `custom`：意图变更先改元指令再重建；直接改了产物就回写元指令
-- mirror 更新后 `skills/<name>/` 为空：上游目录挪了，用 `gh` 查 SKILL.md 新位置，更新 `path` 重拉
-- mirror 被 skills.sh 收录：条目改 `official`，删 `skills/<name>/`
+- mirror 更新后 `artifacts/skills/<name>/` 为空：上游目录挪了，用 `gh` 查 SKILL.md 新位置，更新 `path` 重拉
+- mirror 被 skills.sh 收录：条目改 `official`，删 `artifacts/skills/<name>/`
 - 退役：删产物目录，并手动删清单条目（对账只增不删）
 
-mirror 更新后自行 review 再提交：`git diff skills/ && git add skills/ skills.json`。
+mirror 更新后自行 review 再提交：开发仓内 `git diff artifacts/skills/ && git add artifacts/skills/ skills.json`。
 
 ## 使用
 
