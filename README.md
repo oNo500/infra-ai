@@ -1,7 +1,8 @@
 # infra-ai
 
-个人 Claude Code 基础设施：skill、规则、MCP 说明、项目模板都在这里集中维护，
-其他项目和设备从这里安装。改动只发生在本仓，下游不回改。
+个人 Claude Code 基础设施的**发布面**：其他项目和设备从这里安装 skill、
+rule、模板。内容由开发仓 `~/code/meta` 构建验证后经 `imeta publish` 落位，
+人审 diff 后提交——本仓不直接编辑资产，改动一律回开发仓。
 
 ## 内容
 
@@ -10,38 +11,21 @@
   - `mirror` — 用 giget 从上游仓库拉取，放在 `skills/<name>/`，记录 commit
   - `official` — 符合 skills.sh 标准的上游 skill，只记 repo，不放进本仓
 
-  清单记录的是目标态，允许比实际超前：`custom` 条目可能还没有对应目录。
-  溯源分两层：`refUrl` 参考来源（官方权威页，`imeta links` 检查健康）+
-  实际来源（repo 或 `install`）。专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
-- [`catalog.json`](catalog.json) — 构建产物：资产查询视图（描述/tags/profile 隶属），`imeta catalog` 生成，供 `iuse list/show` 与 TUI 浏览消费
+  清单记录的是目标态，允许比实际超前。溯源分两层：`refUrl` 参考来源 +
+  实际来源（repo 或 `install`）。专题见 [`SKILLS.md`](SKILLS.md)。
+- [`catalog.json`](catalog.json) — 资产查询视图（描述/tags/profile 隶属），供 `iuse list/show` 消费
 - [`globals.json`](globals.json) — 全局层账：`~/.claude`（Claude 的 user scope）应装的 rule 清单，`iuse status --global` 只读对账
-- [`rules/`](rules/) — 可分发 rule 的构建产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
-- [`docs/mcp/`](docs/mcp/) — MCP server 说明
+- [`profiles.json`](profiles.json) — rule 组合账：项目 profile 显式清单
+- [`rules/`](rules/) — 可分发 rule 产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
-- [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；AI 构建契约在 [`meta/prompts/`](meta/prompts/)，每类两份（build/writeback）
-- [`packages/meta-cli/`](packages/meta-cli/) — 维护端 CLI/TUI（bun + ink + citty）：对账、构建（claude headless）、回写；动作注册表保证两种界面功能同步
-- [`packages/iuse/`](packages/iuse/) — 使用端 CLI/TUI（bin: `iuse`）：查询（list/show/browse）、拼装（profile 或直选 rules）、对账更新（含 `--global` 全局层只读对账）
-- [`packages/preview/`](packages/preview/) — 产物 web 预览（元指令|产物对照，imeta preview / TUI v 拉起，端口 4412）
-- `artifacts.lock.json` — 构建登记（meta/产物 hash 基线，键 `<kind>:<name>`），由 meta-cli 维护
+- [`docs/mcp/`](docs/mcp/) — MCP server 说明
 
-`docs/superpowers/` 是设计文档，`.claude/` 和 `.mcp.json` 是本仓自用配置，都不分发。
+维护端（元指令、构建契约、工具链源码）在开发仓 `~/code/meta`；本仓残留的
+`meta/`、`packages/`、`artifacts.lock.json` 是拆分前的历史副本，待清理，
+不要在此修改。`docs/superpowers/` 是设计文档存档，`.claude/` 与
+`.mcp.json` 是本仓自用配置，都不分发。
 
-## 命令
-
-```bash
-imeta                     # TUI
-imeta status [--json]     # 对账查询（含 catalog/globals 校验）；有待收敛项时退出码为 1
-imeta build <name>        # claude headless 构建（成功后自动重建 catalog）；完整命令面 imeta --help
-imeta catalog             # 重建 catalog.json（资产查询视图）
-imeta links               # 检查各资产 refUrl 参考来源健康（网络；404/迁移报「需更新」退 1）
-imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server，常驻 4412）
-                          # 停止：pkill -f 'preview.*server.ts'（日志 .imeta/preview-server.log）
-```
-
-全局 `imeta` 命令来自 `packages/meta-cli` 内执行一次 `pnpm link --global`；
-未 link 时在仓库根用 `pnpm meta <...>` 等价调用。
-
-## 在其他项目/设备使用
+## 使用
 
 ```bash
 # skill：仓内持有的（custom + mirror）
@@ -51,7 +35,7 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则与模板：使用端 CLI（packages/iuse 内 pnpm link --global）
+# 规则与模板：使用端 CLI（开发仓 packages/iuse 内 pnpm link --global）
 iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
 iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
 iuse show <name>                       # 单条资产元数据 + 渲染后全文
@@ -67,4 +51,5 @@ iuse status|diff|list --global         # 全局层（~/.claude，即 Claude 的 
 # 子命令面 100% 命令式（AI/脚本稳定契约），全命令支持 --json
 ```
 
-本仓 push 后，其他设备 `git pull` 再 `iuse update` 各项目，skill 用 `pnpx skills update` 更新。
+本仓收到 publish 提交并 push 后，其他设备 `git pull` 再 `iuse update`
+各项目，skill 用 `pnpx skills update` 更新。
