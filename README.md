@@ -20,10 +20,9 @@ rule、模板。内容由开发仓 `~/code/meta` 构建验证后经 `imeta publi
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 
-维护端（元指令、构建契约、工具链源码）在开发仓 `~/code/meta`；本仓残留的
-`meta/`、`packages/`、`artifacts.lock.json` 是拆分前的历史副本，待清理，
-不要在此修改。`docs/superpowers/` 是设计文档存档，`.claude/` 与
-`.mcp.json` 是本仓自用配置，都不分发。
+维护端（元指令、构建契约、工具链源码）在开发仓 `~/code/meta`，不要在此
+修改。`docs/superpowers/` 是设计文档存档，`.claude/` 与 `.mcp.json` 是
+本仓自用配置，都不分发。
 
 ## 使用
 
@@ -35,7 +34,7 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则与模板：使用端 CLI（开发仓 packages/iuse 内 pnpm link --global）
+# 规则与模板：使用端 CLI（开发仓 ~/code/meta 的 packages/iuse 内 pnpm link --global）
 iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
 iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
 iuse show <name>                       # 单条资产元数据 + 渲染后全文

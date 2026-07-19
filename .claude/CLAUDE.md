@@ -1,30 +1,23 @@
 # CLAUDE.md
 
-**infra-ai** — 个人 Claude Code 基础设施的中心源：skill、rule、模板、MCP 说明
-在此集中维护，其他项目和设备从这里派生。源只在本仓改，下游副本不回改。
+**infra-ai** — 个人 Claude Code 基础设施的发布面：skill、rule、模板的
+产物与账由开发仓 `~/code/meta` 经 `imeta publish` 落位，本仓人审 diff
+后提交。下游项目和设备从这里安装。
 
-## 结构与模型
+## 职责边界
 
-见 `.claude/rules/architecture.md`（自动加载）。一句话：`meta/` 元指令是源，
-`skills/`、`rules/`、`templates/` 是构建产物，产物可重建、改动必须回写元指令。
+- 本仓不直接编辑资产：rules/、skills/、templates/ 与四账
+  （catalog/profiles/globals/skills）的改动一律回开发仓，publish 会
+  覆盖此处的直接修改
+- 本仓自有内容仅：docs/mcp/（MCP 说明）、docs/superpowers/（设计文档
+  存档）、.claude/ 与 .mcp.json（自用配置）、README/SKILLS 使用文档
 
-## 命令
+## 常用命令
 
 ```bash
-imeta                     # TUI：对账、构建、回写
-imeta status              # 命令式（面向 AI/脚本）：完整命令面见 imeta --help
-imeta preview [name]      # web 预览：元指令与产物对照（自动启动本地 server，常驻 4412）
-                          # 停止：pkill -f 'preview.*server.ts'（日志 .imeta/preview-server.log）
-iuse list|show            # 使用端查询：资产描述/tags/状态（数据源 catalog.json）
-iuse init --profile <p> <dir>   # 使用端：拼装（--rules 直选亦可；status/update 对账与更新，--global 对账全局层）
+iuse list|show|cat        # 查询资产（数据源 catalog.json）
+iuse init --profile <p> <dir>   # 向目标项目拼装；status/update 对账更新
+git log --stat            # 人审 publish 落位的变更后提交
 ```
 
-全局命令来自各包内 `pnpm link --global`（meta-cli → imeta，iuse → iuse）；未 link 用 `pnpm meta <...>`。
-
-## 新增资产
-
-1. 在 `meta/<类>/` 建元指令（`stub` 起步，`ready` 可构建）
-2. 构建：`imeta build <name>`（或 `imeta` TUI 里选中按 `b`）——AI 构建契约见 `meta/prompts/`，格式说明见 `meta/README.md`
-
-用户给官方链接要求引入资产时，按 `meta/prompts/asset-intake.md` 契约执行
-（真实抓取、判类落账、refUrl+实际来源两层溯源、人审）。
+维护端命令（imeta build/publish 等）在开发仓 `~/code/meta` 使用。

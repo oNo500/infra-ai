@@ -11,55 +11,39 @@ infra-ai/
 │       ├── constitution.md    # rules/constitution.md 的分发副本
 │       └── architecture.md    # this file
 ├── skills.json                # skill 账：存在与来源的 SSoT
-├── profiles.json              # rule 组合账：项目 profile 显式清单（imeta status 校验）
-├── catalog.json               # 构建产物：资产查询视图（imeta catalog 生成）
+├── profiles.json              # rule 组合账：项目 profile 显式清单
+├── catalog.json               # 资产查询视图：iuse list/show/cat 的数据源
 ├── globals.json               # 全局层账：~/.claude 应装 rule 清单（iuse --global 只读对账）
 ├── SKILLS.md                  # skills 专题（SSoT、创建、维护、使用）
 ├── skills/                    # skill 产物（custom + mirror；official 留上游）
-├── meta/                      # 元指令源，永久保留
-│   ├── prompts/               # AI 行为契约，每类两份（<类>-build.md、<类>-writeback.md）
-│   ├── README.md              # 元指令格式与新增资产说明
-│   ├── tags.json              # rule tag 受控词表（分面化，互斥面 + 孤儿校验）
-│   ├── rules/                 # rule 元指令（frontmatter 含 tags/requires 管理元数据）
-│   ├── skills/                # skill 元指令
-│   └── templates/             # template 元指令
-├── rules/                     # 可分发 rule 产物（纯正文无 frontmatter；scope 在 meta，安装时渲染）
+├── rules/                     # 可分发 rule 产物（纯正文无 frontmatter；scope 在开发仓，安装时渲染）
 ├── templates/                 # 项目模板（含占位符，分发时实例化）
+│   └── template-instantiate.md   # AI 实例化契约（随 publish 落位）
 ├── docs/
 │   ├── mcp/                   # MCP server 知识文档
-│   └── superpowers/           # 设计文档（specs + plans）
-├── packages/meta-cli/         # 维护端 CLI/TUI（对账/构建/回写；bin: imeta）
-├── packages/iuse/             # 使用端 CLI（init/status/update，向目标项目拼装 profile；bin: iuse）
-├── packages/preview/          # 产物 web 预览（Bun.serve + React，imeta preview 拉起）
-├── artifacts.lock.json        # 构建登记：meta/产物 hash 基线（键 <kind>:<name>）
+│   └── superpowers/           # 设计文档存档（specs + plans）
 └── .mcp.json                  # MCP 配置（自用，key 用占位符）
 ```
 
-## 源→产物模型
+## 发布接收
 
-- `meta/` 元指令是源，永久保留；`skills/`、`rules/`、`templates/` 下的构建产物可重建
-- AI 构建/回写契约在 `meta/prompts/`，每类两份；流程的 SSoT 是
-  `packages/meta-cli/src/core/actions.ts`（imeta --help 与 run log 即流程文档）
-- 产物上的有价值修改必须回写元指令，否则下次重建丢失
-
-## 分发
-
-- `rules/` — 产物为纯正文；iuse 安装时按 meta `scope` 渲染 `paths`
-  frontmatter 后落地（global 原样 copy）；人工取安装形态用 `iuse cat <name>`
-- `templates/` — 模板型，结合目标项目实例化占位符后落地
-- 源只在本仓改，下游副本不回改
+- 本仓不产资产：skills/、rules/、templates/ 与四账（catalog/profiles/
+  globals/skills）的内容一律来自开发仓 `~/code/meta` 的 `imeta publish`
+- publish 落位语义：开发仓把 `status: synced` 的资产、四账与静态文件
+  （含本文件对应的模板）复制到本仓工作区，不自动提交
+- synced 门在开发仓：资产要先在开发仓构建、通过校验、达到 synced，
+  才会被 publish 选中落位；本仓看到的永远是已过门的产物
+- 本仓职责是人审：`git log --stat` / `git diff` 核对落位内容后提交；
+  提交前不改资产内容，改动一律回开发仓重新 publish
 
 ## 对账
 
-- `imeta` 打开 TUI（全局命令：`packages/meta-cli` 内 `pnpm link --global`；未 link 用 `pnpm meta`）：
-  资产状态（stub/unbuilt/untracked/dirty/stale/synced）、
-  skills ledger 与 mirror 上游，均在界面内收敛
-- 非交互：`imeta status [--json]` 等子命令，退出码语义化
-- mutation 动作运行留痕 `.imeta/logs/*.jsonl`（git-ignored，留最近 1000 次，
-  含 claude 原始事件流）；失败输出附 `log: <path>` 指向现场
-
-## 动作注册表（功能同步红线）
-
-- `packages/meta-cli/src/core/actions.ts` 是全部维护动作的 SSoT：
-  CLI 子命令由它生成，TUI 键位在 `src/tui/keymap.ts` 声明
-- 新增动作必须先进注册表，再接 keymap；`tests/parity.test.ts` 不过不得提交
+- 使用端口径，面向下游项目和设备：
+  - `iuse status [--global]` — 逐 rule 对账下游副本与本仓 catalog 的
+    漂移（synced/modified/outdated/missing/excluded/available）
+  - `iuse diff [--rule <name>]` — 查看下游副本与本仓内容的具体差异
+  - `iuse update` — 把本仓变更应用到已初始化的下游目标
+- `--global` 对账 `~/.claude`（Claude 的 user scope）而非某个项目，
+  与 target 互斥，只读
+- 本仓自身状态用 `git status`／`git log --stat` 核对 publish 落位是否
+  符合预期；资产层面的对账（stub/dirty/stale 等）属于开发仓 `imeta`
