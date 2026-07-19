@@ -68,9 +68,20 @@ export interface ListWindow {
  * stable rather than reflowing by 1 row as the cursor nears an edge).
  * Centers the cursor when there's slack on both sides; clamps to the array
  * bounds otherwise so the window always uses its full row budget.
+ *
+ * When maxRows <= 2 (tiny terminal), degrades to showing just the cursor line
+ * and as many adjacent lines as budget allows, without "..." indicators.
  */
 export function listWindow(length: number, cursor: number, maxRows: number): ListWindow {
   if (length <= maxRows) return { start: 0, end: length, hasMoreAbove: false, hasMoreBelow: false }
+
+  // Guard against tiny terminals: when budget would be 0 or negative, just show
+  // cursor line and up to (maxRows - 1) adjacent lines.
+  if (maxRows <= 2) {
+    const start = Math.max(0, Math.min(cursor, length - maxRows))
+    const end = Math.min(length, start + maxRows)
+    return { start, end, hasMoreAbove: start > 0, hasMoreBelow: end < length }
+  }
 
   const budget = maxRows - 2
   let start = cursor - Math.floor(budget / 2)
