@@ -88,14 +88,14 @@ describe('runCli entry routing', () => {
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
@@ -357,13 +357,13 @@ describe('--global CLI payload shapes (built from core results, matching cli/ind
   function fixtureGlobalSource(): string {
     const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-global-src-'))
     mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-    mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(dir, 'rules'), { recursive: true })
     writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
     writeFileSync(
       join(dir, 'meta', 'rules', 'markdown.md'),
       '---\nname: markdown\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
     )
-    writeFileSync(join(dir, 'rules', 'global', 'markdown.md'), '# Markdown\n\nbody\n')
+    writeFileSync(join(dir, 'rules', 'markdown.md'), '# Markdown\n\nbody\n')
     writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['markdown'] }))
     writeFileSync(join(dir, 'profiles.json'), JSON.stringify({}))
     return dir
@@ -442,7 +442,7 @@ describe('exclude/add flags (comma-split plumbing)', () => {
     // Build a multi-rule fixture
     const sourceDir = mkdtempSync(join(tmpdir(), 'iuse-multi-rule-src-'))
     mkdirSync(join(sourceDir, 'meta', 'rules'), { recursive: true })
-    mkdirSync(join(sourceDir, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(sourceDir, 'rules'), { recursive: true })
     mkdirSync(join(sourceDir, 'templates'), { recursive: true })
     writeFileSync(
       join(sourceDir, 'meta', 'tags.json'),
@@ -456,8 +456,8 @@ describe('exclude/add flags (comma-split plumbing)', () => {
       join(sourceDir, 'meta', 'rules', 'architecture.md'),
       '---\nname: architecture\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
     )
-    writeFileSync(join(sourceDir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
-    writeFileSync(join(sourceDir, 'rules', 'global', 'architecture.md'), '# Architecture\n')
+    writeFileSync(join(sourceDir, 'rules', 'constitution.md'), '# Constitution\n')
+    writeFileSync(join(sourceDir, 'rules', 'architecture.md'), '# Architecture\n')
     writeFileSync(
       join(sourceDir, 'profiles.json'),
       JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'architecture'] } }),
@@ -573,7 +573,7 @@ describe('exclude/add flags (comma-split plumbing)', () => {
     // Build multi-rule fixture
     const sourceDir = mkdtempSync(join(tmpdir(), 'iuse-repeated-exclude-src-'))
     mkdirSync(join(sourceDir, 'meta', 'rules'), { recursive: true })
-    mkdirSync(join(sourceDir, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(sourceDir, 'rules'), { recursive: true })
     mkdirSync(join(sourceDir, 'templates'), { recursive: true })
     writeFileSync(
       join(sourceDir, 'meta', 'tags.json'),
@@ -584,7 +584,7 @@ describe('exclude/add flags (comma-split plumbing)', () => {
         join(sourceDir, 'meta', 'rules', `${name}.md`),
         `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody`,
       )
-      writeFileSync(join(sourceDir, 'rules', 'global', `${name}.md`), `# ${name}\n`)
+      writeFileSync(join(sourceDir, 'rules', `${name}.md`), `# ${name}\n`)
     }
     writeFileSync(
       join(sourceDir, 'profiles.json'),

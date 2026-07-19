@@ -10,14 +10,14 @@ import { statusReport } from '../src/core/report'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-report-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
@@ -32,7 +32,7 @@ function addRule(source: string, name: string, ruleBody: string, tags: string[] 
     join(source, 'meta', 'rules', `${name}.md`),
     `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
-  writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
+  writeFileSync(join(source, 'rules', `${name}.md`), ruleBody)
 }
 
 function setProfileRules(source: string, rules: string[]): void {
@@ -138,7 +138,7 @@ describe('statusReport', () => {
   test('source moved on, local untouched -> outdated', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
 
     const result = await statusReport(ctxWith(), { source, target })
 

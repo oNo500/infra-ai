@@ -7,13 +7,12 @@ import { assembleRules, planAssembly } from '../src/core/assemble'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-asm-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'scoped'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x', docs: 'x' } } }))
   writeFileSync(join(dir, 'meta', 'rules', 'constitution.md'), '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody')
   writeFileSync(join(dir, 'meta', 'rules', 'markdown.md'), '---\nname: markdown\nstatus: ready\ndescription: x\nscope: "**/*.md"\ntags: [docs]\n---\nbody')
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
-  writeFileSync(join(dir, 'rules', 'scoped', 'markdown.md'), '---\npaths:\n  - "**/*.md"\n---\n# Markdown\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'markdown.md'), '# Markdown\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution', 'markdown'] } }))
   return dir
 }
@@ -26,6 +25,14 @@ describe('planAssembly', () => {
     expect(items.map((i) => i.rule)).toEqual(['constitution', 'markdown'])
     expect(items[0]?.targetRelPath).toBe('.claude/rules/constitution.md')
     expect(items[0]?.hash).toHaveLength(64)
+  })
+  test('scoped rule content is rendered with paths frontmatter', () => {
+    const src = fixtureSource()
+    const { items } = planAssembly(src, 'demo')
+    const markdown = items.find((i) => i.rule === 'markdown')
+    expect(markdown?.content).toBe('---\npaths:\n  - "**/*.md"\n---\n\n# Markdown\n')
+    const constitution = items.find((i) => i.rule === 'constitution')
+    expect(constitution?.content).toBe('# Constitution\n')
   })
   test('unknown profile throws with available names', () => {
     const src = fixtureSource()

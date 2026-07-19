@@ -36,7 +36,7 @@ function snapshotDir(dir: string): Record<string, string> {
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-global-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
 
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
@@ -52,9 +52,9 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'alpha.md'), '# Alpha\n\nbody\n')
-  writeFileSync(join(dir, 'rules', 'global', 'beta.md'), '# Beta\n\nbody\n')
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'beta.md'), '# Beta\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['alpha', 'beta'] }))
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['alpha', 'constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))

@@ -31,14 +31,14 @@ function snapshotDir(dir: string): Record<string, string> {
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-diff-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
   writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['constitution'] }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
@@ -54,7 +54,7 @@ function addRule(source: string, name: string, ruleBody: string, tags: string[] 
     join(source, 'meta', 'rules', `${name}.md`),
     `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
-  writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
+  writeFileSync(join(source, 'rules', `${name}.md`), ruleBody)
 }
 
 function setProfileRules(source: string, rules: string[]): void {
@@ -130,7 +130,7 @@ describe('diffReport', () => {
   test('summary mode: differing rule reports additions/deletions with no patch, exit 1', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nline a\nline b\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nline a\nline b\n')
 
     const result = await diffReport(ctxWith(), { source, target })
 
@@ -151,7 +151,7 @@ describe('diffReport', () => {
     if (lock === null) throw new Error('fixture lock missing')
     const { extra: _extra, ...restRules } = lock.rules
     saveDownstreamLock(target, { ...lock, rules: restRules, excluded: ['extra'] })
-    writeFileSync(join(source, 'rules', 'global', 'extra.md'), '# Extra\n\nchanged upstream\n')
+    writeFileSync(join(source, 'rules', 'extra.md'), '# Extra\n\nchanged upstream\n')
 
     const result = await diffReport(ctxWith(), { source, target })
 
@@ -204,7 +204,7 @@ describe('diffReport', () => {
     const target = await initTarget(source)
     // local (baseline) content is '# Constitution\n' (one line).
     // source moves to a 3-line text: this replaces line 1 and adds 2 new lines.
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), 'line one\nline two\nline three\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), 'line one\nline two\nline three\n')
 
     const result = await diffReport(ctxWith(), { source, target, rule: 'constitution' })
 
@@ -251,7 +251,7 @@ describe('diffReport', () => {
     if (lock === null) throw new Error('fixture lock missing')
     const { extra: _extra, ...restRules } = lock.rules
     saveDownstreamLock(target, { ...lock, rules: restRules, excluded: ['extra'] })
-    writeFileSync(join(source, 'rules', 'global', 'extra.md'), '# Extra\n\nchanged upstream\n')
+    writeFileSync(join(source, 'rules', 'extra.md'), '# Extra\n\nchanged upstream\n')
 
     const result = await diffReport(ctxWith(), { source, target, rule: 'extra' })
 
@@ -295,7 +295,7 @@ describe('diffReport', () => {
   test('a locked rule whose built artifact is missing at the source surfaces as an assembly violation', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    rmSync(join(source, 'rules', 'global', 'constitution.md'))
+    rmSync(join(source, 'rules', 'constitution.md'))
 
     const result = await diffReport(ctxWith(), { source, target })
 
@@ -317,7 +317,7 @@ describe('diffReport', () => {
     expect(clean.diffs).toEqual([])
     expect(clean.exitCode).toBe(0)
 
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nline a\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nline a\n')
 
     const result = await diffReport(ctxWith(), { source, target })
 

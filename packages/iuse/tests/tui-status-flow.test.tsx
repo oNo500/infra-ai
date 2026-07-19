@@ -13,7 +13,7 @@ import { loadDownstreamLock } from '../src/core/manifest'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-status-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
@@ -21,17 +21,17 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'edited.md'),
     '---\nname: edited\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'edited.md'), '# Edited\n')
+  writeFileSync(join(dir, 'rules', 'edited.md'), '# Edited\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'gone.md'),
     '---\nname: gone\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'gone.md'), '# Gone\n')
+  writeFileSync(join(dir, 'rules', 'gone.md'), '# Gone\n')
   writeFileSync(
     join(dir, 'profiles.json'),
     JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'edited', 'gone'] } }),
@@ -47,9 +47,9 @@ function fixtureSource(): string {
     generatedAt: '2026-07-18T00:00:00Z',
     tags: { concern: { exclusive: false, values: { core: 'x' } } },
     rules: {
-      constitution: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/constitution.md', profiles: ['demo'] },
-      edited: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/edited.md', profiles: ['demo'] },
-      gone: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/global/gone.md', profiles: ['demo'] },
+      constitution: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/constitution.md', profiles: ['demo'] },
+      edited: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/edited.md', profiles: ['demo'] },
+      gone: { description: 'x', tags: ['core'], scope: 'global', path: 'rules/gone.md', profiles: ['demo'] },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
@@ -169,7 +169,7 @@ async function initTargetWithAllStates(source: string): Promise<string> {
     join(source, 'meta', 'rules', 'extra.md'),
     '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(source, 'rules', 'global', 'extra.md'), '# Extra\n')
+  writeFileSync(join(source, 'rules', 'extra.md'), '# Extra\n')
   writeFileSync(
     join(source, 'profiles.json'),
     JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'edited', 'gone', 'extra'] } }),

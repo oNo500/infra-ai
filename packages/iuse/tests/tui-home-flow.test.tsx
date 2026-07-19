@@ -17,7 +17,7 @@ import type { IuseContext } from '../src/core/init'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-home-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
@@ -25,7 +25,7 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
@@ -41,7 +41,7 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/constitution.md',
+        path: 'rules/constitution.md',
         profiles: ['demo'],
       },
     },

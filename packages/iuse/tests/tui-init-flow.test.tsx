@@ -12,7 +12,7 @@ import { loadDownstreamLock } from '../src/core/manifest'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
@@ -20,12 +20,12 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'extra.md'),
     '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'extra.md'), '# Extra\n')
+  writeFileSync(join(dir, 'rules', 'extra.md'), '# Extra\n')
   writeFileSync(
     join(dir, 'profiles.json'),
     JSON.stringify({
@@ -48,14 +48,14 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/constitution.md',
+        path: 'rules/constitution.md',
         profiles: ['node-web', 'python-cli'],
       },
       extra: {
         description: 'x',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/extra.md',
+        path: 'rules/extra.md',
         profiles: ['python-cli'],
       },
     },

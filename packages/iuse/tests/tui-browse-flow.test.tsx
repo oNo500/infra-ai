@@ -12,7 +12,7 @@ import type { IuseContext } from '../src/core/init'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
   // Two facets ('concern', 'layer') so the t-cycle test can exercise the full
@@ -28,12 +28,12 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(
     join(dir, 'meta', 'rules', 'extra.md'),
     '---\nname: extra\nstatus: ready\ndescription: x\nscope: global\ntags: [backend]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'extra.md'), '# Extra\n')
+  writeFileSync(join(dir, 'rules', 'extra.md'), '# Extra\n')
   writeFileSync(
     join(dir, 'profiles.json'),
     JSON.stringify({
@@ -60,14 +60,14 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/constitution.md',
+        path: 'rules/constitution.md',
         profiles: ['node-web', 'python-cli'],
       },
       extra: {
         description: 'x',
         tags: ['backend'],
         scope: 'global',
-        path: 'rules/global/extra.md',
+        path: 'rules/extra.md',
         profiles: ['python-cli'],
       },
     },
@@ -86,7 +86,7 @@ function fixtureSource(): string {
 function fixtureSourceWithLongBody(): string {
   const dir = fixtureSource()
   const lines = Array.from({ length: 80 }, (_, i) => `line-${i + 1}`)
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), `${lines.join('\n')}\n`)
+  writeFileSync(join(dir, 'rules', 'constitution.md'), `${lines.join('\n')}\n`)
   return dir
 }
 
@@ -98,7 +98,7 @@ function fixtureSourceWithLongBody(): string {
 function fixtureSourceWithManyRules(count: number): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   mkdirSync(join(dir, 'meta', 'prompts'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({}))
@@ -113,8 +113,8 @@ function fixtureSourceWithManyRules(count: number): string {
   for (let i = 0; i < count; i += 1) {
     const name = `rule-${String(i).padStart(2, '0')}`
     writeFileSync(join(dir, 'meta', 'rules', `${name}.md`), `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: []\n---\nbody`)
-    writeFileSync(join(dir, 'rules', 'global', `${name}.md`), `# ${name}\n`)
-    rules[name] = { description: 'x', tags: [], scope: 'global', path: `rules/global/${name}.md`, profiles: [] }
+    writeFileSync(join(dir, 'rules', `${name}.md`), `# ${name}\n`)
+    rules[name] = { description: 'x', tags: [], scope: 'global', path: `rules/${name}.md`, profiles: [] }
   }
   const catalog: Catalog = { generatedAt: '2026-07-18T00:00:00Z', tags: {}, rules }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
@@ -353,7 +353,7 @@ describe('TUI browse flow', () => {
   test('catalog missing on an uninitialized target lands in error view naming imeta catalog', async () => {
     const source = mkdtempSync(join(tmpdir(), 'iuse-tui-browse-nocatalog-'))
     mkdirSync(join(source, 'meta', 'rules'), { recursive: true })
-    mkdirSync(join(source, 'rules', 'global'), { recursive: true })
+    mkdirSync(join(source, 'rules'), { recursive: true })
     mkdirSync(join(source, 'templates'), { recursive: true })
     writeFileSync(join(source, 'meta', 'tags.json'), JSON.stringify({}))
     writeFileSync(join(source, 'profiles.json'), JSON.stringify({}))

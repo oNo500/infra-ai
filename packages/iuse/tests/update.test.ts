@@ -11,14 +11,14 @@ import { runUpdate } from '../src/core/update'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-update-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
   writeFileSync(
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
@@ -33,7 +33,7 @@ function addRule(source: string, name: string, ruleBody: string, tags: string[] 
     join(source, 'meta', 'rules', `${name}.md`),
     `---\nname: ${name}\nstatus: ready\ndescription: x\nscope: global\ntags: [${tags.join(', ')}]\n---\nbody`,
   )
-  writeFileSync(join(source, 'rules', 'global', `${name}.md`), ruleBody)
+  writeFileSync(join(source, 'rules', `${name}.md`), ruleBody)
 }
 
 function setProfileRules(source: string, rules: string[]): void {
@@ -110,7 +110,7 @@ describe('runUpdate', () => {
   test('outdated + clean local -> writes new content and refreshes the lock hash', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
 
     const result = await runUpdate(ctxWith(() => '2026-08-01T00:00:00Z'), { source, target, force: false })
 
@@ -126,7 +126,7 @@ describe('runUpdate', () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocally edited\n')
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
     const lockBefore = loadDownstreamLock(target)
 
     const collectedSteps: Array<{ op: string; target: string; note?: string }> = []
@@ -158,7 +158,7 @@ describe('runUpdate', () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocally edited\n')
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
 
     const result = await runUpdate(ctxWith(), { source, target, force: true })
 
@@ -231,7 +231,7 @@ describe('runUpdate', () => {
     // profile) -- assembleRules resolves this as 'missing', which is the only
     // condition that still triggers a drop.
     rmSync(join(source, 'meta', 'rules', 'extra.md'))
-    rmSync(join(source, 'rules', 'global', 'extra.md'))
+    rmSync(join(source, 'rules', 'extra.md'))
     setProfileRules(source, ['constitution'])
 
     const result = await runUpdate(ctxWith(), { source, target, force: false })
@@ -278,7 +278,7 @@ describe('runUpdate', () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     // outdated: change the source content for constitution
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
     // modified: also add another rule locally-edited to prove skip-modified
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
@@ -287,7 +287,7 @@ describe('runUpdate', () => {
 
     // now make local edits + a new source change to create modified + outdated together
     writeFileSync(join(target, '.claude/rules/extra.md'), '# Extra\n\nlocally edited\n')
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv3\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv3\n')
 
     const lockBefore = loadDownstreamLock(target)
     const constitutionBefore = readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')
@@ -337,7 +337,7 @@ describe('runUpdate', () => {
   test('real update still returns steps describing what happened', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
 
@@ -485,7 +485,7 @@ describe('runUpdate', () => {
     const { constitution: _c, ...restRules } = initialLock.rules
     saveDownstreamLock(target, { ...initialLock, rules: restRules, excluded: ['constitution'] })
     // source moves on -- still must not resurface the excluded rule in any step
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
 
     const result = await runUpdate(ctxWith(), { source, target, force: false })
 
@@ -502,7 +502,7 @@ describe('runUpdate', () => {
     const source = fixtureSource()
     const target = await initTarget(source)
     writeFileSync(join(target, '.claude/rules/constitution.md'), '# Constitution\n\nlocally edited\n')
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
 
     const result = await runUpdate(ctxWith(), { source, target, force: false, overwrite: ['constitution'] })
 
@@ -532,7 +532,7 @@ describe('runUpdate', () => {
   test('onProgress fires per executed step in order, not in dry-run', async () => {
     const source = fixtureSource()
     const target = await initTarget(source)
-    writeFileSync(join(source, 'rules', 'global', 'constitution.md'), '# Constitution\n\nv2\n')
+    writeFileSync(join(source, 'rules', 'constitution.md'), '# Constitution\n\nv2\n')
     addRule(source, 'extra', '# Extra\n')
     setProfileRules(source, ['constitution', 'extra'])
 
@@ -647,7 +647,7 @@ describe('runUpdate', () => {
       join(source, 'meta', 'rules', 'incomplete.md'),
       '---\nname: incomplete\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
     )
-    rmSync(join(source, 'rules', 'global', 'incomplete.md'))
+    rmSync(join(source, 'rules', 'incomplete.md'))
 
     const result = await runUpdate(ctxWith(), { source, target, force: false, add: ['incomplete'] })
 

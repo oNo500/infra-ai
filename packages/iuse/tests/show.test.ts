@@ -9,7 +9,7 @@ import { showReport } from '../src/core/show'
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-show-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
 
   writeFileSync(
     join(dir, 'meta', 'rules', 'alpha.md'),
@@ -24,13 +24,13 @@ function fixtureSource(): string {
         description: '甲说明',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/alpha.md',
+        path: 'rules/alpha.md',
         profiles: ['demo'],
       },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
-  writeFileSync(join(dir, 'rules', 'global', 'alpha.md'), '# Alpha\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo', rules: ['alpha'] } }))
   return dir
 }
@@ -95,7 +95,7 @@ describe('showReport', () => {
 
   test('artifact file missing on source: entry.state is broken, content omitted, still ok', async () => {
     const source = fixtureSource()
-    rmSync(join(source, 'rules', 'global', 'alpha.md'))
+    rmSync(join(source, 'rules', 'alpha.md'))
     const uninitTarget = mkdtempSync(join(tmpdir(), 'iuse-show-uninit-'))
 
     const result = await showReport(fakeCtx(), { source, target: uninitTarget, name: 'alpha' })

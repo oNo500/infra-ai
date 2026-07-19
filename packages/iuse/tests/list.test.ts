@@ -18,9 +18,9 @@ function addGammaRule(source: string): void {
     join(source, 'meta', 'rules', 'gamma.md'),
     '---\nname: gamma\nstatus: ready\ndescription: gamma description\nscope: global\ntags: [extra]\n---\nbody',
   )
-  writeFileSync(join(source, 'rules', 'global', 'gamma.md'), '# Gamma\n\nbody\n')
+  writeFileSync(join(source, 'rules', 'gamma.md'), '# Gamma\n\nbody\n')
   const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
-  catalog.rules.gamma = { description: 'gamma description', tags: ['extra'], scope: 'global', path: 'rules/global/gamma.md', profiles: [] }
+  catalog.rules.gamma = { description: 'gamma description', tags: ['extra'], scope: 'global', path: 'rules/gamma.md', profiles: [] }
   writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
 }
 
@@ -32,7 +32,7 @@ function addGammaRule(source: string): void {
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-list-src-'))
   mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
-  mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+  mkdirSync(join(dir, 'rules'), { recursive: true })
   mkdirSync(join(dir, 'templates'), { recursive: true })
 
   writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x', extra: 'x' } } }))
@@ -51,7 +51,7 @@ function fixtureSource(): string {
     join(dir, 'meta', 'rules', 'constitution.md'),
     '---\nname: constitution\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
   )
-  writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
+  writeFileSync(join(dir, 'rules', 'constitution.md'), '# Constitution\n')
 
   const catalog: Catalog = {
     generatedAt: '2026-07-18T00:00:00Z',
@@ -61,21 +61,21 @@ function fixtureSource(): string {
         description: '甲说明',
         tags: ['core'],
         scope: 'global',
-        path: 'rules/global/alpha.md',
+        path: 'rules/alpha.md',
         profiles: ['demo'],
       },
       beta: {
         description: 'beta description',
         tags: ['extra'],
         scope: 'global',
-        path: 'rules/global/beta.md',
+        path: 'rules/beta.md',
         profiles: [],
       },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
-  writeFileSync(join(dir, 'rules', 'global', 'alpha.md'), '# Alpha\n\nbody\n')
-  writeFileSync(join(dir, 'rules', 'global', 'beta.md'), '# Beta\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
+  writeFileSync(join(dir, 'rules', 'beta.md'), '# Beta\n\nbody\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo', rules: ['alpha', 'constitution'] } }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
@@ -217,7 +217,7 @@ describe('listReport', () => {
 
   test('catalog entry whose artifact file is missing on the source annotates broken without aborting the list', async () => {
     const source = fixtureSource()
-    rmSync(join(source, 'rules', 'global', 'beta.md'))
+    rmSync(join(source, 'rules', 'beta.md'))
     const uninitTarget = mkdtempSync(join(tmpdir(), 'iuse-list-uninit-'))
 
     const result = await listReport(fakeCtx(), { source, target: uninitTarget })
