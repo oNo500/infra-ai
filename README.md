@@ -15,7 +15,7 @@
   实际来源（repo 或 `install`）。专题（SSoT、创建、维护、使用）见 [`SKILLS.md`](SKILLS.md)。
 - [`catalog.json`](catalog.json) — 构建产物：资产查询视图（描述/tags/profile 隶属），`imeta catalog` 生成，供 `iuse list/show` 与 TUI 浏览消费
 - [`globals.json`](globals.json) — 全局层账：`~/.claude`（Claude 的 user scope）应装的 rule 清单，`iuse status --global` 只读对账
-- [`rules/`](rules/) — 可分发 rule 的构建产物：`global/`（无条件加载，含 constitution）+ `scoped/`（按 `paths` 动态加载）
+- [`rules/`](rules/) — 可分发 rule 的构建产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
 - [`meta/`](meta/) — 构建 skill/rule/template 的元指令（`skills/`、`rules/`、`templates/`），永久保留、可重复构建；AI 构建契约在 [`meta/prompts/`](meta/prompts/)，每类两份（build/writeback）
@@ -54,7 +54,8 @@ pnpx skills add <owner>/<repo> -s <name>
 # 规则与模板：使用端 CLI（packages/iuse 内 pnpm link --global）
 iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
 iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
-iuse show <name>                       # 单条资产元数据 + 产物全文
+iuse show <name>                       # 单条资产元数据 + 渲染后全文
+iuse cat <name>                        # 输出渲染后的安装形态（可重定向落盘）
 iuse profiles                          # 列出可选 profile 及其 rules
 iuse init --profile <name> <project>   # 按预设组合初始化（--dry-run 预演；--exclude 排除个别）
 iuse init --rules a,b,c <project>      # 不经 profile 直选拼装（查询完自选）

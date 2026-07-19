@@ -46,8 +46,9 @@ diff 带 diffs）。
 降级流程（无 iuse 时）：
 
 - 中心源默认 `~/code/infra-ai`（或 INFRA_AI_ROOT）；读 `profiles.json`
-  选 profile，把清单内每条 rule 从 `rules/global|scoped/` 拷到目标
-  `.claude/rules/<name>.md`，拷 `templates/settings.json`
+  选 profile，把清单内每条 rule 从 `rules/` 拷到目标
+  `.claude/rules/<name>.md`（meta `scope` 为 glob 的规则需在副本头部
+  补 `paths` frontmatter），拷 `templates/settings.json`
 - 参照 `templates/architecture.md` 与 `templates/claude-md.md` 结合项目
   事实实例化（占位符全替换、不适用章节整节删、CLAUDE.md <50 行）
 - 提醒用户装 iuse（infra-ai 仓 `packages/iuse` 内 `pnpm link --global`）

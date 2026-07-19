@@ -10,7 +10,7 @@ description: >-
 # edit-markdown
 
 Markdown 语法速查。写作姿态与本仓约定归 markdown rule
-（`rules/scoped/markdown.md`），本 skill 只回答「这个语法怎么写」。
+（`rules/markdown.md`），本 skill 只回答「这个语法怎么写」。
 
 ## 快速规则
 

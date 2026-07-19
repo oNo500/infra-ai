@@ -6,7 +6,7 @@ status: ready
 # 元指令：edit-markdown skill
 
 Markdown 语法参考（懒加载）。分工：写作姿态与约定归 markdown rule
-（rules/scoped/markdown.md），本 skill 只提供语法层速查——CommonMark、
+（rules/markdown.md），本 skill 只提供语法层速查——CommonMark、
 GFM、GitHub 专属扩展（alerts、Mermaid、math、details、autolink）。
 
 ## frontmatter

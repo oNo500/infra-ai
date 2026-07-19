@@ -8,7 +8,7 @@ infra-ai/
 │   ├── CLAUDE.md              # project entry point
 │   ├── settings.json          # permissions + env (project-scoped)
 │   └── rules/                 # 本仓自用规则，不分发
-│       ├── constitution.md    # rules/global/constitution.md 的分发副本
+│       ├── constitution.md    # rules/constitution.md 的分发副本
 │       └── architecture.md    # this file
 ├── skills.json                # skill 账：存在与来源的 SSoT
 ├── profiles.json              # rule 组合账：项目 profile 显式清单（imeta status 校验）
@@ -23,9 +23,7 @@ infra-ai/
 │   ├── rules/                 # rule 元指令（frontmatter 含 tags/requires 管理元数据）
 │   ├── skills/                # skill 元指令
 │   └── templates/             # template 元指令
-├── rules/                     # 可分发 rule 产物
-│   ├── global/                # 无 paths frontmatter，无条件加载，copy 即用
-│   └── scoped/                # paths frontmatter，按 glob 触发加载
+├── rules/                     # 可分发 rule 产物（纯正文无 frontmatter；scope 在 meta，安装时渲染）
 ├── templates/                 # 项目模板（含占位符，分发时实例化）
 ├── docs/
 │   ├── mcp/                   # MCP server 知识文档
@@ -46,7 +44,8 @@ infra-ai/
 
 ## 分发
 
-- `rules/global|scoped/` — 照搬型，手动 copy 到目标项目 `.claude/rules/`（分发能力属使用端 CLI，待立项）
+- `rules/` — 产物为纯正文；iuse 安装时按 meta `scope` 渲染 `paths`
+  frontmatter 后落地（global 原样 copy）；人工取安装形态用 `iuse cat <name>`
 - `templates/` — 模板型，结合目标项目实例化占位符后落地
 - 源只在本仓改，下游副本不回改
 
