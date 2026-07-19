@@ -117,14 +117,17 @@ describe('metaContentHash', () => {
     expect(metaContentHash(tagged)).toBe(metaContentHash(base))
   })
 
-  test('changes with body and with scope', () => {
+  test('changes with body', () => {
     const a = `---\nname: a\nstatus: ready\nscope: global\n---\nbody`
     expect(metaContentHash(`---\nname: a\nstatus: ready\nscope: global\n---\nother`)).not.toBe(
       metaContentHash(a),
     )
-    expect(metaContentHash(`---\nname: a\nstatus: ready\nscope: "**/*.ts"\n---\nbody`)).not.toBe(
-      metaContentHash(a),
-    )
+  })
+
+  test('ignores scope changes (management metadata)', () => {
+    const a = metaContentHash('---\nname: x\nstatus: ready\nscope: global\n---\nbody')
+    const b = metaContentHash('---\nname: x\nstatus: ready\nscope: "**/*.md"\n---\nbody')
+    expect(a).toBe(b)
   })
 })
 

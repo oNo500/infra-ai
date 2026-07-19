@@ -60,7 +60,6 @@ export function metaContentHash(content: string): string {
   const kept = {
     name: typeof data.name === 'string' ? data.name : null,
     status: data.status === 'ready' ? 'ready' : 'stub',
-    scope: typeof data.scope === 'string' ? data.scope : null,
   }
   return sha256(`${JSON.stringify(kept)}\n${body}`)
 }
