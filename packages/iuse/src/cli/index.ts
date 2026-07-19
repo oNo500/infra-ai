@@ -4,6 +4,7 @@ import { defineCommand, runMain } from 'citty'
 import { downloadTemplate } from 'giget'
 import { runClaude, runCommand } from '@infra-ai/meta-cli/core'
 import { diffReport } from '../core/diff'
+import { globalStatusReport } from '../core/global'
 import type { IuseContext } from '../core/init'
 import { runInit } from '../core/init'
 import { listReport } from '../core/list'
@@ -41,6 +42,19 @@ export function defaultContext(): IuseContext {
  */
 export function renderJson(result: unknown): string {
   return JSON.stringify(result)
+}
+
+/**
+ * --global and a positional target are mutually exclusive: --global always
+ * operates on the fixed global root ($HOME), so a target positional would be
+ * ambiguous. Shared by status/diff/list, which each accept both flags.
+ * Returns an error message when both are set, otherwise null.
+ */
+export function validateGlobalArgs(args: { global?: boolean; target?: string }): string | null {
+  if (args.global === true && args.target !== undefined) {
+    return '--global 与 target 互斥（--global 固定对账 $HOME，不接受目标路径）'
+  }
+  return null
 }
 
 const initCommand = defineCommand({
@@ -124,22 +138,57 @@ const statusCommand = defineCommand({
   },
   args: {
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    global: {
+      type: 'boolean',
+      description: '对账全局层（~/.claude，即 Claude Code 的 user scope）与中心源；只读，输出建议命令',
+    },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
+    const invalid = validateGlobalArgs({ global: args.global, target: args.target })
+    if (invalid !== null) {
+      console.error(invalid)
+      process.exitCode = 2
+      return
+    }
+
+    if (args.global === true) {
+      const result = await globalStatusReport(defaultContext(), { source: args.source, projectTarget: process.cwd() })
+      if (args.json === true) {
+        const payload = result.ok
+          ? { ok: true, rows: result.rows, duplicates: result.duplicates, exitCode: result.exitCode }
+          : { ok: false, message: result.message, exitCode: result.exitCode }
+        console.log(renderJson(payload))
+      } else {
+        if (result.message !== undefined) console.log(result.message)
+        for (const row of result.rows) {
+          console.log(`${row.rule} ${row.state}`)
+          if (row.suggestion !== undefined) console.log(`  建议: ${row.suggestion}`)
+        }
+        if (result.duplicates.length > 0) {
+          console.log(`双层重复（全局与项目都装了，Claude 会加载两遍）: ${result.duplicates.join(', ')}`)
+        }
+      }
+      process.exitCode = result.exitCode
+      return
+    }
+
     const result = await statusReport(defaultContext(), {
       source: args.source,
       target: args.target ?? process.cwd(),
     })
     if (args.json === true) {
       const payload = result.ok
-        ? { ok: true, rows: result.rows, exitCode: result.exitCode }
+        ? { ok: true, rows: result.rows, duplicates: result.duplicates, exitCode: result.exitCode }
         : { ok: false, message: result.message, exitCode: result.exitCode }
       console.log(renderJson(payload))
     } else {
       if (result.message !== undefined) console.log(result.message)
       for (const row of result.rows) console.log(`${row.rule} ${row.state}`)
+      if (result.duplicates !== undefined && result.duplicates.length > 0) {
+        console.log(`双层重复（全局与项目都装了，Claude 会加载两遍）: ${result.duplicates.join(', ')}`)
+      }
     }
     process.exitCode = result.exitCode
   },
@@ -192,14 +241,26 @@ const diffCommand = defineCommand({
   args: {
     rule: { type: 'string', description: '只看这一条 rule 的完整 diff（可为普通或已排除项）' },
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    global: {
+      type: 'boolean',
+      description: '对账全局层（~/.claude，即 Claude Code 的 user scope）与中心源；只读，输出建议命令',
+    },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
+    const invalid = validateGlobalArgs({ global: args.global, target: args.target })
+    if (invalid !== null) {
+      console.error(invalid)
+      process.exitCode = 2
+      return
+    }
+
     const result = await diffReport(defaultContext(), {
       source: args.source,
       rule: args.rule,
-      target: args.target ?? process.cwd(),
+      target: args.global === true ? homedir() : (args.target ?? process.cwd()),
+      global: args.global,
     })
     if (args.json === true) {
       const payload = result.ok ? { ok: true, diffs: result.diffs } : { ok: false, message: result.message }
@@ -222,19 +283,31 @@ const listCommand = defineCommand({
   },
   args: {
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },
+    global: {
+      type: 'boolean',
+      description: '对账全局层（~/.claude，即 Claude Code 的 user scope）与中心源；只读，输出建议命令',
+    },
     tag: { type: 'string', description: '按 tag 过滤（逗号分隔，取交集）' },
     grep: { type: 'string', description: '按名称/描述/正文子串过滤（不区分大小写）' },
     json: { type: 'boolean', description: '以单行 JSON 输出到 stdout（机器可读）' },
     target: { type: 'positional', required: false, description: '目标项目目录（缺省当前目录）' },
   },
   async run({ args }) {
+    const invalid = validateGlobalArgs({ global: args.global, target: args.target })
+    if (invalid !== null) {
+      console.error(invalid)
+      process.exitCode = 2
+      return
+    }
+
     const tags = splitNames(args.tag)
 
     const result = await listReport(defaultContext(), {
       source: args.source,
-      target: args.target ?? process.cwd(),
+      target: args.global === true ? homedir() : (args.target ?? process.cwd()),
       tags,
       grep: args.grep,
+      global: args.global,
     })
     if (args.json === true) {
       const payload = result.ok
@@ -297,7 +370,8 @@ export function buildMainCommand() {
     meta: {
       name: 'iuse',
       description:
-        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：list/show 查阅 -> profiles -> init --dry-run -> init -> status/update。',
+        '从 infra-ai 中心源按 profile 拼装 Claude Code 配置。典型流程：list/show 查阅 -> profiles -> init --dry-run -> init -> status/update。'
+        + 'status/diff/list 支持 --global：对账 ~/.claude（Claude 的 user scope）而非某个项目，与 target 互斥，只读。',
     },
     subCommands: {
       init: initCommand,

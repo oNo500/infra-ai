@@ -2,8 +2,9 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { renderJson, splitNames } from '../src/cli/index'
+import { renderJson, splitNames, validateGlobalArgs } from '../src/cli/index'
 import type { ActionStep, IuseContext } from '../src/core/init'
+import { globalStatusReport } from '../src/core/global'
 import { runInit } from '../src/core/init'
 import { loadDownstreamLock } from '../src/core/manifest'
 import { profilesReport } from '../src/core/profiles-report'
@@ -281,6 +282,91 @@ describe('splitNames helper', () => {
 
   test('splitNames handles whitespace-only entries', () => {
     expect(splitNames('a, , b')).toEqual(['a', 'b'])
+  })
+})
+
+describe('validateGlobalArgs', () => {
+  test('global + target both set is rejected with a mutual-exclusion message', () => {
+    const message = validateGlobalArgs({ global: true, target: '/tmp/x' })
+    expect(message).not.toBeNull()
+    expect(message).toContain('--global')
+  })
+
+  test('global alone (no target) is accepted', () => {
+    expect(validateGlobalArgs({ global: true, target: undefined })).toBeNull()
+  })
+
+  test('target alone (no global) is accepted', () => {
+    expect(validateGlobalArgs({ global: undefined, target: '/tmp/x' })).toBeNull()
+  })
+
+  test('neither set is accepted', () => {
+    expect(validateGlobalArgs({ global: undefined, target: undefined })).toBeNull()
+  })
+
+  test('global explicitly false with a target is accepted', () => {
+    expect(validateGlobalArgs({ global: false, target: '/tmp/x' })).toBeNull()
+  })
+})
+
+describe('--global CLI payload shapes (built from core results, matching cli/index.ts assembly)', () => {
+  function fixtureGlobalSource(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-global-src-'))
+    mkdirSync(join(dir, 'meta', 'rules'), { recursive: true })
+    mkdirSync(join(dir, 'rules', 'global'), { recursive: true })
+    writeFileSync(join(dir, 'meta', 'tags.json'), JSON.stringify({ concern: { exclusive: false, values: { core: 'x' } } }))
+    writeFileSync(
+      join(dir, 'meta', 'rules', 'markdown.md'),
+      '---\nname: markdown\nstatus: ready\ndescription: x\nscope: global\ntags: [core]\n---\nbody',
+    )
+    writeFileSync(join(dir, 'rules', 'global', 'markdown.md'), '# Markdown\n\nbody\n')
+    writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['markdown'] }))
+    writeFileSync(join(dir, 'profiles.json'), JSON.stringify({}))
+    return dir
+  }
+
+  function fakeHome(): string {
+    const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-global-home-'))
+    mkdirSync(join(dir, '.claude', 'rules'), { recursive: true })
+    writeFileSync(join(dir, '.claude', 'rules', 'markdown.md'), '# Markdown\n\nbody\n')
+    return dir
+  }
+
+  test('status --global json payload carries rows and duplicates (ok branch)', async () => {
+    const source = fixtureGlobalSource()
+    const home = fakeHome()
+
+    const result = await globalStatusReport(
+      { ...ctxWith(), home },
+      { source, projectTarget: process.cwd() },
+    )
+    expect(result.ok).toBe(true)
+
+    const payload = result.ok
+      ? { ok: true, rows: result.rows, duplicates: result.duplicates, exitCode: result.exitCode }
+      : { ok: false, message: result.message, exitCode: result.exitCode }
+    const parsed = JSON.parse(renderJson(payload)) as Record<string, unknown>
+
+    expect(Object.keys(parsed).toSorted()).toEqual(['duplicates', 'exitCode', 'ok', 'rows'])
+    expect(parsed.rows).toEqual([{ rule: 'markdown', state: 'synced' }])
+    expect(parsed.duplicates).toEqual([])
+    expect(parsed.exitCode).toBe(0)
+  })
+
+  test('status --global json payload fail branch carries ok/message/exitCode only', async () => {
+    const bareSource = mkdtempSync(join(tmpdir(), 'iuse-cli-global-bare-'))
+    writeFileSync(join(bareSource, 'profiles.json'), JSON.stringify({}))
+    const home = fakeHome()
+
+    const result = await globalStatusReport({ ...ctxWith(), home }, { source: bareSource })
+    expect(result.ok).toBe(false)
+
+    const payload = result.ok
+      ? { ok: true, rows: result.rows, duplicates: result.duplicates, exitCode: result.exitCode }
+      : { ok: false, message: result.message, exitCode: result.exitCode }
+    const parsed = JSON.parse(renderJson(payload)) as Record<string, unknown>
+
+    expect(Object.keys(parsed).toSorted()).toEqual(['exitCode', 'message', 'ok'])
   })
 })
 
