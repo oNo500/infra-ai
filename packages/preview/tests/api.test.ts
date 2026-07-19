@@ -12,8 +12,8 @@ function fixtureRepo(): string {
     join(root, 'meta/rules/foo.md'),
     '---\nname: foo\nstatus: ready\nscope: global\n---\nintent\n',
   )
-  mkdirSync(join(root, 'rules/global'), { recursive: true })
-  writeFileSync(join(root, 'rules/global/foo.md'), '# foo artifact\n')
+  mkdirSync(join(root, 'rules'), { recursive: true })
+  writeFileSync(join(root, 'rules/foo.md'), '# foo artifact\n')
   return root
 }
 
@@ -36,7 +36,7 @@ describe('preview api payloads', () => {
       expect(detail?.artifact).toContain('# foo artifact')
       expect(detail?.metaPath).toBe('meta/rules/foo.md')
       expect(assetPayload(root, 'nope')).toBeNull()
-      rmSync(join(root, 'rules/global/foo.md'))
+      rmSync(join(root, 'rules/foo.md'))
       expect(assetPayload(root, 'foo')?.artifact).toBeNull()
     } finally {
       rmSync(root, { recursive: true, force: true })
