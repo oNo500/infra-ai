@@ -1,7 +1,9 @@
 # meta/ — 意图源与 prompt
 
 - `prompts/` — 每类资产两份 AI 行为契约（`<类>-build.md`、`<类>-writeback.md`），
-  headless 构建与回写时由 imeta 指针引用；只写 AI 该做的
+  headless 构建与回写时由 imeta 指针引用；只写 AI 该做的；`asset-intake.md`
+  是例外的第三份，覆盖跨资产类型的引入流程（用户给链接→抓取→判类→
+  skill/rule 建账或 mcp/agent 仅提示→人审），不对应某个 imeta 指针
 - `rules/`、`skills/`、`templates/` — 意图源，一资产一份，永久保留
 
 ## 元指令格式
