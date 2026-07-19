@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { readTextIfExists } from '@infra-ai/meta-cli/core'
+import { loadGlobals, readTextIfExists } from '@infra-ai/meta-cli/core'
 import { createTwoFilesPatch, structuredPatch } from 'diff'
 import { assembleRules } from './assemble'
 import type { IuseContext } from './init'
@@ -9,7 +9,7 @@ import { resolveSource } from './source'
 
 export interface RuleDiff {
   rule: string
-  state: DriftState
+  state: DriftState | 'differs'
   additions: number
   deletions: number
   patch?: string
@@ -49,10 +49,102 @@ function driftStateFor(localText: string | null, sourceText: string): DriftState
   return localText === sourceText ? 'synced' : 'outdated'
 }
 
-export async function diffReport(
+/**
+ * Global-scope diff: the declared set comes from globals.json (not a
+ * downstream lock -- there is no per-project install record for global-scope
+ * rules), and 'outdated' is relabeled 'differs' since global rules have no
+ * lock baseline to distinguish a local edit from an upstream move.
+ */
+async function globalDiffReport(
   ctx: IuseContext,
   opts: { source?: string; target: string; rule?: string },
 ): Promise<DiffResult> {
+  let source: Awaited<ReturnType<typeof resolveSource>>
+  try {
+    source = await resolveSource({
+      explicit: opts.source,
+      envRoot: ctx.env.INFRA_AI_ROOT,
+      homeDefault: join(ctx.home, 'code/infra-ai'),
+      cacheDir: ctx.cacheDir,
+      download: ctx.download,
+      run: ctx.run,
+    })
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : String(error), diffs: [], exitCode: 1 }
+  }
+
+  const globals = loadGlobals(source.root)
+  if (globals === null) {
+    return {
+      ok: false,
+      message: `${source.root}: globals.json missing -- declare the global-scope rule set there first (e.g. { "rules": ["markdown"] })`,
+      diffs: [],
+      exitCode: 1,
+    }
+  }
+
+  const { items, violations } = assembleRules(source.root, globals.rules)
+  if (violations.length > 0) {
+    return {
+      ok: false,
+      message: `assembly violations:\n${violations.map((v) => `  - ${v}`).join('\n')}`,
+      diffs: [],
+      exitCode: 1,
+    }
+  }
+  const sourceByRule = new Map(items.map((i) => [i.rule, i]))
+
+  const relabel = (state: DriftState): DriftState | 'differs' => (state === 'outdated' ? 'differs' : state)
+
+  if (opts.rule !== undefined) {
+    const rule = opts.rule
+    const item = sourceByRule.get(rule)
+    if (item === undefined) {
+      const known = [...globals.rules].toSorted()
+      return {
+        ok: false,
+        message: `unknown rule '${rule}' (declared rules: ${known.join(', ')})`,
+        diffs: [],
+        exitCode: 1,
+      }
+    }
+
+    const localText = localTextFor(opts.target, rule)
+    const sourceText = item.content
+    const state = relabel(driftStateFor(localText, sourceText))
+    const { additions, deletions } = countChanges(localText ?? '', sourceText)
+    const patch = createTwoFilesPatch(`${rule} (local)`, `${rule} (source)`, localText ?? '', sourceText)
+
+    return {
+      ok: true,
+      diffs: [{ rule, state, additions, deletions, patch }],
+      exitCode: state === 'synced' ? 0 : 1,
+    }
+  }
+
+  const diffs: RuleDiff[] = []
+  for (const rule of [...globals.rules].toSorted()) {
+    const item = sourceByRule.get(rule)
+    if (item === undefined) continue
+
+    const localText = localTextFor(opts.target, rule)
+    const sourceText = item.content
+    const state = relabel(driftStateFor(localText, sourceText))
+    if (state === 'synced') continue
+
+    const { additions, deletions } = countChanges(localText ?? '', sourceText)
+    diffs.push({ rule, state, additions, deletions })
+  }
+
+  return { ok: true, diffs, exitCode: diffs.length > 0 ? 1 : 0 }
+}
+
+export async function diffReport(
+  ctx: IuseContext,
+  opts: { source?: string; target: string; rule?: string; global?: boolean },
+): Promise<DiffResult> {
+  if (opts.global === true) return globalDiffReport(ctx, opts)
+
   const lock = loadDownstreamLock(opts.target)
   if (lock === null) {
     return { ok: false, message: `${opts.target}: not initialized, run 'iuse init' first`, diffs: [], exitCode: 1 }

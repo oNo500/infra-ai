@@ -51,7 +51,7 @@ function fakeClaudeWriting(): IuseContext['claude'] {
   }
 }
 
-function ctxWith(now: () => string = () => '2026-07-17T00:00:00Z'): IuseContext {
+function ctxWith(now: () => string = () => '2026-07-17T00:00:00Z', overrides: Partial<IuseContext> = {}): IuseContext {
   return {
     download: async () => ({}),
     run: async () => ({ code: 0, stdout: 'head1\n', stderr: '' }),
@@ -60,6 +60,7 @@ function ctxWith(now: () => string = () => '2026-07-17T00:00:00Z'): IuseContext 
     env: {},
     home: '/nope',
     cacheDir: '/tmp/iuse-cache',
+    ...overrides,
   }
 }
 
@@ -290,6 +291,19 @@ describe('statusReport', () => {
 
     expect(result.ok).toBe(true)
     expect(result.rows).toEqual([{ rule: 'constitution', state: 'synced' }])
+    expect(result.exitCode).toBe(0)
+  })
+
+  test('project status surfaces duplicates without affecting exit code', async () => {
+    const source = fixtureSource()
+    const target = await initTarget(source)
+    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-report-home-'))
+    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
+    writeFileSync(join(fakeHome, '.claude', 'rules', 'constitution.md'), '# Constitution\n')
+
+    const result = await statusReport(ctxWith(undefined, { home: fakeHome }), { source, target })
+
+    expect(result.duplicates).toEqual(['constitution'])
     expect(result.exitCode).toBe(0)
   })
 })

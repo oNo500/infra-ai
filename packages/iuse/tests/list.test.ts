@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Catalog } from '@infra-ai/meta-cli/core'
@@ -7,6 +7,22 @@ import { listReport } from '../src/core/list'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
 import { loadDownstreamLock, saveDownstreamLock } from '../src/core/manifest'
+
+/**
+ * Adds a third catalog rule 'gamma' to an existing fixtureSource(), plus its
+ * meta + built artifact -- used only by the global-list test so the base
+ * fixture (and every test asserting rows === ['alpha','beta']) stays untouched.
+ */
+function addGammaRule(source: string): void {
+  writeFileSync(
+    join(source, 'meta', 'rules', 'gamma.md'),
+    '---\nname: gamma\nstatus: ready\ndescription: gamma description\nscope: global\ntags: [extra]\n---\nbody',
+  )
+  writeFileSync(join(source, 'rules', 'global', 'gamma.md'), '# Gamma\n\nbody\n')
+  const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
+  catalog.rules.gamma = { description: 'gamma description', tags: ['extra'], scope: 'global', path: 'rules/global/gamma.md', profiles: [] }
+  writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
+}
 
 /**
  * A catalog-bearing source fixture: catalog.json is handwritten (not derived
@@ -87,7 +103,7 @@ function fakeClaudeWriting(): IuseContext['claude'] {
   }
 }
 
-function fakeCtx(): IuseContext {
+function fakeCtx(overrides: Partial<IuseContext> = {}): IuseContext {
   return {
     download: async () => ({}),
     run: async () => ({ code: 0, stdout: 'head1\n', stderr: '' }),
@@ -96,6 +112,7 @@ function fakeCtx(): IuseContext {
     env: {},
     home: '/nope',
     cacheDir: '/tmp/iuse-list-cache',
+    ...overrides,
   }
 }
 
@@ -233,5 +250,21 @@ describe('listReport', () => {
     expect(result.message).toContain('profiles.json not found')
     expect(result.rows).toEqual([])
     expect(result.exitCode).toBe(1)
+  })
+
+  test('global list: declared synced/differs/missing, undeclared uninstalled', async () => {
+    const source = fixtureSource()
+    addGammaRule(source)
+    writeFileSync(join(source, 'globals.json'), JSON.stringify({ rules: ['alpha', 'beta'] }))
+    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-list-home-'))
+    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
+    writeFileSync(join(fakeHome, '.claude', 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
+
+    const result = await listReport(fakeCtx({ home: fakeHome }), { target: fakeHome, source, global: true })
+
+    const state = (n: string): string | undefined => result.rows.find((r) => r.name === n)?.state
+    expect(state('alpha')).toBe('synced')
+    expect(state('beta')).toBe('missing')
+    expect(state('gamma')).toBe('uninstalled')
   })
 })

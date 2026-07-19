@@ -1,11 +1,32 @@
 import { describe, expect, test } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { diffReport } from '../src/core/diff'
 import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
 import { loadDownstreamLock, saveDownstreamLock } from '../src/core/manifest'
+
+/**
+ * Recursive full-content snapshot of a directory tree, keyed by path relative
+ * to `dir` -- asserts global mode never mutates $HOME (read-only invariant).
+ */
+function snapshotDir(dir: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  const walk = (current: string): void => {
+    for (const entry of readdirSync(current)) {
+      const full = join(current, entry)
+      const stat = statSync(full)
+      if (stat.isDirectory()) {
+        walk(full)
+        continue
+      }
+      out[relative(dir, full)] = readFileSync(full, 'utf8')
+    }
+  }
+  walk(dir)
+  return out
+}
 
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-diff-src-'))
@@ -19,6 +40,7 @@ function fixtureSource(): string {
   )
   writeFileSync(join(dir, 'rules', 'global', 'constitution.md'), '# Constitution\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
+  writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['constitution'] }))
   writeFileSync(join(dir, 'templates', 'settings.json'), JSON.stringify({ model: 'sonnet' }))
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
   writeFileSync(join(dir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
@@ -304,5 +326,32 @@ describe('diffReport', () => {
       { rule: 'constitution', state: 'outdated', additions: 2, deletions: 0 },
     ])
     expect(result.exitCode).toBe(1)
+  })
+
+  test('global diff: declared set from globals.json, differs state, home untouched', async () => {
+    const source = fixtureSource()
+    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-diff-home-'))
+    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
+    writeFileSync(join(fakeHome, '.claude', 'rules', 'constitution.md'), '# Constitution\n\nlocally edited\n')
+    const before = snapshotDir(fakeHome)
+
+    const result = await diffReport(ctxWith(), { source, target: fakeHome, global: true })
+
+    expect(result.ok).toBe(true)
+    expect(result.diffs[0]?.rule).toBe('constitution')
+    expect(result.diffs[0]?.state).toBe('differs')
+    expect(result.exitCode).toBe(1)
+    expect(snapshotDir(fakeHome)).toEqual(before)
+  })
+
+  test('global diff --rule unknown name lists declared rules', async () => {
+    const source = fixtureSource()
+    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-diff-home-'))
+    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
+
+    const result = await diffReport(ctxWith(), { source, target: fakeHome, rule: 'ghost', global: true })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('constitution')
   })
 })

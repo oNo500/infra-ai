@@ -1,6 +1,7 @@
 import { join } from 'node:path'
-import { loadCatalog, loadProfiles, readTextIfExists, sha256 } from '@infra-ai/meta-cli/core'
+import { loadCatalog, loadGlobals, loadProfiles, readTextIfExists, sha256 } from '@infra-ai/meta-cli/core'
 import type { CatalogRule, Profiles } from '@infra-ai/meta-cli/core'
+import { ruleTargetRelPath } from './manifest'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DownstreamLock, DriftState } from './manifest'
@@ -13,7 +14,7 @@ export interface ListRow {
   description: string
   tags: string[]
   scope: string
-  state?: InstallState // 未初始化目标无 state；broken=catalog 指向的产物缺失
+  state?: InstallState | 'differs' // 未初始化目标无 state；broken=catalog 指向的产物缺失
 }
 
 export interface ListResult {
@@ -59,9 +60,31 @@ function matchesGrep(name: string, rule: CatalogRule, content: string | null, gr
   return content !== null && content.toLowerCase().includes(grepLower)
 }
 
+/**
+ * Global-scope counterpart to installStateFor: the declared set comes from
+ * globals.json, not a downstream lock. broken (source artifact missing)
+ * still wins regardless of declaration; a declared rule compares localText
+ * directly against the source (no lock baseline, so drift collapses to
+ * synced/differs/missing); an undeclared rule is uninstalled.
+ */
+function globalInstallStateFor(opts: {
+  name: string
+  home: string
+  sourceContent: string | null
+  declared: Set<string>
+}): InstallState | 'differs' {
+  const { name, home, sourceContent, declared } = opts
+  if (sourceContent === null) return 'broken'
+  if (!declared.has(name)) return 'uninstalled'
+
+  const localText = readTextIfExists(join(home, ruleTargetRelPath(name)))
+  if (localText === null) return 'missing'
+  return localText === sourceContent ? 'synced' : 'differs'
+}
+
 export async function listReport(
   ctx: IuseContext,
-  opts: { source?: string; target: string; tags?: string[]; grep?: string },
+  opts: { source?: string; target: string; tags?: string[]; grep?: string; global?: boolean },
 ): Promise<ListResult> {
   let source: Awaited<ReturnType<typeof resolveSource>>
   try {
@@ -87,9 +110,37 @@ export async function listReport(
     }
   }
 
+  const grepLower = opts.grep?.toLowerCase()
+
+  if (opts.global === true) {
+    const globals = loadGlobals(source.root)
+    if (globals === null) {
+      return {
+        ok: false,
+        message: `${source.root}: globals.json missing -- declare the global-scope rule set there first (e.g. { "rules": ["markdown"] })`,
+        rows: [],
+        exitCode: 1,
+      }
+    }
+    const declared = new Set(globals.rules)
+
+    const rows: ListRow[] = []
+    for (const [name, rule] of Object.entries(catalog.rules).toSorted(([a], [b]) => a.localeCompare(b))) {
+      if (opts.tags !== undefined && !opts.tags.every((t) => rule.tags.includes(t))) continue
+
+      const sourceContent = readTextIfExists(join(source.root, rule.path))
+      if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
+
+      const state = globalInstallStateFor({ name, home: opts.target, sourceContent, declared })
+
+      rows.push({ name, description: rule.description, tags: rule.tags, scope: rule.scope, state })
+    }
+
+    return { ok: true, rows, exitCode: 0 }
+  }
+
   const lock = loadDownstreamLock(opts.target)
   const profiles = loadProfiles(source.root)
-  const grepLower = opts.grep?.toLowerCase()
 
   const rows: ListRow[] = []
   for (const [name, rule] of Object.entries(catalog.rules).toSorted(([a], [b]) => a.localeCompare(b))) {

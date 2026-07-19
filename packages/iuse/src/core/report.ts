@@ -1,8 +1,8 @@
 import { join } from 'node:path'
-import { loadProfiles } from '@infra-ai/meta-cli/core'
+import { loadProfiles, readTextIfExists } from '@infra-ai/meta-cli/core'
 import { assembleRules } from './assemble'
 import type { IuseContext } from './init'
-import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
+import { computeDrift, loadDownstreamLock, localHashFor, ruleTargetRelPath } from './manifest'
 import type { DriftState } from './manifest'
 import { resolveSource } from './source'
 
@@ -15,6 +15,7 @@ export interface StatusResult {
   ok: boolean
   message?: string
   rows: StatusRow[]
+  duplicates?: string[]
   exitCode: number
 }
 
@@ -83,6 +84,13 @@ export async function statusReport(
 
   rows.sort((a, b) => a.rule.localeCompare(b.rule))
 
+  // A rule installed at the project scope (lock.rules) that is *also* present
+  // at the global scope ($HOME/.claude/rules) is a duplicate worth flagging --
+  // informational only, it never affects exitCode.
+  const duplicates = Object.keys(lock.rules)
+    .toSorted()
+    .filter((rule) => readTextIfExists(join(ctx.home, ruleTargetRelPath(rule))) !== null)
+
   const exitCode = rows.some((r) => r.state !== 'synced' && r.state !== 'excluded' && r.state !== 'available') ? 1 : 0
-  return { ok: true, rows, exitCode }
+  return { ok: true, rows, duplicates, exitCode }
 }
