@@ -1,8 +1,3 @@
----
-paths:
-  - "**/*.tsx"
----
-
 # Next.js
 
 Next.js App Router 专属结构约定。通用 React 架构（feature-based、目录语义、

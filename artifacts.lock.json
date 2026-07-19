@@ -1,157 +1,157 @@
 {
-  "skill:commit-lite": {
-    "metaHash": "eb868540ffcc8cf9715b8545df0e15d680c0b2bbb7981478a0aa8b5f1548aca0",
-    "artifactHash": "8a368c48331599738f8af3e21494b07b078eb7a40b87942ece2b818a087cefd0",
-    "builtAt": "2026-07-12T12:37:42.450Z"
-  },
-  "rule:constitution": {
-    "metaHash": "5e5ef2d99e75c0e0d12b43dd337980b8d50b1e975e7109ce88255c4ea0c601c2",
-    "artifactHash": "6994a7254e90587eec46f82642b0f1b750680e421c89d6a217c1f63981a26b08",
-    "builtAt": "2026-07-16T01:24:36.705Z"
-  },
-  "template:architecture": {
-    "metaHash": "24ead7a62a59a1365b3d4c1f521f9bbb09500f0f1c9844f0882b4774be0302e6",
-    "artifactHash": "9696a13600022381670e2cab5026d74695ada63d5f23824f698f410ac11a7ac4",
-    "builtAt": "2026-07-12T15:30:44.118Z"
-  },
-  "rule:typescript": {
-    "metaHash": "938a34f8fbc1d95af5e18dde25c4e784dabb90a87d12c1fce28e5957595e2052",
-    "artifactHash": "170e1172a946edeb75f5ab57047d35a3629aac5a5d05e1ccbef97acc4703635b",
-    "builtAt": "2026-07-16T01:25:58.531Z"
-  },
-  "rule:react": {
-    "metaHash": "cbc73577f6b350f5a8c123d7f07d6507586bde83d7398ed066b151e2dcfc5889",
-    "artifactHash": "a63380f15e944fac061cb6bf83340aee8a7e029b3737cb8643d5ba7fa8b7ea94",
-    "builtAt": "2026-07-16T01:27:47.352Z"
-  },
-  "rule:markdown": {
-    "metaHash": "afa4c99a16c4f76a6a3836cffd6e72e9ac0cb2e045e27800cc986eaa51ef236d",
-    "artifactHash": "eabdc22c26898809977c91add8deda2f58be1e505bff1805236dc9f7c25e7968",
-    "builtAt": "2026-07-16T01:31:20.601Z"
-  },
-  "rule:nestjs": {
-    "metaHash": "d296c9d4af0383c73548a4b5e933c2d12666d406337d26d91d2dc4c4b5964a7b",
-    "artifactHash": "04560a1e814ee257f1d351ab422532da8944a69035c84eeff8ede7841f8e47a8",
-    "builtAt": "2026-07-14T01:11:18.566Z"
-  },
-  "rule:testing": {
-    "metaHash": "2238d474f66211cb28a8e4e4e60e141e16a3ac125c1d00ba4bc17e7a1c256ed8",
-    "artifactHash": "c5fe2d02d9c8272c322c6cd7bd40baacdeaba44c4a92db71751efa7dec6808ce",
-    "builtAt": "2026-07-14T01:06:18.571Z"
-  },
-  "rule:python": {
-    "metaHash": "dbaa24281c42c16b5df96ef994be1a02e20f32d59b43ff53c44ea384d87ece5e",
-    "artifactHash": "16930e933ae09d03315f4f96562692e0a8a669ec57a94ba65ebdc4827562c235",
-    "builtAt": "2026-07-14T04:49:17.807Z"
-  },
-  "rule:context-management": {
-    "metaHash": "c784896e291a8adbc67feb3261ab723c171c4fa730cc1bb45319a01dde95019a",
-    "artifactHash": "2ddc99b38e1a98183730c6cdf026f60d2585a95d5e827f64a5c3ae34c5d89fbf",
-    "builtAt": "2026-07-14T05:09:40.791Z"
-  },
-  "template:hooks": {
-    "metaHash": "9092a45cd5df86006d90fe77c5846b1ea9b28ad7885c845ea8d95b588bafc5ca",
-    "artifactHash": "a92fa3c5dd5465105856e2b805d9efcec4dbade289a044953c7516eb3d3208ee",
-    "builtAt": "2026-07-14T05:14:11.303Z"
-  },
-  "rule:nextjs": {
-    "metaHash": "b85f5e6169e70c7d84ab3a64b429feaf6f5b989f10ff30abd89a90a9ba209cb1",
-    "artifactHash": "6f81440a82e5816a6cd1784777815e9d098087858e2cd60d679e16489459fd77",
-    "builtAt": "2026-07-16T01:28:44.593Z"
-  },
-  "rule:docs-retrieval": {
-    "metaHash": "d15202d25d7973f2f83ea8a5ff849e6b7b818ff2bfdc0483118121b0990c50c7",
-    "artifactHash": "ecf223abda72669e261ead3ae28e2d60902bd0565e70a858597cef59b18c8c37",
-    "builtAt": "2026-07-16T01:32:34.527Z"
-  },
-  "rule:dependencies-ts": {
-    "metaHash": "b3fcb02dd588e55139e13d7c33642722e940e1efc10c5e9e0e98c76744da13ba",
-    "artifactHash": "659b07f57dce4885051ceea5099d7f85cb0ae6924c8a7244c4d55b7f29cea4de",
-    "builtAt": "2026-07-16T23:36:39.994Z"
+  "rule:agent-behavior": {
+    "metaHash": "120fca5224725d120b35d25b267e4a9a50844d2f8e0d36c8e331714be8c891a6",
+    "artifactHash": "eb53671ce087b4624f8910748c2cbf3f1ab86df54aca04ca08463647544a34f7",
+    "builtAt": "2026-07-19T07:59:12.361Z"
   },
   "rule:ai-sdk": {
-    "metaHash": "65268412e998964020308bd671b52b5380c9a41c0acfd978787575fe6bd143b5",
+    "metaHash": "7fe016ed272362962c4185230f14b65f82c6dc5626e94005e921e04fbb25a120",
     "artifactHash": "f44cfa80ea23ffae7c55cff8abda62643c47c08c7830da999b855dc437bea54a",
-    "builtAt": "2026-07-16T01:36:00.157Z"
+    "builtAt": "2026-07-19T07:59:12.456Z"
   },
-  "rule:tooling": {
-    "metaHash": "648ae57a34bc606c99ac350e7cdd62a121d31cc966dcedd79fe845229cc43e93",
-    "artifactHash": "e016f99d2d6b600c2aea5ee1498a29ce2df9cf187a88296eb0d64de71d43f99f",
-    "builtAt": "2026-07-16T23:30:52.736Z"
+  "rule:constitution": {
+    "metaHash": "d7f337ed1b1381e93cf4d6200ef8a6e8c6fea484addb24dcc96386400b777056",
+    "artifactHash": "6994a7254e90587eec46f82642b0f1b750680e421c89d6a217c1f63981a26b08",
+    "builtAt": "2026-07-19T07:59:12.553Z"
   },
-  "rule:agent-behavior": {
-    "metaHash": "7ca46cde588ac78f1d10130baaae1de43ed0bb97bb742d902ac91168ccadb571",
-    "artifactHash": "eb53671ce087b4624f8910748c2cbf3f1ab86df54aca04ca08463647544a34f7",
-    "builtAt": "2026-07-16T23:32:04.316Z"
+  "rule:context-management": {
+    "metaHash": "e189d79d2b1d5a5c01eb094f4fbd76369a8572caf5be4988f2ade1411df89fbf",
+    "artifactHash": "2ddc99b38e1a98183730c6cdf026f60d2585a95d5e827f64a5c3ae34c5d89fbf",
+    "builtAt": "2026-07-19T07:59:12.655Z"
   },
   "rule:css": {
-    "metaHash": "5d02fc900a3542531e842471db7970db33c708c3a82c76563efc6d666f0d894d",
-    "artifactHash": "941a40bc08190b52a5f33e95d3c75bfb8f16e227025c4b72239d856de70bb7c8",
-    "builtAt": "2026-07-16T23:34:00.940Z"
+    "metaHash": "dfcc09d55a3e53b2fac364063169c92ea952f48c2c2be3951ffa28ade5f073f4",
+    "artifactHash": "d6b017772895ad662460b3dea9271a8541a2a0f33c786d0e843c099c0e855f15",
+    "builtAt": "2026-07-19T07:59:12.754Z"
   },
   "rule:database": {
-    "metaHash": "28eea55bfedb36eed563645250b272c4ae8f8d60c6b109f1801ccc8f44b7745d",
+    "metaHash": "58c3cdde487bd4f01b6d06bfbd4af565bd16bb8f3db85b3832fc57e48d485c2f",
     "artifactHash": "53a3ed23dac54c04fcf66503d7eee64cf67c10f25a67fc2e08b6571110bbea6e",
-    "builtAt": "2026-07-16T23:35:01.578Z"
+    "builtAt": "2026-07-19T07:59:12.852Z"
   },
-  "skill:obsidian-markdown": {
-    "metaHash": "0c1219f8a97f3189463a3312a91274305ae661ec52a9800fb51b867f1b9e22c3",
-    "artifactHash": "040a204537733830eccc26c9626a3da852afb6c25de24387e8fa0701b2afcdfb",
-    "builtAt": "2026-07-16T23:38:16.097Z"
+  "rule:dependencies-ts": {
+    "metaHash": "c96b57a7bf33ecf3bef9bb8e8529671990f702c22675b5d31c26257c4ad185d3",
+    "artifactHash": "659b07f57dce4885051ceea5099d7f85cb0ae6924c8a7244c4d55b7f29cea4de",
+    "builtAt": "2026-07-19T07:59:12.949Z"
   },
-  "skill:clarify": {
-    "metaHash": "3c4f31c0d96e046fef785c548ad7b08dcc66dc75ea451c2579361a899d6b60aa",
-    "artifactHash": "3cfbfdde3ef8f5239bf2b9509285f0eab56717fab9e027fd394f4e85e0068c7b",
-    "builtAt": "2026-07-16T23:48:04.794Z"
+  "rule:docs-retrieval": {
+    "metaHash": "999f40c2e50fb2d98947017113105393fdcf91409aeb10a663cfb99111bfcb47",
+    "artifactHash": "8da0c6327436629a286a90399d89692d5aeae03b17b316420753e057b355d474",
+    "builtAt": "2026-07-19T07:59:13.041Z"
   },
-  "skill:visualize": {
-    "metaHash": "90195f9e0eefd79405da71c8dd8cf14fc4065988ca6713456903f4abd5b5d004",
-    "artifactHash": "0df7c984a8413905b2602cdc695a98d8c2d63d0708a746eaf421347b3ef6c781",
-    "builtAt": "2026-07-16T23:49:35.481Z"
+  "rule:markdown": {
+    "metaHash": "eb0032866087e71d6169b2b414fdc89f7a6d0786d334d46c973f2f409e825636",
+    "artifactHash": "d0a5ce27ec70f7b8dddec01384efbd8192b527c3729a2809126aa9a9f363a686",
+    "builtAt": "2026-07-19T07:59:13.143Z"
   },
-  "skill:gitflow-commit": {
-    "metaHash": "0e9eb98041ab000068882c43b1e8244af60194ec7d4e3cbaf101c324eff7053e",
-    "artifactHash": "aa8e75a0c673360e7509ec3149c4f010a4fb73f5171f669bbea2eadb7da9a23b",
-    "builtAt": "2026-07-16T23:50:16.371Z"
+  "rule:nestjs": {
+    "metaHash": "e1732b22b74711de55bad6d652abefc3f65a80c408be33b83b421fe1650bb3f4",
+    "artifactHash": "a7591f27d64e66c831a174ec44c64e460ffccafda51deb1799077569ab19e7d6",
+    "builtAt": "2026-07-19T07:59:13.236Z"
   },
-  "skill:edit-markdown": {
-    "metaHash": "f29672655604b171a710cdddb67fa12f427ea0526de33367bff83ed8da27840a",
-    "artifactHash": "328aae273d363bdcef7f530ac818c01fcd83b2aff9b2e52b3e9d74fe47921098",
-    "builtAt": "2026-07-16T23:51:42.364Z"
+  "rule:nextjs": {
+    "metaHash": "50918590e13e7626afa3a90ef2eced2f3d8c9ddd37bafed183f6b69dc2fb57cc",
+    "artifactHash": "fe199136fd765e3cff0b1ceba5f06c7a989b2da67596ff9c713e56de0b201272",
+    "builtAt": "2026-07-19T07:59:13.332Z"
   },
-  "skill:note": {
-    "metaHash": "2d84b1c1829918e878bfadb53d3e7db8b13093186d70917e58922a58086e92e5",
-    "artifactHash": "ed5266427c5324fc0696ede73d2a8557a810f3dcca8ade7c18937fef8f609bed",
-    "builtAt": "2026-07-16T23:53:22.278Z"
+  "rule:python": {
+    "metaHash": "5160d3d4f616f78b3d0b4a47f981d234d4b6f272656bd4ca6ed4fb2ea519587b",
+    "artifactHash": "65c8e1cec731463b03fcc4155742ea9242677f3c42b315df5264afd0b8360675",
+    "builtAt": "2026-07-19T07:59:13.428Z"
   },
-  "skill:obsidian-cli": {
-    "metaHash": "84d67e4312068c5c22f97a4f7c2eef9c9b7829d126e3d858a84db2d74a9bbf79",
-    "artifactHash": "6c8517dab581bc81b9df15281e3cf8e99112f2c0e1f7cdbcdb0a902441019b16",
-    "builtAt": "2026-07-16T23:55:15.289Z"
+  "rule:react": {
+    "metaHash": "dbb6202e23327c97660de52f30683af09751fcfe3e65a037a580eafb586bc353",
+    "artifactHash": "262db024ebda0ab02ab2178ed45200f01541e6bcd2bdc02274be4fc00c263020",
+    "builtAt": "2026-07-19T07:59:13.526Z"
   },
-  "skill:obsidian-bases": {
-    "metaHash": "4f47dcb508274679e54d2d444898622737592e74f2c013e582ebde93fa8b92a8",
-    "artifactHash": "bcf75bcaa561b9209a10706696e97e8dc41f432e16c897b8ece209f981210371",
-    "builtAt": "2026-07-16T23:58:08.462Z"
+  "rule:testing": {
+    "metaHash": "0da2b2c90b1ab0e6d2828bcd1a5a70cb763dbd026e923dfc8e218e0260bbd9bf",
+    "artifactHash": "c9cbb050d8d9e5887f36240c0493b75a7a5ed2d8823c9fb4ee32bcc38be88db4",
+    "builtAt": "2026-07-19T07:59:13.621Z"
+  },
+  "rule:tooling": {
+    "metaHash": "8d84f08cb9ccf2efc2abebdbaf8e0fb8fdef8f901b7a2a5190de98178c588375",
+    "artifactHash": "e016f99d2d6b600c2aea5ee1498a29ce2df9cf187a88296eb0d64de71d43f99f",
+    "builtAt": "2026-07-19T07:59:13.719Z"
+  },
+  "rule:typescript": {
+    "metaHash": "7f91d591b8aa179a10897a8795970ecb6a952282781701ec4bf244fdae0faa99",
+    "artifactHash": "b27ab55df77f54b5f77a64b5a48cd9a49d54b1670c6d9b3349f25290da4b5ccf",
+    "builtAt": "2026-07-19T07:59:13.815Z"
   },
   "skill:anki-connect": {
-    "metaHash": "ad163aab9ef88fdcec7becd298c01861f748eee53eed23adcb3fbea83b5c89fa",
+    "metaHash": "e1bbcfcbd2392dfa12678c8c9cbe3523621ede826536ae9b6f9dac550edce8e5",
     "artifactHash": "71a8d01968bca2db40b91b73978f49a4778913ff09486211c23b78056b07d8fc",
-    "builtAt": "2026-07-17T00:00:30.508Z"
+    "builtAt": "2026-07-19T07:59:13.910Z"
+  },
+  "skill:clarify": {
+    "metaHash": "3a6e054c32a89583f3643839ac37d9e530ce27f1a86bbc2bff211e5a8291ef42",
+    "artifactHash": "3cfbfdde3ef8f5239bf2b9509285f0eab56717fab9e027fd394f4e85e0068c7b",
+    "builtAt": "2026-07-19T07:59:14.004Z"
+  },
+  "skill:commit-lite": {
+    "metaHash": "1d5f54f41a9b47a36d4805c061b755a702b81ae3b6a7e749d32dbc16cfc3fd80",
+    "artifactHash": "8a368c48331599738f8af3e21494b07b078eb7a40b87942ece2b818a087cefd0",
+    "builtAt": "2026-07-19T07:59:14.094Z"
   },
   "skill:ctx-init": {
-    "metaHash": "289a0f2d5841ce102a08a269e68dee0e309b8c4ef5911367e638cc3efe93535e",
-    "artifactHash": "e07485978e74880a2beeb2582df09b27c00a6f4153ad35a2a2df41e292a6884d",
-    "builtAt": "2026-07-18T09:22:45.816Z"
+    "metaHash": "6964c0d86d4fd2208b1030e6a6f902f050aff03b333d799804797f17e99e4949",
+    "artifactHash": "90717ebd9e040e5d94a2430b5de55a457cb1d28efd03dc8ea012098e127b0873",
+    "builtAt": "2026-07-19T07:59:14.195Z"
+  },
+  "skill:edit-markdown": {
+    "metaHash": "7f35f558be12bd78d1bb3c5011737ec243ab2d3f96d02fcb891dd090344c3c3e",
+    "artifactHash": "4b8912c56d01f00dbb6d1bcf0477b8b64154b8b4c7ce370d89f9cf72e11cca7f",
+    "builtAt": "2026-07-19T07:59:14.287Z"
   },
   "skill:explaining-code": {
-    "metaHash": "4b107e2d2c35d9ff65e31b6fbc03f460dde8ad2706da0d0d74b65a7a56bc8613",
+    "metaHash": "5b2867b8edb76c2ea611d6480fd4c162c0daf48694e882d1742afa54f378b030",
     "artifactHash": "e8f72ab58fb959cffdc4c903eafb772f0bad3e55582d3af30a05da95d855afe6",
-    "builtAt": "2026-07-17T00:02:46.626Z"
+    "builtAt": "2026-07-19T07:59:14.379Z"
+  },
+  "skill:gitflow-commit": {
+    "metaHash": "f95731267a4d76034756c5b02c9b89d340413400287702082f62db8820ccd269",
+    "artifactHash": "aa8e75a0c673360e7509ec3149c4f010a4fb73f5171f669bbea2eadb7da9a23b",
+    "builtAt": "2026-07-19T07:59:14.474Z"
+  },
+  "skill:note": {
+    "metaHash": "04c73d637f1fdd655f0dfc75ef8d441655d3b35ca54c75e7fabe28cb38c12cb7",
+    "artifactHash": "ed5266427c5324fc0696ede73d2a8557a810f3dcca8ade7c18937fef8f609bed",
+    "builtAt": "2026-07-19T07:59:14.568Z"
+  },
+  "skill:obsidian-bases": {
+    "metaHash": "395c6eea25a7b29d42e6119bfff4a330e0339edf5dbd9bf6b408f21c855346b1",
+    "artifactHash": "bcf75bcaa561b9209a10706696e97e8dc41f432e16c897b8ece209f981210371",
+    "builtAt": "2026-07-19T07:59:14.661Z"
+  },
+  "skill:obsidian-cli": {
+    "metaHash": "2a9ada1e09f9fa2e628bed1839e50fd9924533896cca1dcc30dc60eff6847212",
+    "artifactHash": "6c8517dab581bc81b9df15281e3cf8e99112f2c0e1f7cdbcdb0a902441019b16",
+    "builtAt": "2026-07-19T07:59:14.761Z"
+  },
+  "skill:obsidian-markdown": {
+    "metaHash": "eddd2aa99bfd5149f5d52a8c46cbc1b1637c3b54672e4908e1c8421b84c6b833",
+    "artifactHash": "040a204537733830eccc26c9626a3da852afb6c25de24387e8fa0701b2afcdfb",
+    "builtAt": "2026-07-19T07:59:14.859Z"
+  },
+  "skill:visualize": {
+    "metaHash": "1be1d99a35ca9491eb4ed5987adac1facd26345794d9c0c51107341562c0e796",
+    "artifactHash": "0df7c984a8413905b2602cdc695a98d8c2d63d0708a746eaf421347b3ef6c781",
+    "builtAt": "2026-07-19T07:59:14.969Z"
+  },
+  "template:architecture": {
+    "metaHash": "b32db2d9a4cc5cf7cfe4ad04f603d94daa754bfcc2672324a73ad32d1d02531c",
+    "artifactHash": "9696a13600022381670e2cab5026d74695ada63d5f23824f698f410ac11a7ac4",
+    "builtAt": "2026-07-19T07:59:15.067Z"
   },
   "template:claude-md": {
-    "metaHash": "9bdb95f62052d89cf9d84a4f0bf8b5a7e536d7c0e8ce0f209f7ade2dbec9577c",
+    "metaHash": "a3bc1ab63ac00eefcf2a027cc138cfe5b817021fbb7ff27e4eb82a01abcf0bc2",
     "artifactHash": "acfdd7007d5927374d477ad581a23f2c0a6596a54fec16eae4b9fe3df499a3ba",
-    "builtAt": "2026-07-17T00:14:27.766Z"
+    "builtAt": "2026-07-19T07:59:15.168Z"
+  },
+  "template:hooks": {
+    "metaHash": "56ad3319231c0d5f59b55ba58296418503600eab9d975fae07961b9b675ddf52",
+    "artifactHash": "a92fa3c5dd5465105856e2b805d9efcec4dbade289a044953c7516eb3d3208ee",
+    "builtAt": "2026-07-19T07:59:15.271Z"
   }
 }

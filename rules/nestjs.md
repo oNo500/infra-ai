@@ -1,8 +1,3 @@
----
-paths:
-  - "src/**/*.ts"
----
-
 # NestJS
 
 NestJS 后端的架构与分层纪律。TS 类型与导入纪律见 typescript rule，此处不重复；

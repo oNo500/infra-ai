@@ -1,8 +1,3 @@
----
-paths:
-  - "**/*.{test,spec,e2e-spec}.{ts,tsx,js,jsx}"
----
-
 # Testing
 
 ## 组织

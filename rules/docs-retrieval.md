@@ -1,8 +1,3 @@
----
-paths:
-  - "**/*.md"
----
-
 # Docs Retrieval
 
 面向会被 RAG/AI 检索消费的文档；基础写作约定归 markdown rule，本篇只写检索场景的增量。
