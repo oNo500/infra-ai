@@ -4,7 +4,7 @@
 
 `skills.json`（仓库根）是全部 skill 的清单：一个 skill 是否存在、来自哪里、如何安装，以它为准。每条按 `source` 分三类：
 
-- `custom` — 自建。内容源是 `meta/skills/<name>.md` 元指令，`skills/<name>/` 是构建产物，可重新构建。字段只有 `name`
+- `custom` — 自建。内容源是开发仓 `meta/skills/<name>.md` 元指令，`skills/<name>/` 是构建产物，可重新构建。字段只有 `name`
 - `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到 `skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
 - `official` — 符合 skills.sh 标准，不入仓，只记 `repo`；同时是 Anthropic 官方插件的另带 `plugin`
 
@@ -16,8 +16,8 @@
 
 ## 创建
 
-- `custom`：在 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式见 [`meta/README.md`](meta/README.md)，AI 构建契约见
-  [`meta/prompts/skill-build.md`](meta/prompts/skill-build.md)
+- `custom`：在开发仓 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式见开发仓 `meta/README.md`，AI 构建契约见
+  开发仓 `meta/prompts/skill-build.md`
 - `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），在 `imeta` 的 `s` 视图按 `u` 拉取
 - `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
 
