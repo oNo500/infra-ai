@@ -79,5 +79,5 @@ profile 是中心源清单，目标项目可显式偏离：
   拷 `$SRC/templates/settings.json` 到 `.claude/settings.json`
 - 参照 `$SRC/templates/architecture.md` 与 `$SRC/templates/claude-md.md`
   结合项目事实实例化：占位符全替换、不适用章节整节删、CLAUDE.md <50 行
-- 提醒用户装 iuse 以获得对账与更新能力：infra-ai 仓 `packages/iuse` 内
+- 提醒用户装 iuse 以获得对账与更新能力：infra-ai 仓 `tools/iuse` 内
   `pnpm link --global`
