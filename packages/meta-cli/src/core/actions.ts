@@ -13,6 +13,7 @@ import {
 import { readTextIfExists, runCommand, sha256, spawnDetached, writeFileAtomic } from './io'
 import type { CommandRunner } from './io'
 import { buildCatalog, catalogStaleness, renderCatalog } from './catalog'
+import { globalsViolations } from './globals'
 import { KINDS } from './kinds'
 import type { FetchJson } from './kinds'
 import { discoverAssets } from './meta'
@@ -221,6 +222,7 @@ const statusAction: ActionDef = {
     )
     const staleness = catalogStaleness(ctx.repoRoot)
     if (staleness !== null) violations.push(staleness)
+    violations.push(...globalsViolations(ctx.repoRoot))
     const pending = dataRows.some((d) => PENDING_STATUSES.has(d.status))
     const data: StatusData = { rows: dataRows, violations }
     return { ok: true, data, exitCode: pending || violations.length > 0 ? 1 : 0 }
