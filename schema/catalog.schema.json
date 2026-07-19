@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Catalog",
+  "type": "object",
+  "required": ["generatedAt", "tags", "rules"],
+  "additionalProperties": false,
+  "properties": {
+    "generatedAt": { "type": "string" },
+    "tags": {
+      "title": "TagVocabulary",
+      "type": "object",
+      "additionalProperties": {
+        "title": "TagFacet",
+        "type": "object",
+        "required": ["exclusive", "values"],
+        "additionalProperties": false,
+        "properties": {
+          "exclusive": { "type": "boolean" },
+          "values": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "title": "CatalogRule",
+        "type": "object",
+        "required": ["description", "tags", "requires", "scope", "path", "profiles"],
+        "additionalProperties": false,
+        "properties": {
+          "description": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "requires": { "type": "array", "items": { "type": "string" } },
+          "scope": { "type": "string" },
+          "path": { "type": "string" },
+          "profiles": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
