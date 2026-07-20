@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { loadCatalog, loadGlobals, loadProfiles } from '../src/core/contract'
+import { loadCatalog, loadProfiles } from '../src/core/contract'
 
 function dir(): string {
   return mkdtempSync(join(tmpdir(), 'iuse-contract-'))
@@ -22,17 +22,14 @@ describe('schema-validated loaders', () => {
       }),
     )
     writeFileSync(join(d, 'profiles.json'), JSON.stringify({ demo: { rules: ['constitution'] } }))
-    writeFileSync(join(d, 'globals.json'), JSON.stringify({ rules: ['constitution'] }))
     expect(loadCatalog(d)?.rules['constitution']?.path).toBe('rules/constitution.md')
     expect(loadProfiles(d)['demo']?.rules).toEqual(['constitution'])
-    expect(loadGlobals(d)?.rules).toEqual(['constitution'])
   })
 
   test('missing files keep the established semantics', () => {
     const d = dir()
     expect(loadCatalog(d)).toBeNull()
     expect(loadProfiles(d)).toEqual({})
-    expect(loadGlobals(d)).toBeNull()
   })
 
   test('schema violation throws with the update hint', () => {
@@ -43,7 +40,7 @@ describe('schema-validated loaders', () => {
 
   test('invalid JSON keeps the invalid JSON message', () => {
     const d = dir()
-    writeFileSync(join(d, 'globals.json'), '{nope')
-    expect(() => loadGlobals(d)).toThrow(/globals\.json: invalid JSON/u)
+    writeFileSync(join(d, 'profiles.json'), '{nope')
+    expect(() => loadProfiles(d)).toThrow(/profiles\.json: invalid JSON/u)
   })
 })

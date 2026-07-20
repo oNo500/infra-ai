@@ -15,7 +15,6 @@ import { resolveSource } from '../core/source'
 import type { SourceRef } from '../core/source'
 import { detectSourceRoot } from '../core/source-root'
 import { BrowseView } from './browse-view'
-import { GlobalStatusView } from './global-status-view'
 import type { HomeMenuItemId } from './home-view'
 import { HomeView } from './home-view'
 import { MessageBlock } from './message-block'
@@ -48,7 +47,6 @@ type View =
   | { kind: 'result'; message: string; profile: string }
   | { kind: 'status'; profile: string; refreshKey: number; source: SourceRef | undefined }
   | { kind: 'update-plan'; profile: string; initialAdd?: string[]; initialRemove?: string[] }
-  | { kind: 'global-status'; initialized: boolean; profile: string | undefined }
   | {
       kind: 'error'
       message: string
@@ -289,10 +287,6 @@ export function App({ deps }: { deps: TuiDeps }) {
         })
         return
       }
-      if (id === 'global-status') {
-        setView({ kind: 'global-status', initialized: view.initialized, profile: view.profile })
-        return
-      }
       // id === 'init-profile'
       resolveSourceRef(deps).then((resolved) => {
         if (!resolved.ok) {
@@ -308,21 +302,6 @@ export function App({ deps }: { deps: TuiDeps }) {
       <Box flexDirection="column">
         <TopBar target={deps.target} profile={view.profile} source={undefined} />
         <HomeView initialized={view.initialized} onSelect={handleSelect} onQuit={exit} />
-      </Box>
-    )
-  }
-
-  if (view.kind === 'global-status') {
-    return (
-      <Box flexDirection="column">
-        <TopBar target={deps.target} profile={view.profile} source={undefined} />
-        <GlobalStatusView
-          ctx={deps.ctx}
-          source={deps.source}
-          target={deps.target}
-          onBack={() => setView({ kind: 'home', initialized: view.initialized, profile: view.profile })}
-          onQuit={exit}
-        />
       </Box>
     )
   }

@@ -10,9 +10,7 @@ import { runInit } from '../src/core/init'
 import type { IuseContext } from '../src/core/init'
 
 /**
- * Mirrors tui-status-flow.test.tsx's fixtureSource, plus a globals.json
- * declaring 'constitution' as global-scope so the home menu's 全局对账 item
- * has something to reconcile against ~/.claude.
+ * Mirrors tui-status-flow.test.tsx's fixtureSource.
  */
 function fixtureSource(): string {
   const dir = mkdtempSync(join(tmpdir(), 'iuse-tui-home-src-'))
@@ -24,7 +22,6 @@ function fixtureSource(): string {
   writeFileSync(join(dir, 'templates', 'architecture.md'), '# [PROJECT_NAME] - Architecture\n\nbody\n')
   writeFileSync(join(dir, 'templates', 'claude-md.md'), '# [PROJECT_NAME]\n\nbody\n')
   writeFileSync(join(dir, 'templates', 'template-instantiate.md'), '# contract\n')
-  writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['constitution'] }))
 
   const catalog: Catalog = {
     generatedAt: '2026-07-19T00:00:00Z',
@@ -118,7 +115,6 @@ describe('TUI home menu flow', () => {
     const frame = lastFrame() ?? ''
     expect(frame).toContain('初始化(选 profile)')
     expect(frame).toContain('浏览资产')
-    expect(frame).toContain('全局对账')
     // Cursor defaults to the first item.
     const firstLine = frame.split('\n').find((l) => l.includes('初始化(选 profile)')) ?? ''
     expect(firstLine).toContain('>')
@@ -178,7 +174,6 @@ describe('TUI home menu flow', () => {
     const frame = lastFrame() ?? ''
     expect(frame).toContain('更新')
     expect(frame).toContain('浏览资产')
-    expect(frame).toContain('全局对账')
     const firstLine = frame.split('\n').find((l) => l.includes('状态对账')) ?? ''
     expect(firstLine).toContain('>')
 
@@ -217,47 +212,5 @@ describe('TUI home menu flow', () => {
 
     await press(stdin, '\x1b') // escape
     await waitFor(() => (lastFrame() ?? '').includes('状态对账'))
-  })
-
-  test('全局对账: shows rows and suggestion for a missing global rule', async () => {
-    const source = fixtureSource()
-    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-home-tgt-'))
-    const home = mkdtempSync(join(tmpdir(), 'iuse-tui-home-fakehome-'))
-    const deps: TuiDeps = { ctx: fakeCtx({ home }), target, source }
-
-    const { lastFrame, stdin } = bootApp(deps)
-
-    await waitFor(() => (lastFrame() ?? '').includes('全局对账'))
-    // Down-arrow to the 全局对账 item (third on uninitialized menu) and enter.
-    await press(stdin, '\x1b[B')
-    await press(stdin, '\x1b[B')
-    await press(stdin, '\r')
-
-    await waitFor(() => (lastFrame() ?? '').includes('missing'))
-    const frame = lastFrame() ?? ''
-    const line = frame.split('\n').find((l) => l.includes('constitution')) ?? ''
-    expect(line).toContain('missing')
-    expect(frame).toContain('iuse cat constitution')
-
-    await press(stdin, '\x1b') // escape
-    await waitFor(() => (lastFrame() ?? '').includes('初始化(选 profile)'))
-  })
-
-  test('全局对账: globals.json missing at source renders an error frame', async () => {
-    // A valid infra-ai source (has profiles.json) but no globals.json declared.
-    const source = mkdtempSync(join(tmpdir(), 'iuse-tui-home-bare-src-'))
-    writeFileSync(join(source, 'profiles.json'), JSON.stringify({}))
-    const target = mkdtempSync(join(tmpdir(), 'iuse-tui-home-tgt-'))
-    const deps: TuiDeps = { ctx: fakeCtx(), target, source }
-
-    const { lastFrame, stdin } = bootApp(deps)
-
-    await waitFor(() => (lastFrame() ?? '').includes('全局对账'))
-    await press(stdin, '\x1b[B')
-    await press(stdin, '\x1b[B')
-    await press(stdin, '\r')
-
-    await waitFor(() => (lastFrame() ?? '').includes('出错了'))
-    expect(lastFrame()).toContain('globals.json')
   })
 })

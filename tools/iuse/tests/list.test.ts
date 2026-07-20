@@ -9,18 +9,6 @@ import type { IuseContext } from '../src/core/init'
 import { loadDownstreamLock, saveDownstreamLock } from '../src/core/manifest'
 
 /**
- * Adds a third catalog rule 'gamma' to an existing fixtureSource(), plus its
- * built artifact -- used only by the global-list test so the base fixture
- * (and every test asserting rows === ['alpha','beta']) stays untouched.
- */
-function addGammaRule(source: string): void {
-  writeFileSync(join(source, 'rules', 'gamma.md'), '# Gamma\n\nbody\n')
-  const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
-  catalog.rules.gamma = { description: 'gamma description', tags: ['extra'], requires: [], scope: 'global', path: 'rules/gamma.md', profiles: [] }
-  writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
-}
-
-/**
  * A catalog-bearing source fixture: catalog.json is handwritten (not derived
  * via buildCatalog) so the fixture stays independent of meta-cli's builder,
  * plus profiles.json/templates so runInit can initialize a target from it.
@@ -269,22 +257,6 @@ describe('listReport', () => {
     expect(grepped.rows.map((r) => r.name)).toEqual(['alpha'])
   })
 
-  test('global list: declared synced/differs/missing, undeclared uninstalled', async () => {
-    const source = fixtureSource()
-    addGammaRule(source)
-    writeFileSync(join(source, 'globals.json'), JSON.stringify({ rules: ['alpha', 'beta'] }))
-    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-list-home-'))
-    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
-    writeFileSync(join(fakeHome, '.claude', 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
-
-    const result = await listReport(fakeCtx({ home: fakeHome }), { target: fakeHome, source, global: true })
-
-    const state = (n: string): string | undefined => result.rows.find((r) => r.name === n)?.state
-    expect(state('alpha')).toBe('synced')
-    expect(state('beta')).toBe('missing')
-    expect(state('gamma')).toBe('uninstalled')
-  })
-
   test('scoped rule installed via init reports synced (render-aware comparison)', async () => {
     const source = fixtureSource()
     addSigmaRule(source)
@@ -296,20 +268,5 @@ describe('listReport', () => {
 
     const sigma = result.rows.find((r) => r.name === 'sigma')
     expect(sigma?.state).toBe('synced')
-  })
-
-  test('globals.json declares a rule absent from the source fails fast', async () => {
-    const source = fixtureSource()
-    writeFileSync(join(source, 'globals.json'), JSON.stringify({ rules: ['alpha', 'ghost'] }))
-    const fakeHome = mkdtempSync(join(tmpdir(), 'iuse-list-home-'))
-    mkdirSync(join(fakeHome, '.claude', 'rules'), { recursive: true })
-
-    const result = await listReport(fakeCtx({ home: fakeHome }), { target: fakeHome, source, global: true })
-
-    expect(result.ok).toBe(false)
-    expect(result.message).toContain('ghost')
-    expect(result.message).toContain('globals.json')
-    expect(result.rows).toEqual([])
-    expect(result.exitCode).toBe(1)
   })
 })

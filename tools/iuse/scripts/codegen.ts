@@ -7,7 +7,7 @@ import { writeFileAtomic } from '../src/core/io'
 // the same files this checkout validates sources against (lockstep by repo).
 export const SCHEMA_DIR = join(import.meta.dir, '../../../schema')
 export const GEN_DIR = join(import.meta.dir, '../src/core/contract-gen')
-export const SCHEMA_NAMES = ['catalog', 'profiles', 'globals'] as const
+export const SCHEMA_NAMES = ['catalog', 'profiles'] as const
 
 export const CODEGEN_OPTIONS = {
   bannerComment:

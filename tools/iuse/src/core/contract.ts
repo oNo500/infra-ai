@@ -2,22 +2,18 @@ import { join } from 'node:path'
 import Ajv from 'ajv'
 import type { ValidateFunction } from 'ajv'
 import catalogSchema from '../../../../schema/catalog.schema.json'
-import globalsSchema from '../../../../schema/globals.schema.json'
 import profilesSchema from '../../../../schema/profiles.schema.json'
 import type { Catalog } from './contract-gen/catalog'
-import type { Globals } from './contract-gen/globals'
 import type { Profiles } from './contract-gen/profiles'
 import { readTextIfExists } from './io'
 
 export type { Catalog, CatalogRule, TagFacet, TagVocabulary } from './contract-gen/catalog'
 export type { Profile, Profiles } from './contract-gen/profiles'
-export type { Globals } from './contract-gen/globals'
 
 const ajv = new Ajv({ allErrors: true })
 const validators = {
   catalog: ajv.compile(catalogSchema),
   profiles: ajv.compile(profilesSchema),
-  globals: ajv.compile(globalsSchema),
 }
 
 const SCHEMA_HINT =
@@ -47,8 +43,4 @@ export function loadCatalog(root: string): Catalog | null {
 
 export function loadProfiles(root: string): Profiles {
   return (loadValidated(root, 'profiles.json', validators.profiles) as Profiles | null) ?? {}
-}
-
-export function loadGlobals(root: string): Globals | null {
-  return loadValidated(root, 'globals.json', validators.globals) as Globals | null
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 
-export type HomeMenuItemId = 'init-profile' | 'browse' | 'global-status' | 'status' | 'update'
+export type HomeMenuItemId = 'init-profile' | 'browse' | 'status' | 'update'
 
 export interface HomeMenuItem {
   id: HomeMenuItemId
@@ -11,14 +11,12 @@ export interface HomeMenuItem {
 
 /**
  * Menu shape for a target with no downstream lock yet: profile-driven init,
- * self-picked rules via browse, or a read-only look at the global (~/.claude)
- * reconciliation. Cursor defaults to the first item -- the most likely next
- * step for a project nobody has assembled yet.
+ * or self-picked rules via browse. Cursor defaults to the first item -- the
+ * most likely next step for a project nobody has assembled yet.
  */
 const UNINITIALIZED_ITEMS: HomeMenuItem[] = [
   { id: 'init-profile', label: '初始化(选 profile)', hint: '用预设组合拼装本项目' },
   { id: 'browse', label: '初始化(自选 rules) / 浏览资产', hint: '左右分屏浏览中心源，勾选后拼装' },
-  { id: 'global-status', label: '全局对账', hint: '~/.claude 与中心源的只读对账' },
 ]
 
 /**
@@ -30,7 +28,6 @@ const INITIALIZED_ITEMS: HomeMenuItem[] = [
   { id: 'status', label: '状态对账', hint: '逐 rule 漂移状态' },
   { id: 'update', label: '更新', hint: '应用中心源变更' },
   { id: 'browse', label: '浏览资产', hint: '现有 browse，a/x 增减仍可用' },
-  { id: 'global-status', label: '全局对账', hint: '~/.claude 与中心源的只读对账' },
 ]
 
 export function homeMenuItems(initialized: boolean): HomeMenuItem[] {

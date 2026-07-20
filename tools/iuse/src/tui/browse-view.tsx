@@ -19,7 +19,6 @@ const STATE_COLOR: Record<Exclude<ListRow['state'], undefined | 'excluded'>, str
   synced: 'green',
   modified: 'yellow',
   outdated: 'blue',
-  differs: 'blue',
   missing: 'red',
   available: 'cyan',
   uninstalled: 'gray',

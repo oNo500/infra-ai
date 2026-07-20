@@ -16,10 +16,9 @@ export interface SourceRootLayout {
  * were pointed at: `iuse --source ~/code/meta` works without the caller
  * having to know to add /artifacts.
  *
- * Editing-account lookups (profiles.json, globals.json, skills ledger, lock)
- * are NOT part of this -- those stay anchored at the raw source root
- * regardless of layout, since profiles.json/globals.json/meta/ are never
- * staged under artifacts/.
+ * Editing-account lookups (profiles.json, skills ledger, lock) are NOT part
+ * of this -- those stay anchored at the raw source root regardless of
+ * layout, since profiles.json/meta/ are never staged under artifacts/.
  */
 export function detectSourceRoot(root: string): SourceRootLayout {
   if (existsSync(join(root, 'catalog.json'))) return { catalogRoot: root, artifactBase: root }

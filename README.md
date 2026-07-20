@@ -15,11 +15,10 @@ rule、模板。资产内容由开发仓（`~/code/infra-agent/meta`）构建验
   清单记录的是目标态，允许比实际超前。溯源分两层：`refUrl` 参考来源 +
   实际来源（repo 或 `install`）。专题见 [`SKILLS.md`](SKILLS.md)。
 - [`catalog.json`](catalog.json) — 资产查询视图（描述/tags/profile 隶属），供 `iuse list/show` 消费
-- [`globals.json`](globals.json) — 全局层账：`~/.claude`（Claude 的 user scope）应装的 rule 清单，`iuse status --global` 只读对账
 - [`profiles.json`](profiles.json) — rule 组合账：项目 profile 显式清单
 - [`rules/`](rules/) — 可分发 rule 产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
-- [`schema/`](schema/) — 数据契约：catalog/profiles/globals 三份 JSON
+- [`schema/`](schema/) — 数据契约：catalog/profiles 两份 JSON
   Schema（发布副本，SSoT 在开发仓 `packages/meta-cli/schema/`）。`iuse`
   据此生成契约类型（包内 `pnpm codegen`）并在加载数据时做 ajv 运行时校验
 - [`tools/iuse/`](tools/iuse/) — 使用端 CLI/TUI（bin: `iuse`）：查询、
@@ -54,7 +53,6 @@ iuse status <project>                  # 下游对账：synced / modified / outd
 iuse diff [--rule <name>] <project>    # 本地副本 vs 中心源差异
 iuse update <project>                  # 拉中心源新版（本地被改的默认跳过，--force 覆盖）
 iuse update --add x --remove y <project>   # 显式增装（含回补排除）/ 移除（删副本并记入排除）
-iuse status|diff|list --global         # 全局层（~/.claude，即 Claude 的 user scope）只读对账，输出建议命令
 # 子命令面 100% 命令式（AI/脚本稳定契约），全命令支持 --json
 ```
 

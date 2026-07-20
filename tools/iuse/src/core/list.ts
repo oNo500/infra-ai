@@ -1,8 +1,7 @@
 import { join } from 'node:path'
-import { loadCatalog, loadGlobals, loadProfiles } from './contract'
+import { loadCatalog, loadProfiles } from './contract'
 import type { Catalog, CatalogRule, Profiles } from './contract'
 import { readTextIfExists, sha256 } from './io'
-import { ruleTargetRelPath } from './manifest'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DownstreamLock, DriftState } from './manifest'
@@ -17,7 +16,7 @@ export interface ListRow {
   description: string
   tags: string[]
   scope: string
-  state?: InstallState | 'differs' // 未初始化目标无 state；broken=catalog 指向的产物缺失
+  state?: InstallState // 未初始化目标无 state；broken=catalog 指向的产物缺失
 }
 
 export interface ListResult {
@@ -64,9 +63,8 @@ function matchesGrep(name: string, rule: CatalogRule, content: string | null, gr
 }
 
 /**
- * Shared tags/grep filter + row-building loop for global and non-global list
- * branches -- the two differ only in how a row's install state is computed,
- * so that's the one thing left as a caller-supplied callback.
+ * Shared tags/grep filter + row-building loop for list -- install state is
+ * computed via a caller-supplied callback.
  */
 function buildFilteredRows(opts: {
   artifactBase: string
@@ -90,31 +88,9 @@ function buildFilteredRows(opts: {
   return rows
 }
 
-/**
- * Global-scope counterpart to installStateFor: the declared set comes from
- * globals.json, not a downstream lock. broken (source artifact missing)
- * still wins regardless of declaration; a declared rule compares localText
- * directly against the source (no lock baseline, so drift collapses to
- * synced/differs/missing); an undeclared rule is uninstalled.
- */
-function globalInstallStateFor(opts: {
-  name: string
-  home: string
-  sourceContent: string | null
-  declared: Set<string>
-}): InstallState | 'differs' {
-  const { name, home, sourceContent, declared } = opts
-  if (sourceContent === null) return 'broken'
-  if (!declared.has(name)) return 'uninstalled'
-
-  const localText = readTextIfExists(join(home, ruleTargetRelPath(name)))
-  if (localText === null) return 'missing'
-  return localText === sourceContent ? 'synced' : 'differs'
-}
-
 export async function listReport(
   ctx: IuseContext,
-  opts: { source?: string; target: string; tags?: string[]; grep?: string; global?: boolean },
+  opts: { source?: string; target: string; tags?: string[]; grep?: string },
 ): Promise<ListResult> {
   let source: Awaited<ReturnType<typeof resolveSource>>
   try {
@@ -142,38 +118,6 @@ export async function listReport(
   }
 
   const grepLower = opts.grep?.toLowerCase()
-
-  if (opts.global === true) {
-    const globals = loadGlobals(source.root)
-    if (globals === null) {
-      return {
-        ok: false,
-        message: `${source.root}: globals.json missing -- declare the global-scope rule set there first (e.g. { "rules": ["markdown"] })`,
-        rows: [],
-        exitCode: 1,
-      }
-    }
-    const declared = new Set(globals.rules)
-    const unknown = [...declared].filter((rule) => !Object.hasOwn(catalog.rules, rule))
-    if (unknown.length > 0) {
-      return {
-        ok: false,
-        message: `globals.json declares unknown rules: ${unknown.toSorted().join(', ')} (fix globals.json at the source, see 'imeta status')`,
-        rows: [],
-        exitCode: 1,
-      }
-    }
-
-    const rows = buildFilteredRows({
-      artifactBase,
-      catalogRules: catalog.rules,
-      tags: opts.tags,
-      grepLower,
-      computeState: (name, _rule, sourceContent) => globalInstallStateFor({ name, home: opts.target, sourceContent, declared }),
-    })
-
-    return { ok: true, rows, exitCode: 0 }
-  }
 
   const lock = loadDownstreamLock(opts.target)
   const profiles = loadProfiles(source.root)

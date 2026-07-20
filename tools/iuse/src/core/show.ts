@@ -72,7 +72,7 @@ export async function showReport(
 
 /**
  * cat 是 show 的管道原语形态：只返回渲染后的安装内容，供重定向落盘
- * （--global 的建议命令依赖它取代对产物的直接 cp——产物不再是安装形态）。
+ * （产物不再是安装形态，需经渲染）。
  */
 export async function catReport(
   ctx: IuseContext,

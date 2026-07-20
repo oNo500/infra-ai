@@ -3,9 +3,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Catalog } from '../src/core/contract'
-import { renderJson, splitNames, validateGlobalArgs } from '../src/cli/index'
+import { renderJson, splitNames } from '../src/cli/index'
 import type { ActionStep, IuseContext } from '../src/core/init'
-import { globalStatusReport } from '../src/core/global'
 import { runInit } from '../src/core/init'
 import { loadDownstreamLock } from '../src/core/manifest'
 import { profilesReport } from '../src/core/profiles-report'
@@ -236,105 +235,6 @@ describe('splitNames helper', () => {
     expect(splitNames(undefined)).toBeUndefined()
     expect(splitNames(', , ')).toEqual([])
     expect(splitNames('a,,b')).toEqual(['a', 'b'])
-  })
-})
-
-/**
- * Exercises the real citty run() handler's mutual-exclusion branch for
- * `<subcommand> --global --target ...` end-to-end (not a hand-reconstructed
- * copy of its logic). Runs out-of-process like the other runCli fixtures in
- * this file: the handler sets process.exitCode = 2 as a genuine side effect,
- * and once set, Node/Bun's process.exitCode cannot be reliably unset again
- * in-process afterward (assigning undefined does not un-ratchet it) --
- * running each case in its own subprocess sidesteps that entirely.
- */
-async function runGlobalMutexHarness(subcommand: 'status' | 'diff' | 'list') {
-  const harness = join(import.meta.dir, 'fixtures/run-cli-global-mutex.ts')
-  const proc = Bun.spawn(['bun', 'run', harness, subcommand], {
-    cwd: join(import.meta.dir, '..'),
-    stdout: 'pipe',
-    stderr: 'pipe',
-  })
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ])
-  return { stdout, stderr, exitCode }
-}
-
-describe('--global mutual exclusion via the real command run() handlers', () => {
-  test('status/diff/list --global with a target positional are all rejected with exit 2', async () => {
-    for (const subcommand of ['status', 'diff', 'list'] as const) {
-      const { stderr, exitCode } = await runGlobalMutexHarness(subcommand)
-      expect(exitCode).toBe(2)
-      expect(stderr).toContain('--global')
-    }
-  })
-})
-
-describe('validateGlobalArgs', () => {
-  test('rejects global+target together; accepts every other combination', () => {
-    const rejected = validateGlobalArgs({ global: true, target: '/tmp/x' })
-    expect(rejected).not.toBeNull()
-    expect(rejected).toContain('--global')
-
-    expect(validateGlobalArgs({ global: true, target: undefined })).toBeNull()
-    expect(validateGlobalArgs({ global: undefined, target: '/tmp/x' })).toBeNull()
-    expect(validateGlobalArgs({ global: undefined, target: undefined })).toBeNull()
-    expect(validateGlobalArgs({ global: false, target: '/tmp/x' })).toBeNull()
-  })
-})
-
-describe('--global CLI payload shapes (built from core results, matching cli/index.ts assembly)', () => {
-  function fixtureGlobalSource(): string {
-    const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-global-src-'))
-    mkdirSync(join(dir, 'rules'), { recursive: true })
-    writeFileSync(join(dir, 'rules', 'markdown.md'), '# Markdown\n\nbody\n')
-    writeFileSync(join(dir, 'globals.json'), JSON.stringify({ rules: ['markdown'] }))
-    writeFileSync(join(dir, 'profiles.json'), JSON.stringify({}))
-    const catalog: Catalog = {
-      generatedAt: '2026-07-18T00:00:00Z',
-      tags: { concern: { exclusive: false, values: { core: 'x' } } },
-      rules: {
-        markdown: { description: 'x', tags: ['core'], requires: [], scope: 'global', path: 'rules/markdown.md', profiles: [] },
-      },
-    }
-    writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
-    return dir
-  }
-
-  function fakeHome(): string {
-    const dir = mkdtempSync(join(tmpdir(), 'iuse-cli-global-home-'))
-    mkdirSync(join(dir, '.claude', 'rules'), { recursive: true })
-    writeFileSync(join(dir, '.claude', 'rules', 'markdown.md'), '# Markdown\n\nbody\n')
-    return dir
-  }
-
-  test('status --global json payload: ok branch carries rows/duplicates, fail branch carries message only', async () => {
-    const source = fixtureGlobalSource()
-    const home = fakeHome()
-
-    const ok = await globalStatusReport({ ...ctxWith(), home }, { source, projectTarget: process.cwd() })
-    expect(ok.ok).toBe(true)
-    const okPayload = ok.ok
-      ? { ok: true, rows: ok.rows, duplicates: ok.duplicates, exitCode: ok.exitCode }
-      : { ok: false, message: ok.message, exitCode: ok.exitCode }
-    const okParsed = JSON.parse(renderJson(okPayload)) as Record<string, unknown>
-    expect(Object.keys(okParsed).toSorted()).toEqual(['duplicates', 'exitCode', 'ok', 'rows'])
-    expect(okParsed.rows).toEqual([{ rule: 'markdown', state: 'synced' }])
-    expect(okParsed.duplicates).toEqual([])
-    expect(okParsed.exitCode).toBe(0)
-
-    const bareSource = mkdtempSync(join(tmpdir(), 'iuse-cli-global-bare-'))
-    writeFileSync(join(bareSource, 'profiles.json'), JSON.stringify({}))
-    const fail = await globalStatusReport({ ...ctxWith(), home }, { source: bareSource })
-    expect(fail.ok).toBe(false)
-    const failPayload = fail.ok
-      ? { ok: true, rows: fail.rows, duplicates: fail.duplicates, exitCode: fail.exitCode }
-      : { ok: false, message: fail.message, exitCode: fail.exitCode }
-    const failParsed = JSON.parse(renderJson(failPayload)) as Record<string, unknown>
-    expect(Object.keys(failParsed).toSorted()).toEqual(['exitCode', 'message', 'ok'])
   })
 })
 
