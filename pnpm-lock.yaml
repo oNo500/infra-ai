@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  tools/iuse:
     dependencies:
       '@inkjs/ui':
         specifier: ^2.0.0

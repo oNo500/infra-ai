@@ -1,0 +1,9 @@
+{
+  "name": "infra-ai",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "iuse": "bun run tools/iuse/src/index.ts"
+  }
+}
