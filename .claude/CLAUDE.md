@@ -16,7 +16,7 @@
 ## 结构
 
 pnpm monorepo：根 `pnpm-workspace.yaml` 收 `tools/*`。
-`tools/iuse` 是使用端 CLI（bin: iuse），契约类型由 `pnpm codegen`
+`tools/iuse` 是使用端 CLI（bin: iuse），契约类型由包内 `pnpm codegen`
 从根 `schema/` 生成，加载数据时用同一批 schema 做 ajv 运行时校验。
 
 ## 常用命令
