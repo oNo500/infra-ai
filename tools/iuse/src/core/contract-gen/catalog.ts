@@ -20,7 +20,6 @@ export interface CatalogRule {
   description: string;
   tags: string[];
   requires: string[];
-  scope: string;
   path: string;
   profiles: string[];
 }

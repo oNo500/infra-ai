@@ -16,7 +16,7 @@ rule、模板。资产内容由开发仓（`~/code/infra-agent/meta`）构建验
   实际来源（repo 或 `install`）。专题见 [`SKILLS.md`](SKILLS.md)。
 - [`catalog.json`](catalog.json) — 资产查询视图（描述/tags/profile 隶属），供 `iuse list/show` 消费
 - [`profiles.json`](profiles.json) — rule 组合账：项目 profile 显式清单
-- [`rules/`](rules/) — 可分发 rule 产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
+- [`rules/`](rules/) — 可分发 rule 产物，产物即安装形态：file-scoped 规则自带 `paths` frontmatter，`iuse` 原样拷贝，不做安装时渲染（`iuse cat <name>` 即产物原文）
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
 - [`schema/`](schema/) — 数据契约：catalog/profiles 两份 JSON
   Schema（发布副本，SSoT 在开发仓 `packages/meta-cli/schema/`）。`iuse`
@@ -44,8 +44,8 @@ pnpx skills add <owner>/<repo> -s <name>
 # 因 pnpm 多包 link --global 会互清 binstub，见 .claude/CLAUDE.md）
 iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
 iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
-iuse show <name>                       # 单条资产元数据 + 渲染后全文
-iuse cat <name>                        # 输出渲染后的安装形态（可重定向落盘）
+iuse show <name>                       # 单条资产元数据 + 产物全文
+iuse cat <name>                        # 输出产物原文（安装形态，可重定向落盘）
 iuse profiles                          # 列出可选 profile 及其 rules
 iuse init --profile <name> <project>   # 按预设组合初始化（--dry-run 预演；--exclude 排除个别）
 iuse init --rules a,b,c <project>      # 不经 profile 直选拼装（查询完自选）

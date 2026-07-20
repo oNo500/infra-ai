@@ -6,7 +6,6 @@ import type { IuseContext } from './init'
 import { installStateFor } from './list'
 import type { InstallState } from './list'
 import { loadDownstreamLock } from './manifest'
-import { renderRule } from './render'
 import { resolveSource } from './source'
 import { detectSourceRoot } from './source-root'
 
@@ -56,8 +55,7 @@ export async function showReport(
     }
   }
 
-  const raw = readTextIfExists(join(artifactBase, rule.path))
-  const content = raw === null ? null : renderRule(rule.scope, raw)
+  const content = readTextIfExists(join(artifactBase, rule.path))
   const lock = loadDownstreamLock(opts.target)
   const profiles = loadProfiles(source.root)
   const state = installStateFor({ name: opts.name, target: opts.target, sourceContent: content, lock, profiles })
@@ -71,8 +69,7 @@ export async function showReport(
 }
 
 /**
- * cat 是 show 的管道原语形态：只返回渲染后的安装内容，供重定向落盘
- * （产物不再是安装形态，需经渲染）。
+ * cat 是 show 的管道原语形态：只返回产物原文（即安装形态），供重定向落盘。
  */
 export async function catReport(
   ctx: IuseContext,

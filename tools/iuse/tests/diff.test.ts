@@ -22,7 +22,7 @@ function fixtureSource(): string {
     generatedAt: '2026-07-18T00:00:00Z',
     tags: { concern: { exclusive: false, values: { core: 'x' } } },
     rules: {
-      constitution: { description: 'x', tags: ['core'], requires: [], scope: 'global', path: 'rules/constitution.md', profiles: ['demo'] },
+      constitution: { description: 'x', tags: ['core'], requires: [], path: 'rules/constitution.md', profiles: ['demo'] },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
@@ -32,7 +32,7 @@ function fixtureSource(): string {
 function addRule(source: string, name: string, ruleBody: string, tags: string[] = ['core']): void {
   writeFileSync(join(source, 'rules', `${name}.md`), ruleBody)
   const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
-  catalog.rules[name] = { description: 'x', tags, requires: [], scope: 'global', path: `rules/${name}.md`, profiles: ['demo'] }
+  catalog.rules[name] = { description: 'x', tags, requires: [], path: `rules/${name}.md`, profiles: ['demo'] }
   writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
 }
 

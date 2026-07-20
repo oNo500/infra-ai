@@ -43,7 +43,6 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['core'],
         requires: [],
-        scope: 'global',
         path: 'rules/constitution.md',
         profiles: ['node-web', 'python-cli'],
       },
@@ -51,7 +50,6 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['backend'],
         requires: [],
-        scope: 'global',
         path: 'rules/extra.md',
         profiles: ['python-cli'],
       },
@@ -95,7 +93,7 @@ function fixtureSourceWithManyRules(count: number): string {
   for (let i = 0; i < count; i += 1) {
     const name = `rule-${String(i).padStart(2, '0')}`
     writeFileSync(join(dir, 'rules', `${name}.md`), `# ${name}\n`)
-    rules[name] = { description: 'x', tags: [], requires: [], scope: 'global', path: `rules/${name}.md`, profiles: [] }
+    rules[name] = { description: 'x', tags: [], requires: [], path: `rules/${name}.md`, profiles: [] }
   }
   const catalog: Catalog = { generatedAt: '2026-07-18T00:00:00Z', tags: {}, rules }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))

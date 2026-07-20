@@ -290,11 +290,10 @@ const showCommand = defineCommand({
     } else {
       if (result.message !== undefined) console.log(result.message)
       if (result.entry !== undefined) {
-        const { name, description, tags, scope, profiles, state } = result.entry
+        const { name, description, tags, profiles, state } = result.entry
         console.log(`name: ${name}`)
         console.log(`description: ${description}`)
         console.log(`tags: ${tags.join(', ')}`)
-        console.log(`scope: ${scope}`)
         console.log(`profiles: ${profiles.join(', ')}`)
         if (state !== undefined) console.log(`state: ${state}`)
         if (result.content !== undefined) {
@@ -310,7 +309,7 @@ const showCommand = defineCommand({
 const catCommand = defineCommand({
   meta: {
     name: 'cat',
-    description: '输出单条 rule 渲染后的安装形态（纯内容到 stdout，可重定向落盘）。名不存在退 1。',
+    description: '输出单条 rule 产物原文（安装形态，纯内容到 stdout，可重定向落盘）。名不存在退 1。',
   },
   args: {
     source: { type: 'string', description: '中心源（本地路径或 gh: 定位符；缺省 INFRA_AI_ROOT 或 ~/code/infra-ai）' },

@@ -22,15 +22,13 @@ function fixtureSource(): string {
         description: '甲说明',
         tags: ['core'],
         requires: [],
-        scope: 'global',
         path: 'rules/alpha.md',
         profiles: ['demo'],
       },
       sigma: {
-        description: 'scoped 规则',
+        description: 'file-scoped 规则',
         tags: ['core'],
         requires: [],
-        scope: '**/*.md',
         path: 'rules/sigma.md',
         profiles: [],
       },
@@ -38,7 +36,9 @@ function fixtureSource(): string {
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
   writeFileSync(join(dir, 'rules', 'alpha.md'), '# Alpha\n\nbody\n')
-  writeFileSync(join(dir, 'rules', 'sigma.md'), '# Sigma\n')
+  // sigma's artifact carries baked paths frontmatter -- the final install
+  // form file-scoped rules ship in; iuse copies it verbatim.
+  writeFileSync(join(dir, 'rules', 'sigma.md'), '---\npaths:\n  - "**/*.md"\n---\n\n# Sigma\n')
   writeFileSync(join(dir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo', rules: ['alpha'] } }))
   return dir
 }
@@ -135,7 +135,7 @@ describe('showReport', () => {
     expect(result.entry?.state).toBe('modified')
   })
 
-  test('scoped rule content is rendered with paths frontmatter', async () => {
+  test('file-scoped rule content is copied verbatim, including its baked paths frontmatter', async () => {
     const source = fixtureSource()
     const uninitTarget = mkdtempSync(join(tmpdir(), 'iuse-show-uninit-'))
 
@@ -145,7 +145,7 @@ describe('showReport', () => {
     expect(result.content).toBe('---\npaths:\n  - "**/*.md"\n---\n\n# Sigma\n')
   })
 
-  test('catReport returns rendered content only; unknown rule exits 1', async () => {
+  test('catReport returns artifact content verbatim; unknown rule exits 1', async () => {
     const source = fixtureSource()
 
     const hit = await catReport(fakeCtx(), { source, name: 'sigma' })

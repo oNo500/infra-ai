@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.css"
+---
+
 # CSS
 
 样式与设计 token 的工程纪律：token 主线、shadcn 定制边界、单位分工、

@@ -3,7 +3,6 @@ import { loadCatalog, loadProfiles } from './contract'
 import type { CatalogRule, Profile } from './contract'
 import { readTextIfExists, sha256 } from './io'
 import { ruleTargetRelPath } from './manifest'
-import { renderRule } from './render'
 import { detectSourceRoot } from './source-root'
 
 export interface AssemblyItem {
@@ -44,8 +43,7 @@ export function assembleRules(
       violations.push(`${rule}: built artifact missing at ${entry.path} (run imeta build in the source)`)
       continue
     }
-    const rendered = renderRule(entry.scope, content)
-    items.push({ rule, sourcePath, targetRelPath: ruleTargetRelPath(rule), content: rendered, hash: sha256(rendered) })
+    items.push({ rule, sourcePath, targetRelPath: ruleTargetRelPath(rule), content, hash: sha256(content) })
   }
   return { items, missing, violations }
 }

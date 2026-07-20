@@ -33,7 +33,6 @@ function fixtureSource(): string {
         description: '甲说明',
         tags: ['core'],
         requires: [],
-        scope: 'global',
         path: 'rules/alpha.md',
         profiles: ['demo'],
       },
@@ -41,7 +40,6 @@ function fixtureSource(): string {
         description: 'beta description',
         tags: ['extra'],
         requires: [],
-        scope: 'global',
         path: 'rules/beta.md',
         profiles: [],
       },
@@ -59,15 +57,14 @@ function fixtureSource(): string {
 }
 
 /**
- * Adds a scoped catalog rule 'sigma' (plain-body artifact, scope glob in
- * catalog only) -- exercises the render-aware install-state comparison:
- * the installed copy carries rendered paths frontmatter, the source artifact
- * does not.
+ * Adds a file-scoped catalog rule 'sigma' whose artifact carries baked paths
+ * frontmatter -- exercises install-state comparison for a rule that ships
+ * with frontmatter already in its final install form (verbatim copy).
  */
 function addSigmaRule(source: string): void {
-  writeFileSync(join(source, 'rules', 'sigma.md'), '# Sigma\n')
+  writeFileSync(join(source, 'rules', 'sigma.md'), '---\npaths:\n  - "**/*.md"\n---\n\n# Sigma\n')
   const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
-  catalog.rules.sigma = { description: 'scoped rule', tags: ['extra'], requires: [], scope: '**/*.md', path: 'rules/sigma.md', profiles: [] }
+  catalog.rules.sigma = { description: 'file-scoped rule', tags: ['extra'], requires: [], path: 'rules/sigma.md', profiles: [] }
   writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
 }
 
@@ -79,7 +76,7 @@ function addSigmaRule(source: string): void {
  */
 function addConstitutionToCatalog(source: string): void {
   const catalog = JSON.parse(readFileSync(join(source, 'catalog.json'), 'utf8')) as Catalog
-  catalog.rules.constitution = { description: 'x', tags: ['core'], requires: [], scope: 'global', path: 'rules/constitution.md', profiles: ['demo'] }
+  catalog.rules.constitution = { description: 'x', tags: ['core'], requires: [], path: 'rules/constitution.md', profiles: ['demo'] }
   writeFileSync(join(source, 'catalog.json'), JSON.stringify(catalog, null, 2))
 }
 
@@ -242,7 +239,7 @@ describe('listReport', () => {
       generatedAt: '2026-07-19T00:00:00Z',
       tags: {},
       rules: {
-        alpha: { description: '甲说明', tags: ['core'], requires: [], scope: 'global', path: 'rules/alpha.md', profiles: [] },
+        alpha: { description: '甲说明', tags: ['core'], requires: [], path: 'rules/alpha.md', profiles: [] },
       },
     }
     writeFileSync(join(dir, 'artifacts', 'catalog.json'), JSON.stringify(catalog, null, 2))
@@ -257,7 +254,7 @@ describe('listReport', () => {
     expect(grepped.rows.map((r) => r.name)).toEqual(['alpha'])
   })
 
-  test('scoped rule installed via init reports synced (render-aware comparison)', async () => {
+  test('file-scoped rule (baked paths frontmatter) installed via init reports synced', async () => {
     const source = fixtureSource()
     addSigmaRule(source)
     const target = mkdtempSync(join(tmpdir(), 'iuse-list-tgt-'))

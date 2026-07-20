@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.py"
+---
+
 # Python
 
 工具链选型：uv 单一入口、ruff、pyright。PEP 8 细节与可自动修复项交给 ruff 强制，

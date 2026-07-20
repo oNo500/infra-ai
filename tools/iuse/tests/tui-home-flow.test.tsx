@@ -31,7 +31,6 @@ function fixtureSource(): string {
         description: 'x',
         tags: ['core'],
         requires: [],
-        scope: 'global',
         path: 'rules/constitution.md',
         profiles: ['demo'],
       },

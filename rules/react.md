@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*.tsx"
+---
+
 # React
 
 React 前端的架构与组件约定：feature-based 结构、目录语义、组件类型习惯与

@@ -25,13 +25,12 @@
       "additionalProperties": {
         "title": "CatalogRule",
         "type": "object",
-        "required": ["description", "tags", "requires", "scope", "path", "profiles"],
+        "required": ["description", "tags", "requires", "path", "profiles"],
         "additionalProperties": false,
         "properties": {
           "description": { "type": "string" },
           "tags": { "type": "array", "items": { "type": "string" } },
           "requires": { "type": "array", "items": { "type": "string" } },
-          "scope": { "type": "string" },
           "path": { "type": "string" },
           "profiles": { "type": "array", "items": { "type": "string" } }
         }

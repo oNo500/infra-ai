@@ -17,7 +17,7 @@ describe('schema-validated loaders', () => {
         generatedAt: '2026-07-20T00:00:00Z',
         tags: { lang: { exclusive: true, values: { ts: 'TypeScript' } } },
         rules: {
-          constitution: { description: 'x', tags: ['ts'], requires: [], scope: 'global', path: 'rules/constitution.md', profiles: [] },
+          constitution: { description: 'x', tags: ['ts'], requires: [], path: 'rules/constitution.md', profiles: [] },
         },
       }),
     )

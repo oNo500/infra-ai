@@ -74,8 +74,8 @@ profile 是中心源清单，目标项目可显式偏离：
 
 - 中心源默认 `~/code/infra-ai`（可用 `INFRA_AI_ROOT` 覆盖），下文记 `$SRC`
 - 读 `$SRC/profiles.json` 选 profile；把清单内每条 rule 从
-  `$SRC/rules/` 拷到目标 `.claude/rules/<name>.md`（meta `scope` 为
-  glob 的规则需在副本头部补 `paths` frontmatter）；
+  `$SRC/rules/` 拷到目标 `.claude/rules/<name>.md`（file-scoped 规则的
+  `paths` frontmatter 产物已自带，原样拷贝即可，无需手动补）；
   拷 `$SRC/templates/settings.json` 到 `.claude/settings.json`
 - 参照 `$SRC/templates/architecture.md` 与 `$SRC/templates/claude-md.md`
   结合项目事实实例化：占位符全替换、不适用章节整节删、CLAUDE.md <50 行

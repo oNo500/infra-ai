@@ -94,7 +94,7 @@ function fixtureSource(): string {
     generatedAt: '2026-07-18T00:00:00Z',
     tags: { concern: { exclusive: false, values: { core: 'x' } } },
     rules: {
-      constitution: { description: 'x', tags: ['core'], requires: [], scope: 'global', path: 'rules/constitution.md', profiles: ['demo'] },
+      constitution: { description: 'x', tags: ['core'], requires: [], path: 'rules/constitution.md', profiles: ['demo'] },
     },
   }
   writeFileSync(join(dir, 'catalog.json'), JSON.stringify(catalog, null, 2))
@@ -279,7 +279,7 @@ describe('exclude/add/remove flag plumbing', () => {
     // (both would target .claude/rules/architecture.md).
     for (const name of ['constitution', 'pattern1', 'pattern2']) {
       writeFileSync(join(sourceDir, 'rules', `${name}.md`), `# ${name}\n`)
-      repeatedCatalog.rules[name] = { description: 'x', tags: ['core'], requires: [], scope: 'global', path: `rules/${name}.md`, profiles: ['demo'] }
+      repeatedCatalog.rules[name] = { description: 'x', tags: ['core'], requires: [], path: `rules/${name}.md`, profiles: ['demo'] }
     }
     writeFileSync(join(sourceDir, 'catalog.json'), JSON.stringify(repeatedCatalog, null, 2))
     writeFileSync(join(sourceDir, 'profiles.json'), JSON.stringify({ demo: { description: 'Demo profile', rules: ['constitution', 'pattern1', 'pattern2'] } }))

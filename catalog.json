@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-19T17:17:43.987Z",
+  "generatedAt": "2026-07-20T05:16:15.271Z",
   "tags": {
     "lang": {
       "exclusive": true,
@@ -42,7 +42,6 @@
         "workflow"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/agent-behavior.md",
       "profiles": [
         "nestjs-api",
@@ -58,7 +57,6 @@
         "ts"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/ai-sdk.md",
       "profiles": []
     },
@@ -68,7 +66,6 @@
         "core"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/constitution.md",
       "profiles": [
         "nestjs-api",
@@ -84,7 +81,6 @@
         "workflow"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/context-management.md",
       "profiles": [
         "nestjs-api",
@@ -99,7 +95,6 @@
         "frontend"
       ],
       "requires": [],
-      "scope": "**/*.css",
       "path": "rules/css.md",
       "profiles": [
         "nextjs-app",
@@ -113,7 +108,6 @@
         "backend"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/database.md",
       "profiles": [
         "nestjs-api"
@@ -125,7 +119,6 @@
         "ts"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/dependencies-ts.md",
       "profiles": [
         "nestjs-api",
@@ -142,7 +135,6 @@
       "requires": [
         "markdown"
       ],
-      "scope": "**/*.md",
       "path": "rules/docs-retrieval.md",
       "profiles": []
     },
@@ -152,7 +144,6 @@
         "docs"
       ],
       "requires": [],
-      "scope": "**/*.md",
       "path": "rules/markdown.md",
       "profiles": [
         "nestjs-api",
@@ -171,7 +162,6 @@
       "requires": [
         "typescript"
       ],
-      "scope": "src/**/*.ts",
       "path": "rules/nestjs.md",
       "profiles": [
         "nestjs-api"
@@ -187,7 +177,6 @@
       "requires": [
         "react"
       ],
-      "scope": "**/*.tsx",
       "path": "rules/nextjs.md",
       "profiles": [
         "nextjs-app"
@@ -199,7 +188,6 @@
         "python"
       ],
       "requires": [],
-      "scope": "**/*.py",
       "path": "rules/python.md",
       "profiles": [
         "python-cli"
@@ -215,7 +203,6 @@
       "requires": [
         "typescript"
       ],
-      "scope": "**/*.tsx",
       "path": "rules/react.md",
       "profiles": [
         "nextjs-app",
@@ -229,7 +216,6 @@
         "testing"
       ],
       "requires": [],
-      "scope": "**/*.{test,spec,e2e-spec}.{ts,tsx,js,jsx}",
       "path": "rules/testing.md",
       "profiles": [
         "nestjs-api",
@@ -244,7 +230,6 @@
         "workflow"
       ],
       "requires": [],
-      "scope": "global",
       "path": "rules/tooling.md",
       "profiles": [
         "nestjs-api",
@@ -259,7 +244,6 @@
         "ts"
       ],
       "requires": [],
-      "scope": "**/*.{ts,tsx}",
       "path": "rules/typescript.md",
       "profiles": [
         "nestjs-api",

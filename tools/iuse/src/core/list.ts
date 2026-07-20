@@ -5,7 +5,6 @@ import { readTextIfExists, sha256 } from './io'
 import type { IuseContext } from './init'
 import { computeDrift, loadDownstreamLock, localHashFor } from './manifest'
 import type { DownstreamLock, DriftState } from './manifest'
-import { renderRule } from './render'
 import { resolveSource } from './source'
 import { detectSourceRoot } from './source-root'
 
@@ -15,7 +14,6 @@ export interface ListRow {
   name: string
   description: string
   tags: string[]
-  scope: string
   state?: InstallState // 未初始化目标无 state；broken=catalog 指向的产物缺失
 }
 
@@ -78,12 +76,11 @@ function buildFilteredRows(opts: {
   for (const [name, rule] of Object.entries(catalogRules).toSorted(([a], [b]) => a.localeCompare(b))) {
     if (tags !== undefined && !tags.every((t) => rule.tags.includes(t))) continue
 
-    const raw = readTextIfExists(join(artifactBase, rule.path))
-    const sourceContent = raw === null ? null : renderRule(rule.scope, raw)
+    const sourceContent = readTextIfExists(join(artifactBase, rule.path))
     if (grepLower !== undefined && !matchesGrep(name, rule, sourceContent, grepLower)) continue
 
     const state = computeState(name, rule, sourceContent)
-    rows.push({ name, description: rule.description, tags: rule.tags, scope: rule.scope, state })
+    rows.push({ name, description: rule.description, tags: rule.tags, state })
   }
   return rows
 }
