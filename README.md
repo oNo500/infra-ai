@@ -1,8 +1,9 @@
 # infra-ai
 
 个人 Claude Code 基础设施的**发布面**：其他项目和设备从这里安装 skill、
-rule、模板。内容由开发仓 `~/code/meta` 构建验证后经 `imeta publish` 落位，
-人审 diff 后提交——本仓不直接编辑资产，改动一律回开发仓。
+rule、模板。资产内容由开发仓（`~/code/infra-agent/meta`）构建验证后经
+`imeta publish` 落位，人审 diff 后提交——本仓不直接编辑资产，改动一律回
+开发仓。使用端 CLI `iuse` 是本仓自有代码，住 `tools/`（pnpm monorepo）。
 
 ## 内容
 
@@ -18,11 +19,17 @@ rule、模板。内容由开发仓 `~/code/meta` 构建验证后经 `imeta publi
 - [`profiles.json`](profiles.json) — rule 组合账：项目 profile 显式清单
 - [`rules/`](rules/) — 可分发 rule 产物：纯正文不含 frontmatter；`scope` 为管理元数据，`iuse` 安装时把 scoped 规则渲染上 `paths` frontmatter，global 规则原样落地（`iuse cat <name>` 输出安装形态）
 - [`templates/`](templates/) — 新项目模板（CLAUDE.md、settings.json、architecture 等），分发时按目标项目实例化占位符
+- [`schema/`](schema/) — 数据契约：catalog/profiles/globals 三份 JSON
+  Schema（发布副本，SSoT 在开发仓 `packages/meta-cli/schema/`）。`iuse`
+  据此生成契约类型（包内 `pnpm codegen`）并在加载数据时做 ajv 运行时校验
+- [`tools/iuse/`](tools/iuse/) — 使用端 CLI/TUI（bin: `iuse`）：查询、
+  拼装、对账更新。本仓自有代码，不经 publish，与开发仓无包依赖——两个
+  CLI 只通过上面的 schema 契约耦合
 - [`docs/mcp/`](docs/mcp/) — MCP server 说明
 
-维护端（元指令、构建契约、工具链源码）在开发仓 `~/code/meta`，不要在此
-修改。`docs/superpowers/` 是设计文档存档，`.claude/` 与 `.mcp.json` 是
-本仓自用配置，都不分发。
+维护端（元指令、构建契约、imeta 源码）在开发仓 `~/code/infra-agent/meta`，
+不要在此修改经 publish 落位的内容。`tools/`、`docs/superpowers/`（设计
+文档存档）、`.claude/` 与 `.mcp.json`（自用配置）是本仓自有，不分发。
 
 ## 使用
 
@@ -34,7 +41,8 @@ pnpx skills add oNo500/infra-ai --all
 # skill：official 类直接装上游
 pnpx skills add <owner>/<repo> -s <name>
 
-# 规则与模板：使用端 CLI（开发仓 ~/code/meta 的 packages/iuse 内 pnpm link --global）
+# 规则与模板：使用端 CLI（本仓 tools/iuse；全局命令用直接符号链接，
+# 因 pnpm 多包 link --global 会互清 binstub，见 .claude/CLAUDE.md）
 iuse                                   # TTY 裸跑进 TUI：主菜单 → 浏览/初始化/对账/更新（交互式唯一入口）
 iuse list [--tag a,b] [--grep <kw>]    # 查询资产：描述、tags、安装状态（已初始化目标附状态列）
 iuse show <name>                       # 单条资产元数据 + 渲染后全文
