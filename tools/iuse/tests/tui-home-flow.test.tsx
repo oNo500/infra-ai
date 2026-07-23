@@ -137,9 +137,11 @@ describe('TUI home menu flow', () => {
     await press(stdin, '\x1b[B') // down arrow to second item
     await press(stdin, '\r') // enter: browse
 
-    // '浏览' alone would also match the home menu's own '浏览资产' label --
-    // wait for the browse view's title line specifically instead.
-    await waitFor(() => (lastFrame() ?? '').split('\n').some((l) => l.trim().startsWith('浏览')))
+    // '浏览' alone would also match the home menu's own '浏览资产' label. The
+    // browse title line carries ANSI bold codes, so a trim()+startsWith('浏览')
+    // never fires (the line starts with an escape sequence). Anchor on a footer
+    // hint unique to the browse view instead -- the home menu has no such line.
+    await waitFor(() => (lastFrame() ?? '').includes('进入安装计划'))
     expect(lastFrame()).toContain('constitution')
 
     await press(stdin, '\x1b') // escape
