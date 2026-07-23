@@ -2,9 +2,9 @@
 
 ## SSoT
 
-`skills.json`（仓库根）是全部 skill 的清单：一个 skill 是否存在、来自哪里、如何安装，以它为准。每条按 `source` 分三类：
+`meta/assets.json` 的 `skills` 分组是全部 skill 的清单：一个 skill 是否存在、来自哪里、如何安装，以它为准。每条按 `source` 分三类：
 
-- `custom` — 自建。内容源是开发仓 `meta/skills/<name>.md` 元指令，开发仓 `artifacts/skills/<name>/` 是构建产物，可重新构建。字段只有 `name`
+- `custom` — 自建。内容源是开发仓 `meta/skills/<name>.md` 元指令（只有正文），开发仓 `artifacts/skills/<name>/` 是构建产物，可重新构建。字段只有 `status`
 - `mirror` — 上游有可用 SKILL.md 但不符合 skills.sh 标准，giget 拉单目录到开发仓 `artifacts/skills/<name>/`。字段 `repo`、`path`、`commit`、`updated`
 - `official` — 符合 skills.sh 标准，不入仓，只记 `repo`；同时是 Anthropic 官方插件的另带 `plugin`
 
@@ -14,23 +14,30 @@
 
 清单记目标态，允许比实装超前：`custom` 条目可以先于产物存在。`imeta` 的 `s` 视图查全量（ledger、mirror、已安装、推荐）。
 
+publish 时 `meta/assets.json` 的 skill 账落位为发布仓根 `skills.json`
+（生成，非原样复制）：下游 `pnpx skills add` 读这份生成结果，本仓不再持有
+`skills.json`。
+
 ## 创建
 
-- `custom`：在开发仓 `meta/skills/<name>.md` 写元指令，让 Claude 构建。元指令格式见开发仓 `meta/README.md`，AI 构建契约见
+- `custom`：在开发仓 `meta/skills/<name>.md` 写元指令正文，在 `meta/assets.json`
+  的 `skills` 分组加一条 `{ "source": "custom", "status": "stub" }`，让
+  Claude 构建。元指令格式见开发仓 `meta/README.md`，AI 构建契约见
   开发仓 `meta/prompts/skill-build.md`
-- `mirror`：往 `skills.json` 加条目（`name`/`repo`/`path`），在 `imeta` 的 `s` 视图按 `u` 拉取
-- `official`：往 `skills.json` 加条目（`name`/`repo`），无实体
+- `mirror`：往 `meta/assets.json` 加条目（`source`/`repo`/`path`），在 `imeta`
+  的 `s` 视图按 `u` 拉取，或 `imeta sync --pull`
+- `official`：往 `meta/assets.json` 加条目（`source`/`repo`），无实体
 
 ## 维护
 
-`imeta` 打开 TUI，`s` 进 skills 视图：进入即核对 ledger 与 mirror 上游差异，`f` 补账 unledgered，`u` 更新过期 mirror。
+`imeta` 打开 TUI，`s` 进 skills 视图：进入即核对 ledger 与 mirror 上游差异，`f` 补账 unledgered，`u` 更新过期 mirror；`c`（assets 视图，`imeta sync`）也能批量 `--pull` mirror。
 
-- 改 `custom`：意图变更先改元指令再重建；直接改了产物就回写元指令
+- 改 `custom`：意图变更先改元指令再重建；直接改了产物就回写元指令（`skills:fix`/`imeta sync --create` 写入的是 `meta/assets.json`，不是产物）
 - mirror 更新后 `artifacts/skills/<name>/` 为空：上游目录挪了，用 `gh` 查 SKILL.md 新位置，更新 `path` 重拉
 - mirror 被 skills.sh 收录：条目改 `official`，删 `artifacts/skills/<name>/`
 - 退役：删产物目录，并手动删清单条目（对账只增不删）
 
-mirror 更新后自行 review 再提交：开发仓内 `git diff artifacts/skills/ && git add artifacts/skills/ skills.json`。
+mirror 更新后自行 review 再提交：开发仓内 `git diff artifacts/skills/ meta/assets.json && git add artifacts/skills/ meta/assets.json`。
 
 ## 使用
 

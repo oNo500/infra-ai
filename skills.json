@@ -1,66 +1,12 @@
 [
   {
-    "name": "drawio",
-    "source": "mirror",
-    "repo": "jgraph/drawio-mcp",
-    "path": "plugins/claude-code/skills/drawio",
-    "commit": "516965c7c49e9ec408529d0b1a653f67814cb920",
-    "updated": "2026-07-04"
+    "name": "ai-sdk",
+    "source": "official",
+    "repo": "vercel/ai",
+    "refUrl": "https://ai-sdk.dev/docs/getting-started/coding-agents"
   },
   {
-    "name": "explaining-code",
-    "source": "custom"
-  },
-  {
-    "name": "clarify",
-    "source": "custom"
-  },
-  {
-    "name": "visualize",
-    "source": "custom"
-  },
-  {
-    "name": "gitflow-commit",
-    "source": "custom"
-  },
-  {
-    "name": "chezmoi-sync",
-    "source": "custom"
-  },
-  {
-    "name": "obsidian-cli",
-    "source": "custom"
-  },
-  {
-    "name": "obsidian-markdown",
-    "source": "custom"
-  },
-  {
-    "name": "obsidian-bases",
-    "source": "custom"
-  },
-  {
-    "name": "note",
-    "source": "custom"
-  },
-  {
-    "name": "ctx-init",
-    "source": "custom"
-  },
-  {
-    "name": "anki-connect",
-    "source": "custom"
-  },
-  {
-    "name": "json-canvas",
-    "source": "custom"
-  },
-  {
-    "name": "edit-markdown",
-    "source": "custom"
-  },
-  {
-    "name": "tailwindcss-icons",
+    "name": "commit-lite",
     "source": "custom"
   },
   {
@@ -69,15 +15,29 @@
     "repo": "affaan-m/everything-claude-code"
   },
   {
+    "name": "drawio",
+    "source": "mirror",
+    "repo": "jgraph/drawio-mcp",
+    "path": "plugins/claude-code/skills/drawio",
+    "commit": "516965c7c49e9ec408529d0b1a653f67814cb920",
+    "updated": "2026-07-04"
+  },
+  {
+    "name": "edit-markdown",
+    "source": "custom"
+  },
+  {
     "name": "find-skills",
     "source": "official",
     "repo": "vercel-labs/skills"
   },
   {
-    "name": "ai-sdk",
-    "source": "official",
-    "repo": "vercel/ai",
-    "refUrl": "https://ai-sdk.dev/docs/getting-started/coding-agents"
+    "name": "note",
+    "source": "custom"
+  },
+  {
+    "name": "obsidian-cli",
+    "source": "custom"
   },
   {
     "name": "shadcn",
@@ -85,7 +45,7 @@
     "repo": "shadcn-ui/ui"
   },
   {
-    "name": "commit-lite",
+    "name": "visualize",
     "source": "custom"
   }
 ]

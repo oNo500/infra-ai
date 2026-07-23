@@ -1,8 +1,9 @@
 # CLAUDE.md 模板
 
-项目入口 `CLAUDE.md` 的模板。分发时结合目标项目实例化，落目标项目根
-`CLAUDE.md`。入口与 `.claude/rules/` 的分工：架构约定、编码规范、测试纪律
-由 rules（profile 拼装）承载，入口只做「项目一句话 + 红线 + 命令 + 指路」。
+项目入口 `CLAUDE.md` 的模板。分发时结合目标项目实例化，落 `.claude/CLAUDE.md`
+（Claude Code 官方支持根与 `.claude/` 两处；iuse 默认落 `.claude/` 以内聚
+所有 Claude 配置）。入口与 `.claude/rules/` 的分工：架构约定、编码规范、
+测试纪律由 rules（profile 拼装）承载，入口只做「项目一句话 + 红线 + 命令 + 指路」。
 
 ## 骨架
 
