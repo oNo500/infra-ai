@@ -90,6 +90,8 @@ describe('runInit happy path', () => {
     expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
     // success clears staging (logs and staged files) -- no leftover noise
     expect(existsSync(join(target, '.iuse-staging'))).toBe(false)
+    // success never touches the target's .gitignore (nothing to shield)
+    expect(existsSync(join(target, '.gitignore'))).toBe(false)
 
     const lock = loadDownstreamLock(target)
     expect(lock).not.toBeNull()
@@ -314,6 +316,8 @@ describe('runInit failure paths return ok:false instead of throwing', () => {
     expect(result.message).toContain(`log: ${logPath}`)
     expect(existsSync(logPath)).toBe(true)
     expect(readFileSync(logPath, 'utf8')).toContain('reason X')
+    // failure keeps staging, so .gitignore must shield it from an accidental commit
+    expect(readFileSync(join(target, '.gitignore'), 'utf8')).toContain('.iuse-staging/')
   })
 
   test('source missing the relocated template contract fails without invoking claude at all', async () => {

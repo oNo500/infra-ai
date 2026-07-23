@@ -47,6 +47,18 @@ function fail(message: string): { ok: false; message: string } {
   return { ok: false, message }
 }
 
+// 实例化失败会把 .iuse-staging（含日志）留在目标项目供排错。此时确保目标
+// .gitignore 忽略它，以免用户误提交。仅在暂存目录确有残留时才碰 gitignore；
+// 幂等：已忽略则不动。成功路径不调用——暂存目录会被清掉，无需留 ignore 行。
+function ensureStagingIgnored(target: string): void {
+  if (!existsSync(join(target, '.iuse-staging'))) return
+  const gitignorePath = join(target, '.gitignore')
+  const existing = readTextIfExists(gitignorePath) ?? ''
+  if (existing.split('\n').some((line) => line.trim() === '.iuse-staging/')) return
+  const prefix = existing === '' || existing.endsWith('\n') ? existing : `${existing}\n`
+  writeFileAtomic(gitignorePath, `${prefix}.iuse-staging/\n`)
+}
+
 async function instantiateTemplate(
   ctx: IuseContext,
   artifactBase: string,
@@ -304,7 +316,10 @@ export async function runInit(
       opts.onProgress?.(instantiateStep)
     }
     const result = await instantiateTemplate(ctx, artifactBase, opts.target, spec, opts.force)
-    if (!result.ok) return fail(result.message)
+    if (!result.ok) {
+      ensureStagingIgnored(opts.target)
+      return fail(result.message)
+    }
     notes.push(result.message)
   }
   rmSync(join(opts.target, '.iuse-staging'), { recursive: true, force: true })
