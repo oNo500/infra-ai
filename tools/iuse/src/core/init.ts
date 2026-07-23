@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { runClaude } from './claude'
 import { readTextIfExists, writeFileAtomic } from './io'
@@ -73,7 +73,17 @@ async function instantiateTemplate(
   // 无法放行直写——claude 只写非敏感的 staging 文件，落位由本进程完成
   const stagingRel = `.iuse-staging/${spec.name}.md`
   const stagingFile = join(target, stagingRel)
-  mkdirSync(join(target, '.iuse-staging'), { recursive: true })
+
+  // 留痕 claude 事件流到目标项目内，供失败排错（headless 下 claude 声称完成
+  // 却未落盘时，这是唯一能看到它实际输出的地方）。时间戳用 ctx.now() 以便测试可控。
+  // logs 目录递归创建，同时建出 .iuse-staging 父目录。
+  const logPath = join(target, '.iuse-staging', 'logs', `${spec.name}-${ctx.now().replaceAll(':', '-')}.jsonl`)
+  mkdirSync(join(target, '.iuse-staging', 'logs'), { recursive: true })
+  const logHint = ` (log: ${logPath})`
+  const onEvent = (raw: unknown): void => {
+    appendFileSync(logPath, `${JSON.stringify(raw)}\n`)
+  }
+
   const prompt = [
     `遵循 ${contractPath} 的实例化规则。`,
     `模板文件：${templatePath}`,
@@ -87,31 +97,32 @@ async function instantiateTemplate(
     repoRoot: target,
     prompt,
     allowedTools: `Read,Glob,Grep,Edit(${stagingRel})`,
+    onEvent,
   })
 
   if (result.timedOut) {
-    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude instantiation timed out (rerun with --force to complete instantiation)` }
+    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude instantiation timed out (rerun with --force to complete instantiation)${logHint}` }
   }
   if (result.code !== 0) {
     const stderrTail = result.stderr.trim().split('\n').slice(-3).join(' | ')
     return {
       ok: false,
       skipped: false,
-      message: `${spec.targetRelPath}: claude exited with code ${result.code}${stderrTail === '' ? '' : ` (stderr: ${stderrTail})`} (rerun with --force to complete instantiation)`,
+      message: `${spec.targetRelPath}: claude exited with code ${result.code}${stderrTail === '' ? '' : ` (stderr: ${stderrTail})`} (rerun with --force to complete instantiation)${logHint}`,
     }
   }
 
   const content = readTextIfExists(stagingFile)
   if (content === null) {
-    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude did not produce the file (rerun with --force to complete instantiation)` }
+    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude did not produce the file (rerun with --force to complete instantiation)${logHint}` }
   }
   if (PLACEHOLDER_PATTERN.test(content)) {
-    return { ok: false, skipped: false, message: `${spec.targetRelPath}: leftover [ALL_CAPS] placeholder after instantiation (rerun with --force to complete instantiation)` }
+    return { ok: false, skipped: false, message: `${spec.targetRelPath}: leftover [ALL_CAPS] placeholder after instantiation (rerun with --force to complete instantiation)${logHint}` }
   }
   if (spec.name === 'claude-md') {
     const lineCount = content.split('\n').length
     if (lineCount >= 50) {
-      return { ok: false, skipped: false, message: `${spec.targetRelPath}: ${lineCount} lines, must stay under 50 (rerun with --force to complete instantiation)` }
+      return { ok: false, skipped: false, message: `${spec.targetRelPath}: ${lineCount} lines, must stay under 50 (rerun with --force to complete instantiation)${logHint}` }
     }
   }
 
@@ -285,19 +296,18 @@ export async function runInit(
     }
   }
 
-  try {
-    for (const spec of TEMPLATE_SPECS) {
-      const instantiateStep = steps.find((s) => s.op === 'instantiate' && s.target === spec.targetRelPath)
-      if (instantiateStep !== undefined) {
-        opts.onProgress?.(instantiateStep)
-      }
-      const result = await instantiateTemplate(ctx, artifactBase, opts.target, spec, opts.force)
-      if (!result.ok) return fail(result.message)
-      notes.push(result.message)
+  // 失败时保留 .iuse-staging（含 claude 事件日志）供排错——message 里的 log:
+  // 路径才有效；只在全部实例化成功后清理，避免留暂存垃圾。
+  for (const spec of TEMPLATE_SPECS) {
+    const instantiateStep = steps.find((s) => s.op === 'instantiate' && s.target === spec.targetRelPath)
+    if (instantiateStep !== undefined) {
+      opts.onProgress?.(instantiateStep)
     }
-  } finally {
-    rmSync(join(opts.target, '.iuse-staging'), { recursive: true, force: true })
+    const result = await instantiateTemplate(ctx, artifactBase, opts.target, spec, opts.force)
+    if (!result.ok) return fail(result.message)
+    notes.push(result.message)
   }
+  rmSync(join(opts.target, '.iuse-staging'), { recursive: true, force: true })
 
   const writeLockStep = steps.find((s) => s.op === 'write-lock')
   if (writeLockStep !== undefined) {

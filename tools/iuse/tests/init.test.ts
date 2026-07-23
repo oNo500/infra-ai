@@ -88,6 +88,8 @@ describe('runInit happy path', () => {
     expect(JSON.parse(readFileSync(join(target, '.claude/settings.json'), 'utf8'))).toEqual({ model: 'sonnet' })
     expect(readFileSync(join(target, '.claude/rules/architecture.md'), 'utf8')).toBe('# demo - Architecture\n\nbody\n')
     expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+    // success clears staging (logs and staged files) -- no leftover noise
+    expect(existsSync(join(target, '.iuse-staging'))).toBe(false)
 
     const lock = loadDownstreamLock(target)
     expect(lock).not.toBeNull()
@@ -292,6 +294,26 @@ describe('runInit failure paths return ok:false instead of throwing', () => {
     expect(result.message).toContain('--force')
     expect(existsSync(join(target, '.claude/rules/constitution.md'))).toBe(true)
     expect(loadDownstreamLock(target)).toBeNull()
+  })
+
+  test('claude produces no file: failure keeps the staging log and points at it', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    // claude exits 0 but writes nothing, and emits one event -- the exact shape
+    // of the real failure this logging was added to diagnose.
+    const claude: IuseContext['claude'] = async (opts) => {
+      opts.onEvent?.({ type: 'assistant', text: 'cannot instantiate: reason X' })
+      return { code: 0, timedOut: false, stderr: '' }
+    }
+
+    const result = await runInit(ctxWith(claude), { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('did not produce the file')
+    const logPath = join(target, '.iuse-staging/logs/architecture-2026-07-17T00-00-00Z.jsonl')
+    expect(result.message).toContain(`log: ${logPath}`)
+    expect(existsSync(logPath)).toBe(true)
+    expect(readFileSync(logPath, 'utf8')).toContain('reason X')
   })
 
   test('source missing the relocated template contract fails without invoking claude at all', async () => {
