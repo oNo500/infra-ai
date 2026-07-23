@@ -298,26 +298,41 @@ describe('runInit failure paths return ok:false instead of throwing', () => {
     expect(loadDownstreamLock(target)).toBeNull()
   })
 
-  test('claude produces no file: failure keeps the staging log and points at it', async () => {
+  test('claude declines with a reason: message surfaces it, no --force hint, log kept and shielded', async () => {
     const source = fixtureSource()
     const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
-    // claude exits 0 but writes nothing, and emits one event -- the exact shape
-    // of the real failure this logging was added to diagnose.
+    // claude exits 0 success but writes nothing, emitting a result event whose
+    // text is its refusal reason -- the exact shape of the empty-project case.
     const claude: IuseContext['claude'] = async (opts) => {
-      opts.onEvent?.({ type: 'assistant', text: 'cannot instantiate: reason X' })
+      opts.onEvent?.({ type: 'result', subtype: 'success', result: 'no project facts to fill the tech-stack placeholders' })
       return { code: 0, timedOut: false, stderr: '' }
     }
 
     const result = await runInit(ctxWith(claude), { source, profile: 'demo', target, force: false })
 
     expect(result.ok).toBe(false)
-    expect(result.message).toContain('did not produce the file')
+    expect(result.message).toContain('declined to instantiate')
+    expect(result.message).toContain('no project facts')
+    // an explicit refusal must NOT tell the user to retry -- retrying is futile
+    expect(result.message).not.toContain('--force')
     const logPath = join(target, '.iuse-staging/logs/architecture-2026-07-17T00-00-00Z.jsonl')
     expect(result.message).toContain(`log: ${logPath}`)
     expect(existsSync(logPath)).toBe(true)
-    expect(readFileSync(logPath, 'utf8')).toContain('reason X')
     // failure keeps staging, so .gitignore must shield it from an accidental commit
     expect(readFileSync(join(target, '.gitignore'), 'utf8')).toContain('.iuse-staging/')
+  })
+
+  test('claude produces no file and no reason: real failure keeps the --force hint', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    // exits 0 but emits no result event and writes nothing -- a genuine dud run.
+    const claude: IuseContext['claude'] = async () => ({ code: 0, timedOut: false, stderr: '' })
+
+    const result = await runInit(ctxWith(claude), { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(false)
+    expect(result.message).toContain('no file and gave no reason')
+    expect(result.message).toContain('--force')
   })
 
   test('source missing the relocated template contract fails without invoking claude at all', async () => {

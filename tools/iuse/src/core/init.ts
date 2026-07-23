@@ -92,8 +92,17 @@ async function instantiateTemplate(
   const logPath = join(target, '.iuse-staging', 'logs', `${spec.name}-${ctx.now().replaceAll(':', '-')}.jsonl`)
   mkdirSync(join(target, '.iuse-staging', 'logs'), { recursive: true })
   const logHint = ` (log: ${logPath})`
+  // claude 的 result 事件带最终结论文本。若它跑完 success 却没落盘，这段结论
+  // 通常是它「无法实例化」的理由（如目标项目无事实可填），据此区分「明确拒绝」
+  // 与「真失败」——前者重试无用，不该建议 --force。
+  // 对象持有而非裸 let：闭包内赋值不被 TS control-flow 窄化误判为 never。
+  const captured: { resultText: string | null } = { resultText: null }
   const onEvent = (raw: unknown): void => {
     appendFileSync(logPath, `${JSON.stringify(raw)}\n`)
+    if (typeof raw === 'object' && raw !== null) {
+      const ev = raw as { type?: unknown; result?: unknown }
+      if (ev.type === 'result' && typeof ev.result === 'string') captured.resultText = ev.result.trim()
+    }
   }
 
   const prompt = [
@@ -126,7 +135,14 @@ async function instantiateTemplate(
 
   const content = readTextIfExists(stagingFile)
   if (content === null) {
-    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude did not produce the file (rerun with --force to complete instantiation)${logHint}` }
+    // claude 跑完却没产文件：若它给了结论文本，是明确拒绝（重试无用），带理由呈现；
+    // 否则是真的没干活（崩溃/空跑），保留 --force 提示。
+    const resultText = captured.resultText
+    if (resultText !== null && resultText !== '') {
+      const reason = resultText.length > 500 ? `${resultText.slice(0, 500)}…` : resultText
+      return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude declined to instantiate — ${reason}${logHint}` }
+    }
+    return { ok: false, skipped: false, message: `${spec.targetRelPath}: claude produced no file and gave no reason (rerun with --force to retry)${logHint}` }
   }
   if (PLACEHOLDER_PATTERN.test(content)) {
     return { ok: false, skipped: false, message: `${spec.targetRelPath}: leftover [ALL_CAPS] placeholder after instantiation (rerun with --force to complete instantiation)${logHint}` }
