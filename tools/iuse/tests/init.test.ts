@@ -87,7 +87,9 @@ describe('runInit happy path', () => {
     expect(readFileSync(join(target, '.claude/rules/markdown.md'), 'utf8')).toContain('# Markdown')
     expect(JSON.parse(readFileSync(join(target, '.claude/settings.json'), 'utf8'))).toEqual({ model: 'sonnet' })
     expect(readFileSync(join(target, '.claude/rules/architecture.md'), 'utf8')).toBe('# demo - Architecture\n\nbody\n')
-    expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+    expect(readFileSync(join(target, '.claude/CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+    // default landing is under .claude/, never the project root
+    expect(existsSync(join(target, 'CLAUDE.md'))).toBe(false)
     // success clears staging (logs and staged files) -- no leftover noise
     expect(existsSync(join(target, '.iuse-staging'))).toBe(false)
     // success never touches the target's .gitignore (nothing to shield)
@@ -101,6 +103,21 @@ describe('runInit happy path', () => {
     expect(Object.keys(lock?.rules ?? {}).toSorted()).toEqual(['constitution', 'markdown'])
     expect(lock?.source.type).toBe('local')
     expect(lock?.source.locator).toBe(source)
+  })
+
+  test('a legacy root CLAUDE.md is left untouched but flagged so the two do not silently duplicate', async () => {
+    const source = fixtureSource()
+    const target = mkdtempSync(join(tmpdir(), 'iuse-init-tgt-'))
+    writeFileSync(join(target, 'CLAUDE.md'), '# legacy root\n')
+    const ctx = ctxWith(fakeClaudeWriting(demoInstantiate))
+
+    const result = await runInit(ctx, { source, profile: 'demo', target, force: false })
+
+    expect(result.ok).toBe(true)
+    // new landing populated, legacy root neither moved nor deleted
+    expect(readFileSync(join(target, '.claude/CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+    expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# legacy root\n')
+    expect(result.message).toContain('项目根仍有 CLAUDE.md')
   })
 
   test('pre-existing .claude/settings.json is left untouched without --force, and the skip is surfaced in both the message and onProgress', async () => {
@@ -187,7 +204,7 @@ describe('runInit against a dev-repo artifacts/ layout source', () => {
     expect(readFileSync(join(target, '.claude/rules/constitution.md'), 'utf8')).toBe('# Constitution\n')
     expect(JSON.parse(readFileSync(join(target, '.claude/settings.json'), 'utf8'))).toEqual({ model: 'sonnet' })
     expect(readFileSync(join(target, '.claude/rules/architecture.md'), 'utf8')).toBe('# demo - Architecture\n\nbody\n')
-    expect(readFileSync(join(target, 'CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
+    expect(readFileSync(join(target, '.claude/CLAUDE.md'), 'utf8')).toBe('# demo\n\nbody\n')
   })
 })
 
@@ -375,7 +392,7 @@ describe('runInit --dry-run', () => {
     const ruleTargets = steps.filter((s) => s.op === 'copy-rule').map((s) => s.target)
     expect(ruleTargets.toSorted()).toEqual(['.claude/rules/constitution.md', '.claude/rules/markdown.md'])
     const instantiateTargets = steps.filter((s) => s.op === 'instantiate').map((s) => s.target)
-    expect(instantiateTargets.toSorted()).toEqual(['.claude/rules/architecture.md', 'CLAUDE.md'])
+    expect(instantiateTargets.toSorted()).toEqual(['.claude/CLAUDE.md', '.claude/rules/architecture.md'])
 
     const lines = result.message.split('\n')
     expect(lines).toContain('write-lock .claude/infra-ai.lock.json')

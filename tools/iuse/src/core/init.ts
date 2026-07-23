@@ -28,7 +28,7 @@ interface TemplateSpec {
 
 const TEMPLATE_SPECS: TemplateSpec[] = [
   { name: 'architecture', sourceRelPath: 'templates/architecture.md', targetRelPath: '.claude/rules/architecture.md' },
-  { name: 'claude-md', sourceRelPath: 'templates/claude-md.md', targetRelPath: 'CLAUDE.md' },
+  { name: 'claude-md', sourceRelPath: 'templates/claude-md.md', targetRelPath: '.claude/CLAUDE.md' },
 ]
 
 const PLACEHOLDER_PATTERN = /\[[A-Z][A-Z0-9_]*\]/u
@@ -361,9 +361,18 @@ export async function runInit(
     return note === undefined ? s : { ...s, note: note.slice(s.target.length + 2) }
   })
 
+  // 落位从根 CLAUDE.md 迁到 .claude/CLAUDE.md 后，旧版本装下的根文件仍会被
+  // Claude Code 加载（官方支持二者并存，内容叠加）。不代删（可能是用户手写），
+  // 只提示，避免两份 CLAUDE.md 内容重复而无察觉。
+  const legacyRootClaudeMd = join(opts.target, 'CLAUDE.md')
+  const legacyNote =
+    existsSync(legacyRootClaudeMd)
+      ? ['注意：项目根仍有 CLAUDE.md；本次已落位到 .claude/CLAUDE.md，两者会同时加载，确认后可删除根文件']
+      : []
+
   return {
     ok: true,
-    message: [`initialized profile '${opts.profile}' from ${source.locator}`, ...notes].join('\n'),
+    message: [`initialized profile '${opts.profile}' from ${source.locator}`, ...notes, ...legacyNote].join('\n'),
     steps: finalSteps,
   }
 }
